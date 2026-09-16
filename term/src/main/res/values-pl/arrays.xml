@@ -31,6 +31,7 @@
         <item>Ciemny</item>
         <item>Jasny</item>
         <item>Systemowy</item>
+        <item>AMOLED</item>
     </string-array>
 
     <string-array name="entries_orientation_preference">
@@ -130,26 +131,6 @@
     </string-array>
 
     <!-- These are the 'short' names for the control keys. They are used in the special keys dialog. -->
-    <string-array name="control_keys_short_names">
-        <item>Kulka</item>
-        <item>\@</item>
-        <item>Lewy Alt</item>
-        <item>Prawy Alt</item>
-        <item>Vol-Up</item>
-        <item>Vol-Dn</item>
-        <item>Aparat</item>
-        <item>Żaden</item>
-    </string-array>
 
     <!-- These are the 'short' names for the Fn keys. They are used in the special keys dialog. -->
-    <string-array name="fn_keys_short_names">
-        <item>Kulka</item>
-        <item>\@</item>
-        <item>Lewy Alt</item>
-        <item>Prawy</item>
-        <item>Vol-Up</item>
-        <item>Vol-Dn</item>
-        <item>Aparat</item>
-        <item>Żaden</item>
-    </string-array>
 </resources>

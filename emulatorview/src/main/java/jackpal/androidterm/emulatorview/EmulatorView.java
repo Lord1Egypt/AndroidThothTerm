@@ -23,6 +23,7 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.URLSpan;
@@ -203,6 +204,18 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     private int mFnKeyCode;
     private boolean mIsControlKeySent = false;
     private boolean mIsFnKeySent = false;
+
+    public static final int EXTRA_MODIFIER_INACTIVE = 0;
+    public static final int EXTRA_MODIFIER_ARMED = 1;
+    public static final int EXTRA_MODIFIER_LOCKED = 2;
+
+    private int mExtraControlState = EXTRA_MODIFIER_INACTIVE;
+    private int mExtraAltState = EXTRA_MODIFIER_INACTIVE;
+    private OnExtraModifierStateChangedListener mExtraModifierStateChangedListener;
+
+    public interface OnExtraModifierStateChangedListener {
+        void onExtraModifierStateChanged(int controlState, int altState);
+    }
 
     private boolean mMouseTracking;
 
@@ -591,35 +604,21 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
             private void sendText(CharSequence text) {
                 int n = text.length();
                 char c;
-                try {
-                    for (int i = 0; i < n; i++) {
-                        c = text.charAt(i);
-                        if (Character.isHighSurrogate(c)) {
-                            int codePoint;
-                            if (++i < n) {
-                                codePoint = Character.toCodePoint(c, text.charAt(i));
-                            } else {
-                                // Unicode Replacement Glyph, aka white question mark in black diamond.
-                                codePoint = '\ufffd';
-                            }
-                            mapAndSend(codePoint);
+                for (int i = 0; i < n; i++) {
+                    c = text.charAt(i);
+                    if (Character.isHighSurrogate(c)) {
+                        int codePoint;
+                        if (++i < n) {
+                            codePoint = Character.toCodePoint(c, text.charAt(i));
                         } else {
-                            mapAndSend(c);
+                            // Unicode Replacement Glyph, aka white question mark in black diamond.
+                            codePoint = '\ufffd';
                         }
+                        EmulatorView.this.sendCodePoint(codePoint);
+                    } else {
+                        EmulatorView.this.sendCodePoint(c);
                     }
-                } catch (IOException e) {
-                    Log.e(TAG, "error writing ", e);
                 }
-            }
-
-            private void mapAndSend(int c) throws IOException {
-                int result = mKeyListener.mapControlChar(c);
-                if (result < TermKeyListener.KEYCODE_OFFSET) {
-                    mTermSession.write(result);
-                } else {
-                    mKeyListener.handleKeyCode(result - TermKeyListener.KEYCODE_OFFSET, null, getKeypadApplicationMode());
-                }
-                clearSpecialKeyStatus();
             }
 
             public boolean beginBatchEdit() {
@@ -870,6 +869,26 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
             invalidate();
         }
         mImeBuffer = buffer;
+    }
+
+    private void sendCodePoint(int codePoint) {
+        try {
+            if (mExtraAltState != EXTRA_MODIFIER_INACTIVE) {
+                mTermSession.write(new byte[]{0x1b}, 0, 1);
+            }
+            int result = mKeyListener.mapControlChar(codePoint,
+                    mExtraControlState != EXTRA_MODIFIER_INACTIVE);
+            if (result < TermKeyListener.KEYCODE_OFFSET) {
+                mTermSession.write(result);
+            } else {
+                mKeyListener.handleKeyCode(result - TermKeyListener.KEYCODE_OFFSET,
+                        null, getKeypadApplicationMode());
+            }
+            clearSpecialKeyStatus();
+            consumeArmedExtraModifiers();
+        } catch (IOException e) {
+            Log.e(TAG, "error writing ", e);
+        }
     }
 
     /**
@@ -1287,6 +1306,7 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         int action = ev.getAction();
         int cx = (int)(ev.getX() / mCharacterWidth);
         int cy = Math.max(0, (int)(ev.getY() / mCharacterHeight - 0.7) + mTopRow);
+        cx = mEmulator.getScreen().logicalColumnForVisual(cy, cx);
         switch (action) {
         case MotionEvent.ACTION_DOWN:
             mSelX2 = mSelX1 = mSelXAnchor = cx;
@@ -1355,9 +1375,24 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         // Translate the keyCode into an ASCII character.
 
         try {
+            if (mExtraControlState != EXTRA_MODIFIER_INACTIVE
+                    || mExtraAltState != EXTRA_MODIFIER_INACTIVE) {
+                int metaState = event.getMetaState();
+                if (mExtraControlState != EXTRA_MODIFIER_INACTIVE) {
+                    metaState |= KeyEvent.META_CTRL_ON;
+                }
+                if (mExtraAltState != EXTRA_MODIFIER_INACTIVE) {
+                    metaState |= KeyEvent.META_ALT_ON;
+                }
+                event = new KeyEvent(event.getDownTime(), event.getEventTime(),
+                        event.getAction(), event.getKeyCode(), event.getRepeatCount(),
+                        metaState, event.getDeviceId(), event.getScanCode(),
+                        event.getFlags(), event.getSource());
+            }
             int oldCombiningAccent = mKeyListener.getCombiningAccent();
             int oldCursorMode = mKeyListener.getCursorMode();
             mKeyListener.keyDown(keyCode, event, getKeypadApplicationMode());
+            consumeArmedExtraModifiers();
             if (mKeyListener.getCombiningAccent() != oldCombiningAccent
                     || mKeyListener.getCursorMode() != oldCursorMode) {
                 invalidate();
@@ -1522,7 +1557,12 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         mVisibleColumns = Math.max(1, (int) (((float) mVisibleWidth) / mCharacterWidth));
 
         mTopOfScreenMargin = mTextRenderer.getTopMargin();
-        mLeftPadding = (w - mVisibleColumns * (int)mCharacterWidth) / 2;
+        // Center the cell grid using the same fractional cell width used to
+        // lay out text. Rounding the cell width to an int here over-estimates
+        // the padding and shifts every column to the right, pushing the last
+        // columns (and their cursor) off the right edge.
+        mLeftPadding = (int) ((w - mVisibleColumns * mCharacterWidth) / 2f);
+        if (mLeftPadding < 0) mLeftPadding = 0;
 
         mRows = Math.max(1, (h - mTopOfScreenMargin) / mCharacterHeight);
         mVisibleRows = Math.max(1, (mVisibleHeight - mTopOfScreenMargin) / mCharacterHeight);
@@ -1699,6 +1739,85 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         mIsFnKeySent = true;
         mKeyListener.handleFnKey(true);
         invalidate();
+    }
+
+    /**
+     * Set a modifier supplied by an in-app extra-keys toolbar.
+     */
+    public void setExtraModifierState(boolean control, int state) {
+        if (state < EXTRA_MODIFIER_INACTIVE || state > EXTRA_MODIFIER_LOCKED) {
+            state = EXTRA_MODIFIER_INACTIVE;
+        }
+        if (control) {
+            mExtraControlState = state;
+        } else {
+            mExtraAltState = state;
+        }
+        notifyExtraModifierStateChanged();
+        invalidate();
+    }
+
+    public void clearExtraModifiers() {
+        if (mExtraControlState == EXTRA_MODIFIER_INACTIVE
+                && mExtraAltState == EXTRA_MODIFIER_INACTIVE) {
+            return;
+        }
+        mExtraControlState = EXTRA_MODIFIER_INACTIVE;
+        mExtraAltState = EXTRA_MODIFIER_INACTIVE;
+        notifyExtraModifierStateChanged();
+        invalidate();
+    }
+
+    public void setOnExtraModifierStateChangedListener(
+            OnExtraModifierStateChangedListener listener) {
+        mExtraModifierStateChangedListener = listener;
+        notifyExtraModifierStateChanged();
+    }
+
+    /**
+     * Route a toolbar key through the normal terminal key translator so
+     * application cursor/keypad modes and modifier escape sequences are kept.
+     */
+    public void sendExtraKey(int keyCode) {
+        long now = SystemClock.uptimeMillis();
+        onKeyDown(keyCode, new KeyEvent(now, now, KeyEvent.ACTION_DOWN,
+                keyCode, 0));
+        onKeyUp(keyCode, new KeyEvent(now, now, KeyEvent.ACTION_UP,
+                keyCode, 0));
+        requestFocus();
+    }
+
+    /** Send literal toolbar symbols through the same character mapping as IME text. */
+    public void sendExtraText(CharSequence text) {
+        for (int offset = 0; offset < text.length();) {
+            int codePoint = Character.codePointAt(text, offset);
+            sendCodePoint(codePoint);
+            offset += Character.charCount(codePoint);
+        }
+        requestFocus();
+    }
+
+    private void consumeArmedExtraModifiers() {
+        boolean changed = false;
+        if (mExtraControlState == EXTRA_MODIFIER_ARMED) {
+            mExtraControlState = EXTRA_MODIFIER_INACTIVE;
+            changed = true;
+        }
+        if (mExtraAltState == EXTRA_MODIFIER_ARMED) {
+            mExtraAltState = EXTRA_MODIFIER_INACTIVE;
+            changed = true;
+        }
+        if (changed) {
+            notifyExtraModifierStateChanged();
+            invalidate();
+        }
+    }
+
+    private void notifyExtraModifierStateChanged() {
+        if (mExtraModifierStateChangedListener != null) {
+            mExtraModifierStateChangedListener.onExtraModifierStateChanged(
+                    mExtraControlState, mExtraAltState);
+        }
     }
 
     /**

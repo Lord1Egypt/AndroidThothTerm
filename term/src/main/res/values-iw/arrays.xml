@@ -106,24 +106,4 @@
         <item>מבוסס תווים</item>
         <item>מבוסס מילים</item>
     </string-array>
-    <string-array name="control_keys_short_names">
-        <item>כדור</item>
-        <item>\@</item>
-        <item>ALT-שמאלי</item>
-        <item>ALT-ימני</item>
-        <item>קול עליון</item>
-        <item>קול תחתון</item>
-        <item>מצלמה</item>
-        <item>ריק</item>
-    </string-array>
-    <string-array name="fn_keys_short_names">
-        <item>כדור</item>
-        <item>\@</item>
-        <item>ALT-שמאלי</item>
-        <item>ALT-ימני</item>
-        <item>קול עליון</item>
-        <item>קול תחתון</item>
-        <item>מצלמה</item>
-        <item>ריק</item>
-    </string-array>
 </resources>

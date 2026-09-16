@@ -23,8 +23,8 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 570
-        versionName '5.7.0'
+        versionCode 10000
+        versionName '1.0.0'
 
         manifestPlaceholders.applicationIdSuffix = ""
         buildConfigField("String", "APPLICATION_ID_SUFFIX", "\"\"")
@@ -54,7 +54,6 @@ android {
         }
         full {
             dimension 'catalog'
-            versionName android.defaultConfig.versionName + "/X"
         }
     }
     if (project.hasProperty("signing.properties")) {

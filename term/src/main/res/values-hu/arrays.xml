@@ -119,27 +119,7 @@
     </string-array>
 
     <!-- These are the 'short' names for the control keys. They are used in the special keys dialog. -->
-    <string-array name="control_keys_short_names">
-        <item>Görgő</item>
-        <item>\@</item>
-        <item>Bal-Alt</item>
-        <item>Jobb-Alt</item>
-        <item>Hangerő-fel</item>
-        <item>Hangerő-le</item>
-        <item>Kamera</item>
-        <item>Nincs</item>
-    </string-array>
 
     <!-- These are the 'short' names for the Fn keys. They are used in the special keys dialog. -->
-    <string-array name="fn_keys_short_names">
-        <item>Görgő</item>
-        <item>\@</item>
-        <item>Bal-Alt</item>
-        <item>Jobb-Alt</item>
-        <item>Hangerő-fel</item>
-        <item>Hangerő-le</item>
-        <item>Kamera</item>
-        <item>Nincs</item>
-    </string-array>
 
 </resources>

@@ -58,8 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="prev_window">Fenêtre préc.</string>
     <string name="next_window">Fenêtre suiv.</string>
     <string name="reset">Terminal par défaut</string>
-    <string name="send_email">Envoyer par courriel</string>
-    <string name="special_keys">Touches spéciales</string>
     <string name="toggle_soft_keyboard">Afficher/Masquer le clavier</string>
 
     <string name="reset_toast_notification">État de cette fenêtre par défaut.</string>
@@ -159,22 +157,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="title_home_path_preference">Dossier HOME</string>
     <string name="summary_home_path_preference">Chemin vers un dossier accessible en écriture pour être utilisé comme HOME.</string>
 
-    <string name="control_key_dialog_title">Touches Control et Fonction</string>
     <!-- Le mot CTRLKEY ne doit pas être traduit. Il sera remplacé par la touche CTRL renseignée dans les paramètres -->
-    <string name="control_key_dialog_control_text">CTRLKEY Space : Control-@ (NUL)\nCTRLKEY A..Z : Control-A..Z\nCTRLKEY 5 : Control-]\nCTRLKEY 6 : Control-^\nCTRLKEY 7 : Control-_\nCTRLKEY 9 : F11\nCTRLKEY 0 : F12</string>
-    <string name="control_key_dialog_control_disabled_text">Touche Control non paramétrée.</string>
     <!-- Le mot FNKEY ne doit pas être traduit. Il sera remplacé par la touche Fn renseignée dans les paramètres -->
-    <string name="control_key_dialog_fn_text">FNKEY 1..9 : F1-F9\nFNKEY 0 : F10\nFNKEY W : Haut\nFNKEY A : Gauche\nFNKEY S : Bas\nFNKEY D : Droite\nFNKEY P : PageHaut\nFNKEY N : PageBas\nFNKEY T : Tab\nFNKEY L : | (pipe)\nFNKEY U : _ (underscore)\nFNKEY E : Control-[ (ESC)\nFNKEY X : Suppr.\nFNKEY I : Inser.\nFNKEY H : Début\nFNKEY F : Fin\nFNKEY . : Control-\\\n</string>
-    <string name="control_key_dialog_fn_disabled_text">Touche fonction non paramétrée.</string>
 
     <string name="confirm_window_close_message">Fermer cette fenêtre ?</string>
 
     <string name="perm_run_script">Lancer des commandes tierces</string>
     <string name="permdesc_run_script">Permettre à une application d\'ouvrir une nouvelle fenêtre dans Terminal Emulator en exécutant des commandes avec les permissions de l\'application comme l\'accès à Internet et à votre carte SD</string>
 
-    <string name="email_transcript_subject">Transcription depuis Terminal Emulator</string>
-    <string name="email_transcript_chooser_title">La transcription par email utilise :</string>
-    <string name="email_transcript_no_email_activity_found">Impossible de choisir une activité de messagerie pour envoyer la transcription</string>
 
     <string name="alt_sends_esc">Touche Alt</string>
     <string name="alt_sends_esc_summary_on">Alt simule la touche Echap</string>
@@ -187,7 +177,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="use_keyboard_shortcuts_summary_on">Ctrl-Tab: cycle window, Ctrl-Shift-N: nouvelle fenêtre, Ctrl-Shift-V: coller.</string>
     <string name="use_keyboard_shortcuts_summary_off">Raccourcis clavier désactivés.</string>
 
-    <string name="help">Aide</string>
 
     <!-- BEGIN SHORTCUT RELATED STRINGS -->
     <!-- AndroidManifest.xml -->

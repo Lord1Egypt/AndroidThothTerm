@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">ThothTerm brand mark</title>
+  <desc id="desc">A bold terminal prompt: a white chevron and a teal command bar.</desc>
+  <path d="M156 171 L270 251 L156 332 L156 284 L213 251 L156 218 Z" fill="#ffffff"/>
+  <rect x="251" y="284" width="115" height="48" rx="24" fill="#39d9c5"/>
+</svg>

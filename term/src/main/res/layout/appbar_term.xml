@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
- * Copyright (c) 2017-2022 Roumen Petrov.  All rights reserved.
+ * Copyright (c) 2017-2026 Roumen Petrov.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,23 +20,26 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@android:color/transparent"
-    android:theme="?attr/actionBarTheme">
+    android:background="@android:color/transparent">
 
+    <!-- A single, compact bar: brand title, live session subtitle on the
+         second line, and New window plus the overflow menu at the end.
+         AppCompat constrains and ellipsizes the title/subtitle against the
+         menu, so long session labels never wrap or push the actions away. -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
-        app:logo="@mipmap/ic_launcher"
-        app:popupTheme="?attr/actionBarPopupTheme">
-
-        <Spinner
-            android:id="@+id/spinner"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            app:popupTheme="?attr/actionBarPopupTheme"/>
-
-    </androidx.appcompat.widget.Toolbar>
+        android:theme="@style/ThothTerm.Toolbar.Theme"
+        app:contentInsetStartWithNavigation="4dp"
+        app:contentInsetEnd="4dp"
+        app:popupTheme="?attr/actionBarPopupTheme"
+        app:subtitleTextColor="@color/brand_text_muted_dark"
+        app:subtitleTextAppearance="@style/ThothTerm.Toolbar.Subtitle"
+        app:title="@string/application_terminal"
+        app:titleMarginStart="8dp"
+        app:titleTextAppearance="@style/ThothTerm.Toolbar.Title"
+        app:titleTextColor="@color/brand_white"/>
 
 </com.google.android.material.appbar.AppBarLayout>

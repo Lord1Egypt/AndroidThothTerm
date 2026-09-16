@@ -24,15 +24,18 @@
           android:title="@string/new_window"
           app:showAsAction="always"/>
     <item android:id="@+id/menu_close_window"
-          android:icon="@drawable/ic_close_24dp"
           android:title="@string/close_window"
-          app:showAsAction="ifRoom"/>
+          app:showAsAction="never"/>
     <item android:id="@+id/menu_toggle_soft_keyboard"
-          android:title="@string/toggle_soft_keyboard"/>
+          android:title="@string/toggle_soft_keyboard"
+          app:showAsAction="never"/>
     <item android:id="@+id/menu_reset"
-          android:title="@string/reset"/>
+          android:title="@string/reset"
+          app:showAsAction="never"/>
     <item android:id="@+id/menu_toggle_wakelock"
-          android:title="@string/enable_wakelock"/>
+          android:title="@string/enable_wakelock"
+          app:showAsAction="never"/>
     <item android:id="@+id/menu_toggle_wifilock"
-          android:title="@string/enable_wifilock"/>
+          android:title="@string/enable_wifilock"
+          app:showAsAction="never"/>
 </menu>

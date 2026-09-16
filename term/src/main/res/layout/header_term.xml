@@ -22,55 +22,64 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/header_background"
-    android:gravity="bottom"
+    android:gravity="center_vertical"
+    android:minHeight="144dp"
     android:orientation="vertical"
-    android:padding="@dimen/activity_margin">
+    android:paddingStart="@dimen/activity_margin"
+    android:paddingLeft="@dimen/activity_margin"
+    android:paddingTop="24dp"
+    android:paddingEnd="@dimen/activity_margin"
+    android:paddingRight="@dimen/activity_margin"
+    android:paddingBottom="8dp">
 
     <LinearLayout
         android:id="@+id/app_home"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         tools:ignore="UseCompoundDrawables">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="@string/application_site"
+            app:srcCompat="@drawable/ic_brand_mark"/>
 
-            <ImageView
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginLeft="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:contentDescription="@string/application_site"
-                app:srcCompat="@mipmap/ic_launcher"/>
+                android:text="@string/application_terminal"
+                android:textColor="@color/brand_white"
+                android:textSize="20sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/application_positioning"
+                android:textColor="@color/brand_text_muted_dark"
+                android:textSize="13sp"/>
 
             <TextView
                 android:id="@+id/app_ver"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:layout_marginLeft="@dimen/text2_margin"
-                android:textAppearance="?android:attr/textAppearanceSmall"/>
+                android:layout_marginTop="8dp"
+                android:textColor="@color/brand_text_muted_dark"
+                android:textSize="12sp"/>
 
         </LinearLayout>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/text_margin"
-            android:text="@string/application_terminal"
-            android:textAppearance="?android:attr/textAppearanceMedium"/>
-
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/app_email"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/text4_margin"
-        android:text="@string/application_email"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textStyle="italic"
-        android:visibility="gone"/>
 
 </LinearLayout>

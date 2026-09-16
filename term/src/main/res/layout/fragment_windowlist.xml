@@ -36,7 +36,11 @@
     <TextView
         android:id="@android:id/empty"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:padding="32dp"
+        android:text="@string/no_terminal_sessions"
+        android:textAppearance="?android:attr/textAppearanceMedium">
     </TextView>
 
 </LinearLayout>

@@ -438,6 +438,11 @@ class TermKeyListener {
         return mapControlChar(mHardwareControlKey || mControlKey.isActive(), mFnKey.isActive(), ch);
     }
 
+    public int mapControlChar(int ch, boolean extraControl) {
+        return mapControlChar(extraControl || mHardwareControlKey || mControlKey.isActive(),
+                mFnKey.isActive(), ch);
+    }
+
     public int mapControlChar(boolean control, boolean fn, int ch) {
         int result = ch;
         if (control) {
@@ -571,8 +576,9 @@ class TermKeyListener {
             chordedCtrl = ((META_CTRL_ON & metaState) != 0);
             boolean effectiveCaps = allowToggle &&
                     (mCapKey.isActive());
-            boolean effectiveAlt = allowToggle && mAltKey.isActive();
             int effectiveMetaState = metaState & (~META_CTRL_MASK);
+            boolean effectiveAlt = mAltKey.isActive()
+                    || (effectiveMetaState & META_ALT_ON) != 0;
             if (effectiveCaps) {
                 effectiveMetaState |= KeyEvent.META_SHIFT_ON;
             }

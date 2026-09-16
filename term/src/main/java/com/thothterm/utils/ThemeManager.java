@@ -82,6 +82,10 @@ public class ThemeManager {
                 resid = actionbar ? R.style.AppTheme_DayNight
                         : R.style.AppTheme_DayNight_NoActionBar;
                 break;
+            case "amoled":
+                resid = actionbar ? R.style.AppTheme_Amoled
+                        : R.style.AppTheme_Amoled_NoActionBar;
+                break;
         }
 
         return resid;

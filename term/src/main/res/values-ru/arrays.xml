@@ -102,25 +102,5 @@
         <item>По словам</item>
     </string-array>
 
-    <string-array name="control_keys_short_names">
-        <item>Трекбол</item>
-        <item>\@</item>
-        <item>LAlt</item>
-        <item>RAlt</item>
-        <item>Vol+</item>
-        <item>Vol-</item>
-        <item>Камера</item>
-        <item>Нет</item>
-    </string-array>
 
-    <string-array name="fn_keys_short_names">
-        <item>Трекбол</item>
-        <item>\@</item>
-        <item>LAlt</item>
-        <item>RAlt</item>
-        <item>Vol+</item>
-        <item>Vol-</item>
-        <item>Камера</item>
-        <item>Нет</item>
-    </string-array>
 </resources>

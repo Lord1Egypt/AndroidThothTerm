@@ -24,8 +24,6 @@
     <string name="prev_window">Aurreko leihoa</string>
     <string name="next_window">Hurrengo leihoa</string>
     <string name="reset">Berrezarri terminala</string>
-    <string name="send_email">Bidali eposta ...(r)i</string>
-    <string name="special_keys">Tekla bereziak</string>
     <string name="toggle_soft_keyboard">Txandakatu soft teklatua</string>
 
     <string name="reset_toast_notification">-Terminal leiho honen egoera berrezarri da.</string>
@@ -115,15 +113,10 @@
     <string name="title_close_window_on_process_exit_preference">Itxi leihoa irtetean</string>
     <string name="summary_close_window_on_process_exit_preference">Bere shell-a irtetean leiho bat itxi behar litzatekeen ala ez.</string>
 
-    <string name="control_key_dialog_title">Kontrol and Funtzio Teklak</string>
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->
-    <string name="control_key_dialog_control_text">CTRLKEY Zuriunea : Kontrol-@ (NUL)\nCTRLKEY A..Z : Kontrol-A..Z\nCTRLKEY 5 : Kontrol-]\nCTRLKEY 6 : Kontrol-^\nCTRLKEY 7 : Kontrol-_\nCTRLKEY 9 : F11\nCTRLKEY 0 : F12</string>
-    <string name="control_key_dialog_control_disabled_text">Ez da kontrol teklarik ezarri.</string>
     <!-- The word FNKEY should be left un-translated. It will be replaced at run-time with the
          actual function key key name. -->
-    <string name="control_key_dialog_fn_text">FNKEY 1..9 : F1-F9\nFNKEY 0 : F10\nFNKEY W : Gora\nFNKEY A : Ezkerra\nFNKEY S : Behera\nFNKEY D : Eskuina\nFNKEY P : Hurrengo-orria\nFNKEY N : Aurreko-orria\nFNKEY T : Tabulatzailea\nFNKEY L : | (kanalizazioa)\nFNKEY U : _ (azpimarra)\nFNKEY E : Kontrol-[ (ESC)\nFNKEY X : Ezabatu\nFNKEY I : Txertatu\nFNKEY H : Etxea\nFNKEY F : Bukaera\nFNKEY . : Kontrol-\\\n</string>
-    <string name="control_key_dialog_fn_disabled_text">Ez da funtzio teklarik ezarri.</string>
 
     <string name="confirm_window_close_message">Leiho hau itxi?</string>
 

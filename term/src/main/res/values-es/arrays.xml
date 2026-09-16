@@ -119,26 +119,6 @@
     </string-array>
 
     <!-- These are the 'short' names for the control keys. They are used in the special keys dialog. -->
-    <string-array name="control_keys_short_names">
-        <item>T.Ball</item>
-        <item>\@</item>
-        <item>Alt.Izq.</item>
-        <item>Alt.Dcha.</item>
-        <item>Vol.Subir</item>
-        <item>Vol.Bajar</item>
-        <item>Cámara</item>
-        <item>Ninguna</item>
-    </string-array>
 
     <!-- These are the 'short' names for the Fn keys. They are used in the special keys dialog. -->
-    <string-array name="fn_keys_short_names">
-        <item>T.Ball</item>
-        <item>\@</item>
-        <item>Alt.Izq.</item>
-        <item>Alt.Dcha.</item>
-        <item>Vol.Subir</item>
-        <item>Vol.Bajar</item>
-        <item>Cámara</item>
-        <item>Ninguna</item>
-    </string-array>
 </resources>
