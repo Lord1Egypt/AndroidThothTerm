@@ -1,0 +1,26 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+plugins {
+    // NOTE gradle plugin version 7.* before 7.0.2 fail to pack native libraries!
+    alias libs.plugins.android.application apply false
+    alias libs.plugins.android.library apply false
+}
+
+apply from: 'buildTools.gradle'
+apply from: 'sdkVersion.gradle'
+apply from: 'ndkVersion.gradle'
+
+tasks.register('clean', Delete) {
+    delete rootProject.layout.buildDirectory
+}
+
+apply from: 'version.gradle'
+tasks.named('wrapper') {
+    //distributionUrl = "https://services.gradle.org/distributions/gradle-${gradleVersion}-bin.zip"
+}
+
+tasks.named("updateDaemonJvm") {
+    // requires foojay plugin >= 1.0.0, see settings.gradle
+    languageVersion = JavaLanguageVersion.of(17)
+    vendor = JvmVendorSpec.JETBRAINS
+}

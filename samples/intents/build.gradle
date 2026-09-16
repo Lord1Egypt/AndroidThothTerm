@@ -1,0 +1,67 @@
+plugins {
+    id 'com.android.application'
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+        vendor = JvmVendorSpec.JETBRAINS
+    }
+}
+
+// "ThothTerm" applicationId
+def termApplicationId = "com.thothterm"
+
+android {
+    namespace = "com.thothterm.sample.intents"
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    defaultConfig {
+        applicationId "com.thothterm.sample.intents"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        versionCode 210
+        versionName '2.1.0'
+
+        manifestPlaceholders.applicationIdSuffix = ""
+        buildConfigField("String", "APPLICATION_ID_SUFFIX", "\"\"")
+
+        manifestPlaceholders.termApplicationId = "${termApplicationId}"
+        buildConfigField("String", "TERM_APPLICATION_ID", "\"${termApplicationId}\"")
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    productFlavors {
+    }
+    buildTypes {
+        debug {
+            applicationIdSuffix ".devel"
+
+            // NOTE: used in third party development applications
+            manifestPlaceholders.applicationIdSuffix = "${applicationIdSuffix}"
+            buildConfigField("String", "APPLICATION_ID_SUFFIX", "\"${applicationIdSuffix}\"")
+        }
+        release {
+            minifyEnabled = false
+            // use default file with automatically generated optimization rules/R8 optimizer
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.txt'
+        }
+    }
+    buildFeatures {
+        buildConfig = true
+    }
+}
+
+dependencies {
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.annotation
+}

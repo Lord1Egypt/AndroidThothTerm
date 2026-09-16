@@ -1,0 +1,4 @@
+= AddOn (Sample)
+
+New command collection model based on RPC.
+This model replaces "path broadcast" model which is with limited usability on Android releases like 14.

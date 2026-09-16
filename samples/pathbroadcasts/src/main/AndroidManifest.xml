@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="${termApplicationId}${applicationIdSuffix}.permission.APPEND_TO_PATH"/>
+    <!-- Declare this if you want to receive PATH prepend broadcasts -->
+    <uses-permission android:name="${termApplicationId}${applicationIdSuffix}.permission.PREPEND_TO_PATH"/>
+
+    <application
+        android:allowBackup="false"
+        android:label="@string/app_name"
+        tools:ignore="GoogleAppIndexingWarning">
+
+        <receiver
+            android:name=".PathReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="${termApplicationId}${applicationIdSuffix}.broadcast.APPEND_TO_PATH"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="${termApplicationId}${applicationIdSuffix}.broadcast.PREPEND_TO_PATH"/>
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

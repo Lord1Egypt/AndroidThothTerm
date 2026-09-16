@@ -1,0 +1,78 @@
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+        vendor = JvmVendorSpec.JETBRAINS
+    }
+}
+
+android {
+    namespace = "jackpal.androidterm.emulatorview"
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    testOptions {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    productFlavors {
+    }
+    buildTypes {
+        release {
+            minifyEnabled = false
+            // use default file with automatically generated optimization rules/R8 optimizer
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.txt'
+        }
+    }
+    publishing {
+        singleVariant('release') {}
+    }
+}
+
+dependencies {
+    implementation libs.annotation
+}
+
+apply from: 'libVersion.gradle'
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = 'com.thothterm'
+            artifactId = 'emulatorview'
+            version = project.ext.emulatorViewVersion
+            pom {
+                name = 'Emulator View'
+                description = 'A terminal emulator library for Android OS'
+                url = 'https://github.com/Lord1Egypt/AndroidThothTerm'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                packaging = 'aar'
+                scm {
+                    url = 'https://github.com/Lord1Egypt/AndroidThothTerm/tree/master/emulatorview'
+                }
+            }
+            afterEvaluate {
+                from components.release
+            }
+        }
+    }
+}

@@ -1,0 +1,24 @@
+= Path Broadcasts (Sample)
+
+Deprecated functionality that uses "broadcasts" to collect extra paths with shell commands.
+Supported until "ThothTerm" 5.4.
+
+== DEPRECATION:
+. Collection of "extra" path components slow down opening of normal sessions.
+. User does not have control of collected path elements.
+. Path could be collected only when application is running.
+  Exceptions are remote actions.
+. Applications that run on Android 8.0 (Oreo, API Level 26) or higher no longer receive implicit broadcasts registered in their manifest.
+  In transition period "broadcast" functionality will be restricted only to applications signed with the same certificate i.e., "SecureBox".
+. Android 10 (API Level 29) or higher removes execute permission from application directory tree.
+  So binaries that run on Android 10 (API Level 29) must be installed in write protected location.
+. Application service
+  A service could ensure running application.
+  Android 8 (API Level 26) or higher must request foreground service.
+  Subsequent Android releases add more restrictions to foreground services, for instance notifications.
+  Android 14 (API Level 34) requires application to declare all foreground services with their service types and respective permissions.
+  Google Play Store requires application that target (API Level 34) to provide video declaration that shows why application needs declared service types.
+
+
+== FUTURE:
+* See "AddOn" sample.

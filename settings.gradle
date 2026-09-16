@@ -1,0 +1,41 @@
+pluginManagement {
+    repositories {
+        mavenCentral()
+        google()
+        gradlePluginPortal()
+    }
+
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.android.application") {
+                useModule("com.android.tools.build:gradle:${requested.version}")
+            }
+            if (requested.id.id == "com.android.library") {
+                useModule("com.android.tools.build:gradle:${requested.version}")
+            }
+        }
+    }
+}
+
+plugins {
+    // gradle -q javaToolchains
+    id('org.gradle.toolchains.foojay-resolver-convention') version '1.0.0'
+}
+
+dependencyResolutionManagement {
+    //TODO Gradle 8.3 :
+    // "Build was configured to prefer settings repositories over project repositories but repository ... was added by initialization script '.../init.gradle'"
+    //repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+        google()
+    }
+}
+
+include ':term'
+include ':libtermexec'
+include ':emulatorview'
+//include ':samples:addon'
+//include ':samples:intents'
+//include ':samples:pathbroadcasts'
+//include ':samples:telnet'

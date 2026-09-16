@@ -1,0 +1,72 @@
+plugins {
+    id 'com.android.application'
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+        vendor = JvmVendorSpec.JETBRAINS
+    }
+}
+
+// "ThothTerm" applicationId
+def termApplicationId = "com.thothterm"
+
+android {
+    namespace = 'com.thothterm.sample.addon'
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    ndkVersion = rootProject.ext.ndkVersion
+    defaultConfig {
+        applicationId "com.thothterm.sample.addon"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        versionCode 1
+        versionName "1.0"
+
+        manifestPlaceholders.applicationIdSuffix = ""
+
+        manifestPlaceholders.termApplicationId = "${termApplicationId}"
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+        }
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildTypes {
+        debug {
+            applicationIdSuffix ".devel"
+
+            // NOTE: used in third party development applications
+            manifestPlaceholders.applicationIdSuffix = "${applicationIdSuffix}"
+        }
+        release {
+            minifyEnabled = false
+            // use default file with automatically generated optimization rules/R8 optimizer
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures {
+        aidl = true
+        buildConfig = true
+    }
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+}
+
+dependencies {
+    implementation libs.appcompat
+}

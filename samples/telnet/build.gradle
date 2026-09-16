@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+        vendor = JvmVendorSpec.JETBRAINS
+    }
+}
+
+android {
+    namespace = "jackpal.androidterm.sample.telnet"
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    defaultConfig {
+        applicationId "com.thothterm.sample.telnet"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        versionCode 210
+        versionName '2.1.0'
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    productFlavors {
+    }
+    buildTypes {
+        debug {
+            applicationIdSuffix ".devel"
+        }
+        release {
+            minifyEnabled = false
+            // use default file with automatically generated optimization rules/R8 optimizer
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.txt'
+        }
+    }
+}
+
+dependencies {
+    implementation project(':emulatorview')
+
+    implementation libs.appcompat
+}

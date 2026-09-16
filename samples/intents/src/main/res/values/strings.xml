@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <string name="app_name">Intents (sample)</string>
+    <string name="help">This sample shows how to send intents to terminal emulator \"ThothTerm\".</string>
+
+    <string name="open_new_window">Open New Window</string>
+    <string name="script_label">Script:</string>
+    <string name="run_script">Run Script</string>
+    <string name="run_script_save_window">Run Script and Save Window</string>
+    <string name="run_script_existing_window">Run Script in Saved Window</string>
+
+    <!-- greek is not displayed properly (on some devices) -->
+    <string name="default_script">echo \'Hello world!\'
+        \necho \'Здравейте!\'
+        \necho \'Καλημέρα κόσμε!\'
+        \necho \'コンニチハ!\'</string>
+
+    <string name="error_activity_not_found">No Activity found</string>
+
+    <string name="error_security_reinstall">Permission denial. You have to reinstall application to grant permissions.</string>
+    <string name="error_security_grant">Permission denial. You have to grant permissions.</string>
+    <string name="run_script_rationale">Permission is required to run script in a terminal window.</string>
+</resources>

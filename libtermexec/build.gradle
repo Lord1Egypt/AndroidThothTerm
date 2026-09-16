@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.library'
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+        vendor = JvmVendorSpec.JETBRAINS
+    }
+}
+
+android {
+    namespace = "jackpal.androidterm.libtermexec"
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    ndkVersion = rootProject.ext.ndkVersion
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        //Major.Minor.Patch
+        versionCode 10100
+        versionName '1.1.0'
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    testOptions {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    productFlavors {
+    }
+    buildTypes {
+        release {
+            minifyEnabled = false
+            // use default file with automatically generated optimization rules/R8 optimizer
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures {
+        aidl = true
+    }
+}
+
+dependencies {
+    implementation libs.annotation
+}

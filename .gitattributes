@@ -1,0 +1,38 @@
+# Normalize line endings for text files.
+# This only affects how files are stored within the repo. Git will
+# automatically convert line endings to the platform choice when checking out,
+# and automatically convert them back to the normal form when checking in.
+
+* text=auto
+
+# Ensure XML files are treated a text files.
+
+*.xml text
+
+# Ensure cmake rules files are treated a text files.
+
+CMakeLists.txt text
+# *.txt - not yet
+
+# Use java diff syntax for java files.
+
+*.java diff=java
+
+# Declare files that will always have CRLF line endings on checkout.
+*.bat text eol=crlf
+
+# shell files have unix(LF) end-of-line conversion
+
+*.sh text eol=lf
+
+# gradle wrapper shell script must have unix(LF) end-of-line conversion
+
+gradlew eol=lf
+
+# gradle wrapper properties is a text file
+
+gradle-wrapper.properties text eol=lf
+
+# skeleton files must have end-of-line conversion as shell script, i.e. unix(LF)
+
+/**/assets/skel/* eol=lf

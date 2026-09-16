@@ -1,0 +1,34 @@
+ThothTerm for Android
+=====================
+
+https://github.com/Lord1Egypt/AndroidThothTerm
+
+*ThothTerm* is an Android application that turns your Android device into a computer terminal.
+
+Terminal is useful for accessing the command line shell (built into every Android phone) or use custom one (installed separately).
+This allows you to run various command line utilities.
+It emulates a reasonably large subset of Digital Equipment Corporation VT-100 terminal codes.
+Supported terminal types include *vt100*, *screen* (default), *linux* and *xterm*.
+As result console programs like *ssh* (PKIX-SSH), *vi* (unix visual editor), *emacs*, *mc* (Midnight Commander file manager), *nano* (Nano's ANOther editor), and other work smoothly.
+
+Code of *ThothTerm* is hosted in https://github.com/Lord1Egypt/AndroidThothTerm[public repository].
+
+Building
+--------
+
+Requirements: JDK 17, Android SDK, Android NDK and CMake.
+
+[source,sh]
+----
+./gradlew :term:assembleFullDebug
+----
+
+License and attribution
+-----------------------
+
+Licensed under the Apache License, Version 2.0. See link:LICENSE[LICENSE] and link:NOTICE[NOTICE].
+
+This project is a rebranded derivative work of the *TermOne Plus* terminal
+emulator and of Jack Palevich's *Terminal Emulator for Android* (the Android
+Open Source Project). The original copyright notices and license terms are
+retained in the source files and in the link:NOTICE[NOTICE] file.
