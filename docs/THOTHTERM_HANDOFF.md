@@ -742,8 +742,9 @@ Emulator 1.0.0 golden baseline.
 - Package ID: `com.thothterm` (debug: `com.thothterm.devel`)
 - Version: `1.0.0`, versionCode `10000`
 - Annotated tag: `terminal-v1.0.0`
-- Release commit / merge: recorded on `master` by the tag; see
-  `docs/GOLDEN_BASELINE.md`
+- Baseline commit (tag target): `7a3c88e52075a0a7abaa9dd61150c122c119718f`
+- Release (feature-branch) commit: `108d3e79bf68a6c51044e48519ec628da64cd2b4`
+- GitHub Release: https://github.com/Lord1Egypt/AndroidThothTerm/releases/tag/terminal-v1.0.0
 - Full manifest, artifact hashes, and restore steps: `docs/GOLDEN_BASELINE.md`
 - Release notes: `docs/RELEASE_NOTES_1.0.md`
 - Edition split / future `com.thothterm.linux`: `docs/EDITION_PLAN.md`

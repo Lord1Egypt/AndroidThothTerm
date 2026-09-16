@@ -12,7 +12,9 @@ Permanent, reproducible recovery point for the accepted terminal-only product.
 | Repository | https://github.com/Lord1Egypt/AndroidThothTerm |
 | Release date | 2026-09-16 |
 | Annotated tag | `terminal-v1.0.0` |
-| Baseline commit SHA | recorded on `master` after the release merge; resolve with `git rev-list -n1 terminal-v1.0.0` |
+| Baseline commit SHA (tag target) | `7a3c88e52075a0a7abaa9dd61150c122c119718f` |
+| Release (feature-branch) commit | `108d3e79bf68a6c51044e48519ec628da64cd2b4` |
+| GitHub Release | https://github.com/Lord1Egypt/AndroidThothTerm/releases/tag/terminal-v1.0.0 |
 | Production application ID | `com.thothterm` |
 | Debug application ID | `com.thothterm.devel` |
 | versionName | `1.0.0` |
