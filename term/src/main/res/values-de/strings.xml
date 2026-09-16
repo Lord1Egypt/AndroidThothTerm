@@ -58,8 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="prev_window">Vorheriges Fenster</string>
     <string name="next_window">Nächstes Fenster</string>
     <string name="reset">Zurücksetzen</string>
-    <string name="send_email">Als E-Mail senden</string>
-    <string name="special_keys">Spezialtasten</string>
     <string name="toggle_soft_keyboard">Bildschirmtastatur ein/aus</string>
 
     <string name="reset_toast_notification">Zustand dieses Terminalfensters wurde zurückgesetzt</string>
@@ -200,15 +198,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="title_home_path_preference">HOME-Verzeichnis</string>
     <string name="summary_home_path_preference">Den Pfad zu einem beschreibbaren Verzeichnis festlegen, welches als $HOME genutzt werden soll.</string>
 
-    <string name="control_key_dialog_title">Steuerungs- und Funktionstasten</string>
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->
-    <string name="control_key_dialog_control_text">CTRLKEY + Leertaste: Strg-@ (NUL)\nCTRLKEY + A..Z: Strg-A..Z\nCTRLKEY + 5: Strg-]\nCTRLKEY + 6: Strg-^\nCTRLKEY + 7: Strg-_\nCTRLKEY + 9: F11\nCTRLKEY + 0: F12</string>
-    <string name="control_key_dialog_control_disabled_text">Es wurde keine Steuerungstaste festgelegt.</string>
     <!-- The word FNKEY should be left un-translated. It will be replaced at run-time with the
          actual function key key name. -->
-    <string name="control_key_dialog_fn_text">FNKEY + 1..9: F1-F9\nFNKEY + 0: F10\nFNKEY + W: ↑\nFNKEY + A: ←\nFNKEY + S: ↓\nFNKEY + D: →\nFNKEY + P: Bild↑\nFNKEY + N: Bild↓\nFNKEY + T: Tab\nFNKEY + L : | (Pipe)\nFNKEY + U: _ (Unterstrich)\nFNKEY + E: Strg-[ (Esc)\nFNKEY + X: Entf\nFNKEY + I: Einfg\nFNKEY + H: Pos1\nFNKEY + F: Ende\nFNKEY + .: Strg-\\\n</string>
-    <string name="control_key_dialog_fn_disabled_text">Es wurde keine Funktionstaste festgelegt.</string>
 
     <string name="confirm_window_close_message">Dieses Fenster schließen?</string>
 
@@ -218,9 +211,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="perm_run_script">Beliebige Skripte im Terminalemulator ausführen</string>
     <string name="permdesc_run_script">Erlaubt der App, neue Fenster im Terminalemulator für Android zu öffnen und in diesen Fenstern Befehle mit allen Berechtigungen des Terminalemulators für Android auszuführen, einschließlich des Zugriffs auf das Internet und Ihre SD-Karte.</string>
 
-    <string name="email_transcript_subject">Vom Terminalemulator für Android</string>
-    <string name="email_transcript_chooser_title">E-Mail verschicken mit:</string>
-    <string name="email_transcript_no_email_activity_found">Es wurde keine App zum Verschicken per E-Mail gefunden.</string>
 
     <string name="alt_sends_esc">»Alt«-Taste sendet »Esc«</string>
     <string name="alt_sends_esc_summary_on">Soll die »Alt«-Taste »Esc« ans Terminal senden?</string>
@@ -238,7 +228,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="script_access_error">Der Zugriff auf das ausgewählte Skript ist nicht möglich</string>
     <string name="script_source_content_error">Es wurde keine App zum Lesen von Inhalten gefunden</string>
 
-    <string name="help">Hilfe</string>
     <string name="activity_term_here_title">Terminal hier</string>
     <!-- BEGIN SHORTCUT RELATED STRINGS -->
     <!-- AndroidManifest.xml -->

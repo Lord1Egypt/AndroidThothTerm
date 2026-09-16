@@ -17,15 +17,11 @@
 
 package jackpal.androidterm;
 
-import android.annotation.SuppressLint;
-import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.content.res.Resources;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,16 +31,13 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -62,7 +55,6 @@ import com.thothterm.Settings;
 import com.thothterm.TermActionBar;
 import com.thothterm.TermPreferencesActivity;
 import com.thothterm.WindowListActivity;
-import com.thothterm.WindowListAdapter;
 import com.thothterm.compat.SoftInputCompat;
 import com.thothterm.remote.CommandCollector;
 import com.thothterm.services.ServiceManager;
@@ -72,6 +64,7 @@ import com.thothterm.utils.WakeLock;
 import com.thothterm.utils.WifiLock;
 import com.thothterm.utils.WrapOpenURL;
 import com.thothterm.widget.ScreenMessage;
+import com.thothterm.widget.ExtraKeysView;
 
 import java.io.IOException;
 
@@ -112,8 +105,9 @@ public class Term extends AppCompatActivity
     private boolean command_collected;
     private TermService mTermService;
     private TermActionBar mActionBar;
+    private ExtraKeysView mExtraKeys;
+    private TermSession mExtraKeysSession;
     private int mActionBarMode;
-    private WindowListAdapter mWinListAdapter;
     private boolean mHaveFullHwKeyboard = false;
     /**
      * Should we use keyboard shortcuts?
@@ -220,6 +214,9 @@ public class Term extends AppCompatActivity
         }
 
         mSettings.readPrefs(this, sharedPreferences);
+        if (mExtraKeys != null) {
+            mExtraKeys.applyPreferences(sharedPreferences);
+        }
     }
 
     @Override
@@ -242,21 +239,15 @@ public class Term extends AppCompatActivity
 
         mActionBar = TermActionBar.setTermContentView(this,
                 mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES);
-        mActionBar.setOnItemSelectedListener(position -> {
-            int oldPosition = mViewFlipper.getDisplayedChild();
-            if (position == oldPosition) return;
-
-            if (position >= mViewFlipper.getChildCount()) {
-                TermSession session = mTermService.getSession(position);
-                mViewFlipper.addView(createEmulatorView(session));
-            }
-            mViewFlipper.setDisplayedChild(position);
-            if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES)
-                mActionBar.hide();
-        });
+        mActionBar.setOnTitleClickListener(
+                view -> request_choose_window.launch(new Intent(this, WindowListActivity.class)));
         mActionBar.setOnNavigationItemSelectedListener(this::onNavigationItemSelected);
 
         mViewFlipper = findViewById(R.id.view_flipper);
+        mExtraKeys = findViewById(R.id.extra_keys);
+        mExtraKeys.setTerminalProvider(this::getCurrentEmulatorView);
+        mExtraKeys.applyPreferences(
+                PreferenceManager.getDefaultSharedPreferences(this));
 
         if (!command_collected) {
             CommandCollector.collect(this, () -> {
@@ -302,6 +293,7 @@ public class Term extends AppCompatActivity
 
         mTermSessions = mTermService.getSessions();
         mTermSessions.addCallback(this);
+        mTermSessions.addTitleChangedListener(this);
 
         populateViewFlipper();
         populateWindowList();
@@ -324,15 +316,7 @@ public class Term extends AppCompatActivity
     }
 
     private void populateWindowList() {
-        if (mWinListAdapter == null) {
-            mWinListAdapter = new WindowListActionBarAdapter(mTermSessions);
-
-            mActionBar.setAdapter(mWinListAdapter);
-        } else {
-            mWinListAdapter.setSessions(mTermSessions);
-        }
-        mViewFlipper.addCallback(mWinListAdapter);
-
+        mViewFlipper.addCallback(this);
         synchronizeActionBar();
     }
 
@@ -362,6 +346,7 @@ public class Term extends AppCompatActivity
         emulatorView.setOnKeyListener(mKeyListener);
         emulatorView.setOnToggleSelectingTextListener(
                 () -> mActionBar.lockDrawer(emulatorView.getSelectingText()));
+        emulatorView.setOnExtraModifierStateChangedListener(mExtraKeys);
         registerForContextMenu(emulatorView);
 
         return emulatorView;
@@ -440,14 +425,10 @@ public class Term extends AppCompatActivity
         mViewFlipper.onPause();
         if (mTermSessions != null) {
             mTermSessions.removeCallback(this);
-
-            if (mWinListAdapter != null) {
-                mTermSessions.removeCallback(mWinListAdapter);
-                mTermSessions.removeTitleChangedListener(mWinListAdapter);
-                mViewFlipper.removeCallback(mWinListAdapter);
-            }
+            mTermSessions.removeTitleChangedListener(this);
         }
 
+        mViewFlipper.removeCallback(this);
         mViewFlipper.removeAllViews();
 
         service_manager.onStop(this);
@@ -471,12 +452,9 @@ public class Term extends AppCompatActivity
             v.updateSize(false);
         }
 
-        if (mWinListAdapter != null) {
-            // Force Android to redraw the label in the navigation dropdown
-            mWinListAdapter.notifyDataSetChanged();
-        }
+        // Refresh the session label, e.g. after a rotation.
+        synchronizeActionBar();
     }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
@@ -516,12 +494,8 @@ public class Term extends AppCompatActivity
             request_choose_window.launch(new Intent(this, WindowListActivity.class));
         else if (id == R.id.nav_preferences)
             doPreferences();
-        else if (id == R.id.nav_special_keys)
-            doDocumentKeys();
         else if (id == R.id.nav_action_help)
-            WrapOpenURL.launch(this, R.string.help_url);
-        else if (id == R.id.nav_send_email)
-            doEmailTranscript();
+            doShowAbout();
         else
             return false;
         return true;
@@ -717,6 +691,8 @@ public class Term extends AppCompatActivity
                 }
             }
         }
+
+        synchronizeActionBar();
     }
 
     private void requestStoragePermission() {
@@ -769,33 +745,15 @@ public class Term extends AppCompatActivity
         session.reset();
     }
 
-    private void doEmailTranscript() {
-        TermSession session = getCurrentTermSession();
-        if (session == null) return;
-
-        // Don't really want to supply an address, but
-        // currently it's required, otherwise nobody
-        // wants to handle the intent.
-        String addr = "user@example.com";
-        Intent intent =
-                new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"
-                        + addr));
-
-        String subject = getString(R.string.email_transcript_subject);
-        String title = session.getTitle();
-        if (title != null) {
-            subject = subject + " - " + title;
-        }
-        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
-        intent.putExtra(Intent.EXTRA_TEXT,
-                session.getTranscriptText().trim());
-        try {
-            startActivity(Intent.createChooser(intent,
-                    getString(R.string.email_transcript_chooser_title)));
-        } catch (ActivityNotFoundException e) {
-            ScreenMessage.show(getApplicationContext(),
-                    R.string.email_transcript_no_email_activity_found);
-        }
+    private void doShowAbout() {
+        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        b.setTitle(R.string.about_title);
+        b.setMessage(getString(R.string.application_positioning)
+                + "\n\n" + getString(R.string.about_version, Application.VER));
+        b.setPositiveButton(R.string.about_site,
+                (dialog, id) -> WrapOpenURL.launch(Term.this, R.string.help_url));
+        b.setNegativeButton(android.R.string.cancel, null);
+        b.show();
     }
 
     protected void doCopyAll() {
@@ -817,42 +775,6 @@ public class Term extends AppCompatActivity
         if (TextUtils.isEmpty(paste)) return;
 
         session.write(paste.toString());
-    }
-
-    private void doDocumentKeys() {
-        LayoutInflater inflater = getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_special_keys, null);
-        TextView message = view.findViewById(R.id.special_keys);
-
-        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
-        dialog.setView(view);
-        Resources r = getResources();
-        dialog.setTitle(r.getString(R.string.control_key_dialog_title));
-        String hint =
-                formatMessage(mSettings.getControlKeyId(), TermSettings.CONTROL_KEY_ID_NONE,
-                        r, R.array.control_keys_short_names,
-                        R.string.control_key_dialog_control_text,
-                        R.string.control_key_dialog_control_disabled_text, "CTRLKEY")
-                        + "\n\n" +
-                        formatMessage(mSettings.getFnKeyId(), TermSettings.FN_KEY_ID_NONE,
-                                r, R.array.fn_keys_short_names,
-                                R.string.control_key_dialog_fn_text,
-                                R.string.control_key_dialog_fn_disabled_text, "FNKEY");
-        message.setText(hint);
-        dialog.show();
-    }
-
-    private String formatMessage(int keyId, int disabledKeyId,
-                                 Resources r, int arrayId,
-                                 int enabledId,
-                                 int disabledId, String regex) {
-        if (keyId == disabledKeyId) {
-            return r.getString(disabledId);
-        }
-        String[] keyNames = r.getStringArray(arrayId);
-        String keyName = keyNames[keyId];
-        String template = r.getString(enabledId);
-        return template.replaceAll(regex, keyName);
     }
 
     private void doToggleSoftKeyboard() {
@@ -895,8 +817,24 @@ public class Term extends AppCompatActivity
     }
 
     private void synchronizeActionBar() {
+        if (mActionBar == null || mViewFlipper == null) return;
+
         int position = mViewFlipper.getDisplayedChild();
-        mActionBar.setSelection(position);
+        TermSession session = getCurrentTermSession();
+        CharSequence title = (session != null) ? session.getTitle() : null;
+        if (TextUtils.isEmpty(title))
+            title = getString(R.string.window_title, position + 1);
+        mActionBar.setSessionTitle(title);
+        synchronizeExtraKeys(session);
+    }
+
+    private void synchronizeExtraKeys(TermSession session) {
+        if (mExtraKeys == null || session == mExtraKeysSession) return;
+        for (View view : mViewFlipper) {
+            ((EmulatorView) view).clearExtraModifiers();
+        }
+        mExtraKeysSession = session;
+        mExtraKeys.resetModifiers();
     }
 
     private static class FullScreenCompat {
@@ -917,46 +855,6 @@ public class Term extends AppCompatActivity
                 }
                 return (params.flags & FULLSCREEN) != 0 ? 1 : 0;
             }
-        }
-    }
-
-    private class WindowListActionBarAdapter extends WindowListAdapter implements UpdateCallback {
-
-        public WindowListActionBarAdapter(SessionList sessions) {
-            super(Term.this);
-            setSessions(sessions);
-        }
-
-        @SuppressLint("InflateParams")
-        @NonNull
-        @Override
-        public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-            ViewHolder holder;
-            if (convertView == null) {
-                convertView = inflater.inflate(R.layout.actionbar_windowlist, null);
-                holder = new ViewHolder();
-                holder.title = convertView.findViewById(R.id.title);
-
-                convertView.setTag(holder);
-            } else {
-                holder = (ViewHolder) convertView.getTag();
-            }
-            holder.title.setText(getItemTitle(position));
-            return convertView;
-        }
-
-        @Override
-        public View getDropDownView(int position, View convertView, ViewGroup parent) {
-            return super.getView(position, convertView, parent);
-        }
-
-        public void onUpdate() {
-            notifyDataSetChanged();
-            synchronizeActionBar();
-        }
-
-        private class ViewHolder {
-            public TextView title;
         }
     }
 

@@ -119,26 +119,6 @@
     </string-array>
 
     <!-- These are the 'short' names for the control keys. They are used in the special keys dialog. -->
-    <string-array name="control_keys_short_names">
-        <item>트랙볼</item>
-        <item>\@키</item>
-        <item>왼쪽 Alt</item>
-        <item>오른쪽 Alt</item>
-        <item>볼륨 상</item>
-        <item>볼륨 하</item>
-        <item>카메라 키</item>
-        <item>없음</item>
-    </string-array>
 
     <!-- These are the 'short' names for the Fn keys. They are used in the special keys dialog. -->
-    <string-array name="fn_keys_short_names">
-        <item>트랙볼</item>
-        <item>\@키</item>
-        <item>왼쪽 Alt</item>
-        <item>오른쪽 Alt</item>
-        <item>볼륨 상</item>
-        <item>볼륨 하</item>
-        <item>카메라 키</item>
-        <item>없음</item>
-    </string-array>
 </resources>

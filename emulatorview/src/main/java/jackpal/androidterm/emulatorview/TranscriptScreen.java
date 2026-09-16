@@ -473,6 +473,11 @@ class TranscriptScreen implements Screen {
         }
     }
 
+    /** Convert a visual column on a bidi-rendered row to its logical buffer column. */
+    int logicalColumnForVisual(int row, int visualColumn) {
+        return PaintRenderer.logicalCellForVisual(getScriptLine(row), visualColumn);
+    }
+
     /**
      * Get the line wrap status of the row provided.
      * @param row The row to check for line-wrap status

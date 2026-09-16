@@ -20,13 +20,18 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.core.app.NavUtils;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.preference.EditTextPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.thothterm.utils.ConsoleStartupScript;
 import com.thothterm.utils.ThemeManager;
@@ -90,6 +95,28 @@ public class TermPreferencesActivity extends AppCompatActivity
     }
 
     public static class TermPreferencesFragment extends PreferenceFragmentCompat {
+        @Override
+        public void onViewCreated(View view, Bundle savedInstanceState) {
+            super.onViewCreated(view, savedInstanceState);
+
+            RecyclerView list = getListView();
+            int left = list.getPaddingLeft();
+            int top = list.getPaddingTop();
+            int right = list.getPaddingRight();
+            int bottom = list.getPaddingBottom();
+            int spacing = Math.round(12 * getResources().getDisplayMetrics().density);
+            list.setClipToPadding(false);
+            ViewCompat.setOnApplyWindowInsetsListener(list, (target, windowInsets) -> {
+                Insets bars = windowInsets.getInsets(
+                        WindowInsetsCompat.Type.systemBars()
+                                | WindowInsetsCompat.Type.displayCutout());
+                target.setPadding(left, top + spacing + bars.top,
+                        right, bottom + spacing + bars.bottom);
+                return windowInsets;
+            });
+            ViewCompat.requestApplyInsets(list);
+        }
+
         @Override
         public void onCreatePreferences(Bundle bundle, String rootKey) {
             // Load the preferences from an XML resource

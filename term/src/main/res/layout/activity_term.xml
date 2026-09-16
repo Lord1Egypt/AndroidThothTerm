@@ -29,12 +29,13 @@
     <jackpal.androidterm.TermViewFlipper
         android:id="@+id/view_flipper"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginStart="1dp"
-        android:layout_marginLeft="1dp"
-        android:layout_marginEnd="1dp"
-        android:layout_marginRight="1dp"
-        android:layout_marginBottom="1dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:background="@android:color/black"/>
+
+    <com.thothterm.widget.ExtraKeysView
+        android:id="@+id/extra_keys"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
 </LinearLayout>

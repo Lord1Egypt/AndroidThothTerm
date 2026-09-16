@@ -16,6 +16,16 @@
 -->
 
 <resources>
+    <!-- ThothTerm visual identity. Keep app chrome separate from terminal ANSI colors. -->
+    <color name="brand_midnight">#08111F</color>
+    <color name="brand_navy">#10243A</color>
+    <color name="brand_navy_light">#18344F</color>
+    <color name="brand_teal">#39D9C5</color>
+    <color name="brand_teal_dark">#007C72</color>
+    <color name="brand_mist">#F3F7FA</color>
+    <color name="brand_white">#FFFFFFFF</color>
+    <color name="brand_text_muted_dark">#AAB9CC</color>
+
     <color name="colorvalue_alpha">#FFFFFFFF</color>
     <color name="colorvalue_red">#FFFF0000</color>
     <color name="colorvalue_green">#FF00FF00</color>

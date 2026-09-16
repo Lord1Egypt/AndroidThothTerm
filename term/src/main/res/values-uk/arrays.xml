@@ -85,24 +85,4 @@
         <item>За знаками</item>
         <item>За словами</item>
     </string-array>
-    <string-array name="control_keys_short_names">
-        <item>Куля Jog</item>
-        <item>Клавіша \@</item>
-        <item>Лівий Alt</item>
-        <item>Правий Alt</item>
-        <item>Гучність вверх</item>
-        <item>Гучність вниз</item>
-        <item>Клавіша камери</item>
-        <item>Нема</item>
-    </string-array>
-    <string-array name="fn_keys_short_names">
-        <item>Куля Jog</item>
-        <item>Клавіша \@</item>
-        <item>Лівий Alt</item>
-        <item>Правий Alt</item>
-        <item>Гучність вверх</item>
-        <item>Гучність вниз</item>
-        <item>Клавіша камери</item>
-        <item>Нема</item>
-    </string-array>
 </resources>

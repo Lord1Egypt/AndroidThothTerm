@@ -40,8 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="prev_window">Предишен прозорец</string>
     <string name="next_window">Следващ прозорец</string>
     <string name="reset">Нулиране на терминала</string>
-    <string name="send_email">Изпращане на ел.поща</string>
-    <string name="special_keys">Специални клавиши</string>
     <string name="toggle_soft_keyboard">Програмна клавиатура</string>
 
     <string name="reset_toast_notification">терминала презареден</string>
@@ -182,15 +180,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="title_home_path_preference">Домашна директория</string>
     <string name="summary_home_path_preference">Път към разрешена за запис директория, която да се използва като домашна</string>
 
-    <string name="control_key_dialog_title">Управляващи и функционални клавиши</string>
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->
-    <string name="control_key_dialog_control_text">CTRLKEY Празно : Управление-@ (NUL)\nCTRLKEY A..Z : Управление-A..Z\nCTRLKEY 5 : Управление-]\nCTRLKEY 6 : Управление-^\nCTRLKEY 7 : Управление-_\nCTRLKEY 9 : F11\nCTRLKEY 0 : F12</string>
-    <string name="control_key_dialog_control_disabled_text">Не е зададен управляващ клавиш</string>
     <!-- The word FNKEY should be left un-translated. It will be replaced at run-time with the
          actual function key key name. -->
-    <string name="control_key_dialog_fn_text">FNKEY 1..9 : F1-F9\nFNKEY 0 : F10\nFNKEY W : Нагоре\nFNKEY A : Наляво\nFNKEY S : Надолу\nFNKEY D : Надясно\nFNKEY P : Страница нагоре\nFNKEY N : Страница надолу\nFNKEY T : Отстъп\nFNKEY L : | (или)\nFNKEY U : _ (подчертавка)\nFNKEY E : Управление-[ (ESC)\nFNKEY X : Изтриване\nFNKEY I : Вмъкване\nFNKEY H : Вкъщи\nFNKEY F : Край\nFNKEY . : Управление-\\\n</string>
-    <string name="control_key_dialog_fn_disabled_text">Не е зададен функционален клавиш</string>
 
     <string name="confirm_window_close_message">Да се затвори ли този прозорец?</string>
 
@@ -200,9 +193,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="perm_run_script">Изпълнение на произволна команда в терминалната програма</string>
     <string name="permdesc_run_script">Разрешаване на приложението на отворя нови прозорци в терминалната програма за Android и в тази прозорци, да изпълнява команди с всички права позволени на терминалната програма за Android, включващи достъп до мрежата и вашата карта памет (SD)</string>
 
-    <string name="email_transcript_subject">Запис от терминалната програма</string>
-    <string name="email_transcript_chooser_title">Изпращане на записа използвайки:</string>
-    <string name="email_transcript_no_email_activity_found">Не можа да се избере действие за поща за изпращане на запис</string>
 
     <string name="alt_sends_esc">Клавиш Alt изпраща Esc</string>
     <string name="alt_sends_esc_summary_on">Клавиш Alt изпраща Esc</string>
@@ -220,7 +210,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="script_access_error">Не е достъпен избраният скрипт</string>
     <string name="script_source_content_error">Липсва дейност, която да подаде съдържание, т.е. за действието \"Get Content\"</string>
 
-    <string name="help">Помощ</string>
     <string name="activity_term_here_title">Терминал тук</string>
     <!-- BEGIN SHORTCUT RELATED STRINGS -->
     <!-- AndroidManifest.xml -->

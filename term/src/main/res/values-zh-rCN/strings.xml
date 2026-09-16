@@ -25,8 +25,6 @@
     <string name="prev_window">前一窗口</string>
     <string name="next_window">后一窗口</string>
     <string name="reset">重置终端</string>
-    <string name="send_email">发送电子邮件到...</string>
-    <string name="special_keys">特殊键</string>
     <string name="toggle_soft_keyboard">打开/关闭软键盘</string>
 
     <string name="reset_toast_notification">当前窗口终端状态将被重置</string>
@@ -123,20 +121,12 @@
     <string name="title_home_path_preference">HOME 文件夹</string>
     <string name="summary_home_path_preference">用作 HOME 的可写文件夹路径</string>
 
-    <string name="control_key_dialog_title">Ctrl 与 Fn 键</string>
-    <string name="control_key_dialog_control_text">CTRLKEY Space : Control-@ (NUL)\nCTRLKEY A..Z : Control-A..Z\nCTRLKEY 5 : Control-]\nCTRLKEY 6 : Control-^\nCTRLKEY 7 : Control-_\nCTRLKEY 9 : F11\nCTRLKEY 0 : F12</string>
-    <string name="control_key_dialog_control_disabled_text">未设置 Ctrl 键</string>
-    <string name="control_key_dialog_fn_text">FNKEY 1..9 : F1-F9\nFNKEY 0 : F10\nFNKEY W : Up\nFNKEY A : Left\nFNKEY S : Down\nFNKEY D : Right\nFNKEY P : PageUp\nFNKEY N : PageDown\nFNKEY T : Tab\nFNKEY L : | (pipe)\nFNKEY U : _ (underscore)\nFNKEY E : Control-[ (ESC)\nFNKEY X : Delete\nFNKEY I : Insert\nFNKEY H : Home\nFNKEY F : End\nFNKEY . : Control-\\\n</string>
-    <string name="control_key_dialog_fn_disabled_text">未设置 Fn 键</string>
 
     <string name="confirm_window_close_message">关闭窗口吗？</string>
 
     <string name="perm_run_script">在终端模拟器中运行命令</string>
     <string name="permdesc_run_script">允许程序开启新窗口并运行包括与网络、存储卡相关命令在内的所有命令</string>
 
-    <string name="email_transcript_subject">终端模拟器副本</string>
-    <string name="email_transcript_chooser_title">发送副本的邮件实例：</string>
-    <string name="email_transcript_no_email_activity_found">找不到邮件实例发送副本</string>
 
     <string name="alt_sends_esc">Alt 键发送 ESC</string>
     <string name="alt_sends_esc_summary_on">开启 Alt 键发送 ESC</string>

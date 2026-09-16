@@ -25,8 +25,6 @@
     <string name="prev_window">החלון הקודם</string>
     <string name="next_window">החלון הבא</string>
     <string name="reset">איפוס המונח</string>
-    <string name="send_email">דואר אלקטרוני ל</string>
-    <string name="special_keys">מקשים מיוחדים</string>
     <string name="toggle_soft_keyboard">מתג מקלדת מסך</string>
     <string name="reset_toast_notification">מצב חלון המסוף אופס.</string>
     <string name="enable_wakelock">אל תכבה מסך</string>
@@ -95,14 +93,8 @@
     <string name="summary_close_window_on_process_exit_preference">האם בסגירת shell חלון ייסגר.</string>
     <string name="title_home_path_preference">תיקיית HOME</string>
     <string name="summary_home_path_preference">נתיב לתיקייה שתשומש כתיקיית HOME.</string>
-    <string name="control_key_dialog_title">מקשי CTRL ו-FN</string>
-    <string name="control_key_dialog_control_disabled_text">לא הוגדר מקש CTRL.</string>
-    <string name="control_key_dialog_fn_disabled_text">לא הוגדר מקש FN.</string>
     <string name="confirm_window_close_message">לסגור חלון זה?</string>
     <string name="perm_run_script">הפעל פקודות שרירותיות במסוף</string>
-    <string name="email_transcript_subject">תעתיק של אימולטור מסוף באנדרואיד</string>
-    <string name="email_transcript_chooser_title">תעתיק מייל באמצעות:</string>
-    <string name="email_transcript_no_email_activity_found">לא הצליחתי למצוא לקוח מייל כדי לשלוח תעתיק.</string>
     <string name="alt_sends_esc">ALT שולח ESC</string>
     <string name="alt_sends_esc_summary_on">ALT שולח ESC.</string>
     <string name="alt_sends_esc_summary_off">מקש ALT לא שולח ESC.</string>

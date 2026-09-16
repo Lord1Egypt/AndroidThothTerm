@@ -112,28 +112,8 @@
     </string-array>
 
     <!-- These are the 'short' names for the control keys. They are used in the special keys dialog. -->
-    <string-array name="control_keys_short_names">
-        <item>Bola</item>
-        <item>\@</item>
-        <item>Ezker-Alt</item>
-        <item>Eskuin-Alt</item>
-        <item>Bol-Igo</item>
-        <item>Bol-Jaitsi</item>
-        <item>Kamera</item>
-        <item>Bat ere ez</item>
-    </string-array>
 
     <!-- These are the 'short' names for the Fn keys. They are used in the special keys dialog. -->
-    <string-array name="fn_keys_short_names">
-        <item>Bola</item>
-        <item>\@</item>
-        <item>Ezker-Alt</item>
-        <item>Eskuin-Alt</item>
-        <item>Bol-Igo</item>
-        <item>Bol-Jaitsi</item>
-        <item>Kamera</item>
-        <item>Bat ere ez</item>
-    </string-array>
 
 </resources>
 

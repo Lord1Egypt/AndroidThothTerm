@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <item>Тъмна</item>
         <item>Светла</item>
         <item>Системна</item>
+        <item>AMOLED</item>
     </string-array>
     <string-array name="entries_orientation_preference">
         <item>Автоматично</item>
@@ -131,25 +132,5 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string-array name="entries_ime_preference">
         <item>По знаци</item>
         <item>По думи</item>
-    </string-array>
-    <string-array name="control_keys_short_names">
-        <item>Топче</item>
-        <item>маймунско а (\@)</item>
-        <item>Ляв Alt</item>
-        <item>Десен Alt</item>
-        <item>Усилване</item>
-        <item>Намаляване</item>
-        <item>Фотоапарат</item>
-        <item>Без</item>
-    </string-array>
-    <string-array name="fn_keys_short_names">
-        <item>Топче</item>
-        <item>маймунско а (\@)</item>
-        <item>Ляв Alt</item>
-        <item>Десен Alt</item>
-        <item>Усилване</item>
-        <item>Намаляване</item>
-        <item>Фотоапарат</item>
-        <item>Без</item>
     </string-array>
 </resources>

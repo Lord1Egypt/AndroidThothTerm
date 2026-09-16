@@ -23,8 +23,6 @@ import android.os.Build;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.AdapterView;
-import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
@@ -47,7 +45,7 @@ public class TermActionBar {
     private final DrawerLayout drawer;
     private final NavigationView nav_view;
     private final Toolbar toolbar;
-    private final Spinner spinner;
+    private final ActionBar appbar;
 
     private TermActionBar(AppCompatActivity context, boolean floating) {
         toolbar = context.findViewById(R.id.toolbar);
@@ -76,17 +74,12 @@ public class TermActionBar {
             ver.setText(Application.VER);
             View home = header.findViewById(R.id.app_home);
             home.setOnClickListener(this::onAppIconClicked);
-            View email = header.findViewById(R.id.app_email);
-            email.setOnClickListener(this::onEmailAddressClicked);
         }
 
-        ActionBar appbar = context.getSupportActionBar();
+        appbar = context.getSupportActionBar();
         if (appbar != null) {
-            appbar.setDisplayShowTitleEnabled(false);
-            appbar.setDisplayShowHomeEnabled(false);
+            appbar.setTitle(R.string.application_terminal);
         }
-
-        spinner = context.findViewById(R.id.spinner);
 
         if (floating)
             hide();
@@ -101,23 +94,20 @@ public class TermActionBar {
         return new TermActionBar(context, floating);
     }
 
-    public void setAdapter(WindowListAdapter adapter) {
-        spinner.setAdapter(adapter);
+    /**
+     * Show the current session in the toolbar subtitle. The label is ellipsized
+     * by the toolbar, so long shell titles never wrap or crowd the menu.
+     */
+    public void setSessionTitle(CharSequence title) {
+        if (appbar == null) return;
+        appbar.setSubtitle(title);
     }
 
-    public void setOnItemSelectedListener(OnItemSelectedListener listener) {
-        AdapterView.OnItemSelectedListener wrapper = new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                listener.onItemSelected(position);
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-        };
-        spinner.setOnItemSelectedListener(wrapper);
+    /**
+     * Tapping the title/subtitle area opens the window switcher.
+     */
+    public void setOnTitleClickListener(View.OnClickListener listener) {
+        toolbar.setOnClickListener(listener);
     }
 
     public void setOnNavigationItemSelectedListener(
@@ -128,10 +118,6 @@ public class TermActionBar {
             drawer.closeDrawer(GravityCompat.START);
             return result;
         });
-    }
-
-    public void setSelection(int position) {
-        spinner.setSelection(position);
     }
 
     public boolean isShowing() {
@@ -181,16 +167,6 @@ public class TermActionBar {
         WrapOpenURL.launch(view.getContext(), urlApplicationSite());
     }
 
-    public void onEmailAddressClicked(View view) {
-        String url = urlApplicationMail();
-        if (url == null) return;
-        WrapOpenURL.launch(view.getContext(), url);
-    }
-
-    public interface OnItemSelectedListener {
-        void onItemSelected(int position);
-    }
-
     private static class NavigationBackground {
         private static void presetColors(AppCompatActivity context, NavigationView view) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP /* API Level 21*/) {
@@ -231,12 +207,5 @@ public class TermActionBar {
     private String urlApplicationSite() {
         Context context = drawer.getContext();
         return context.getResources().getString(R.string.application_site);
-    }
-
-    private String urlApplicationMail() {
-        Context context = drawer.getContext();
-        String address = context.getResources().getString(R.string.application_email);
-        if (address.isEmpty()) return null;
-        return "mailto:" + address;
     }
 }

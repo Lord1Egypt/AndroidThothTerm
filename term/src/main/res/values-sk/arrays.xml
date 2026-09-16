@@ -118,26 +118,6 @@
     </string-array>
 
     <!-- These are the 'short' names for the control keys. They are used in the special keys dialog. -->
-    <string-array name="control_keys_short_names">
-        <item>Gulička</item>
-        <item>\@</item>
-        <item>Ľavý Alt</item>
-        <item>Pravý Alt</item>
-        <item>Hlasitosť+</item>
-        <item>Hlasitosť-</item>
-        <item>Fotoaparát</item>
-        <item>Žiadny</item>
-    </string-array>
 
     <!-- These are the 'short' names for the Fn keys. They are used in the special keys dialog. -->
-    <string-array name="fn_keys_short_names">
-        <item>Gulička</item>
-        <item>\@</item>
-        <item>Ľavý Alt</item>
-        <item>Pravý Alt</item>
-        <item>Hlasitosť+</item>
-        <item>Hlasitosť-</item>
-        <item>Fotoaparát</item>
-        <item>Žiadny</item>
-    </string-array>
 </resources>

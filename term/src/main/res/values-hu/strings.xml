@@ -25,8 +25,6 @@
     <string name="prev_window">Előző ablak</string>
     <string name="next_window">Következő ablak</string>
     <string name="reset">Alaphelyzet</string>
-    <string name="send_email">Küldés emailben</string>
-    <string name="special_keys">Speciális billentyűk</string>
     <string name="toggle_soft_keyboard">Billentyűzet ki/be</string>
 
     <string name="reset_toast_notification">A terminál ablak alaphelyzetbe állítva.</string>
@@ -123,24 +121,16 @@
     <string name="title_home_path_preference">HOME könyvtár</string>
     <string name="summary_home_path_preference">Egy írható könyvtár útvonala, amely HOME-ként szolgál.</string>
 
-    <string name="control_key_dialog_title">Control és funkció billentyűk</string>
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->
-    <string name="control_key_dialog_control_text">CTRLKEY Szóköz : Control-@ (NUL)\nCTRLKEY A..Z : Control-A..Z\nCTRLKEY 5 : Control-]\nCTRLKEY 6 : Control-^\nCTRLKEY 7 : Control-_\nCTRLKEY 9 : F11\nCTRLKEY 0 : F12</string>
-    <string name="control_key_dialog_control_disabled_text">Nincs beállítva Control billentyű.</string>
     <!-- The word FNKEY should be left un-translated. It will be replaced at run-time with the
          actual function key key name. -->
-    <string name="control_key_dialog_fn_text">FNKEY 1..9 : F1-F9\nFNKEY 0 : F10\nFNKEY W : Fel\nFNKEY A : Balra\nFNKEY S : Le\nFNKEY D : Jobbra\nFNKEY P : PageUp\nFNKEY N : PageDown\nFNKEY T : Tab\nFNKEY L : | (pipe)\nFNKEY U : _ (aláhúzás)\nFNKEY E : Control-[ (ESC)\nFNKEY X : Delete\nFNKEY I : Insert\nFNKEY H : Home\nFNKEY F : End\nFNKEY . : Control-\\\n</string>
-    <string name="control_key_dialog_fn_disabled_text">Nincs beállítva funkció billentyű.</string>
 
     <string name="confirm_window_close_message">Bezárja ezt az ablakot?</string>
 
     <string name="perm_run_script">Tetszőleges parancsok futtatása a Terminál Emulátorban</string>
     <string name="permdesc_run_script">Lehetővé teszi az alkalmazások számára új ablakok megnyitását az Android Terminál Emulátorban és a megnyitott ablakokban tetszőleges parancsokat futtathatnak az Android Terminál Emulátor összes jogosultságával, beleértve a teljes hozzáférést az Internethez és az SD-kártyához.</string>
 
-    <string name="email_transcript_subject">Android Terminal Emulátor terminál másolat</string>
-    <string name="email_transcript_chooser_title">Terminál küldése:</string>
-    <string name="email_transcript_no_email_activity_found">Nem sikerült kiválasztani az email alkalmazást.</string>
 
     <string name="alt_sends_esc">Az Alt billentyű ESC-et küld</string>
     <string name="alt_sends_esc_summary_on">Az Alt billentyű ESC-et küld.</string>
@@ -153,7 +143,6 @@
     <string name="use_keyboard_shortcuts_summary_on">Ctrl-Tab: váltás az ablakok között, Ctrl-Shift-N: új ablak, Ctrl-Shift-V: beillesztés.</string>
     <string name="use_keyboard_shortcuts_summary_off">Billentyű-parancsok letiltva.</string>
 
-    <string name="help">Súgó</string>
     <!-- BEGIN SHORTCUT RELATED STRINGS -->
     <!-- AndroidManifest.xml -->
     <string name="activity_shortcut_create">Terminál parancsikon</string>

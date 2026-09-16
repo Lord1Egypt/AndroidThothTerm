@@ -31,20 +31,10 @@
     <group>
 
         <item
-            android:id="@+id/nav_special_keys"
-            android:icon="@drawable/ic_vpn_key_white_24dp"
-            android:title="@string/special_keys"/>
-
-        <item
             android:id="@+id/nav_action_help"
             android:icon="@drawable/ic_help_outline_white_24dp"
-            android:title="@string/help"/>
+            android:title="@string/about"/>
 
     </group>
-
-    <item
-        android:id="@+id/nav_send_email"
-        android:icon="@drawable/ic_email_white_24dp"
-        android:title="@string/send_email"/>
 
 </menu>

@@ -26,8 +26,6 @@
     <string name="prev_window">Poprzednie okno</string>
     <string name="next_window">Następne okno</string>
     <string name="reset">Wyczyść terminal</string>
-    <string name="send_email">Wyślij e-mail</string>
-    <string name="special_keys">Przyciski specjalne</string>
     <string name="toggle_soft_keyboard">Pokaż klawiaturę</string>
 
     <string name="reset_toast_notification">Stan tego okna terminala został zresetowany</string>
@@ -159,15 +157,10 @@
     <string name="title_home_path_preference">Folder domowy (HOME)</string>
     <string name="summary_home_path_preference">Ścieżka do folderu z możliwością zapisu, który będzie używany jako folder domowy (HOME)</string>
 
-    <string name="control_key_dialog_title">Przyciski Control i Fn</string>
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->
-    <string name="control_key_dialog_control_text">CTRLKEY Spacja : Control-@ (NUL)\nCTRLKEY A..Z : Control-A..Z\nCTRLKEY 5 : Control-]\nCTRLKEY 6 : Control-^\nCTRLKEY 7 : Control-_\nCTRLKEY 9 : F11\nCTRLKEY 0 : F12</string>
-    <string name="control_key_dialog_control_disabled_text">Brak ustawionego przycisku Control.</string>
     <!-- The word FNKEY should be left un-translated. It will be replaced at run-time with the
          actual function key key name. -->
-    <string name="control_key_dialog_fn_text">FNKEY 1..9 : F1-F9\nFNKEY 0 : F10\nFNKEY W : Góra\nFNKEY A : Lewo\nFNKEY S : Dół\nFNKEY D : Prawo\nFNKEY P : PageUp\nFNKEY N : PageDown\nFNKEY T : Tab\nFNKEY L : | (pipe - kreska pionowa)\nFNKEY U : _ (podkreślnik)\nFNKEY E : Control-[ (ESC)\nFNKEY X : Delete\nFNKEY I : Insert\nFNKEY H : Home\nFNKEY F : End\nFNKEY . : Control-\\\n</string>
-    <string name="control_key_dialog_fn_disabled_text">Brak ustawionego przycisku Fn.</string>
 
     <string name="confirm_window_close_message">Zamknąć to okno?</string>
 
@@ -176,9 +169,6 @@
     <string name="perm_run_script">Uruchamiaj komendy w Terminal Emulator</string>
     <string name="permdesc_run_script">Pozwala na otwieranie nowych okien w aplikacji Terminal Emulator dla systemu Android i wykonywanie poleceń w tych oknach ze wszystkimi uprawnieniami, w tym dostępem do Internetu i karty SD.</string>
 
-    <string name="email_transcript_subject">Transkrypt z aplikacji Terminal Emulator</string>
-    <string name="email_transcript_chooser_title">Wyślij transkrypt używając:</string>
-    <string name="email_transcript_no_email_activity_found">Nie można wybrać aktywności e-mail żeby wysłać transkrypt.</string>
 
     <string name="alt_sends_esc">Przycisk Alt wysyła ESC</string>
     <string name="alt_sends_esc_summary_on">Przycisk Alt wysyła ESC.</string>
@@ -196,7 +186,6 @@
     <string name="script_access_error">Nie można uzyskać dostępu do wybranego skryptu</string>
     <string name="script_source_content_error">Nie znaleziono działania do obsługi akcji „Pobierz zawartość”</string>
 
-    <string name="help">Pomoc</string>
     <string name="activity_term_here_title">Terminal tutaj</string>
     <!-- BEGIN SHORTCUT RELATED STRINGS -->
     <!-- AndroidManifest.xml -->

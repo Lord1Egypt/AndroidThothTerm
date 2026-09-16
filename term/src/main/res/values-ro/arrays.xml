@@ -111,25 +111,5 @@
         <item>Bazat pe cuvânt</item>
     </string-array>
 
-    <string-array name="control_keys_short_names">
-        <item>Balon</item>
-        <item>\@</item>
-        <item>Alt stânga</item>
-        <item>Alt dreapta</item>
-        <item>Volum mărire</item>
-        <item>Volum micşorare</item>
-        <item>Cameră foto</item>
-        <item>Niciunul</item>
-    </string-array>
 
-    <string-array name="fn_keys_short_names">
-        <item>Balon</item>
-        <item>\@</item>
-        <item>Alt stânga</item>
-        <item>Alt dreapta</item>
-        <item>Volum mărire</item>
-        <item>Volum micşorare</item>
-        <item>Cameră foto</item>
-        <item>Niciunul</item>
-    </string-array>
 </resources>

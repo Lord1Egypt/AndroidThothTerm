@@ -24,10 +24,5 @@ As work-around on earlier versions colors will be set by program code.
 <shape
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <gradient
-        android:angle="315"
-        android:centerColor="?attr/colorPrimary"
-        android:endColor="?attr/colorPrimaryDark"
-        android:startColor="?attr/colorPrimaryLight"
-        android:type="linear"/>
+    <solid android:color="?attr/colorPrimary"/>
 </shape>

@@ -65,6 +65,18 @@ public class Installer {
                 new File(sysmkshrc).exists())
             shell_script.add(". " + sysmkshrc);
 
+        // Friendly prompt: show HOME by its short name instead of the full
+        // private application path. Presentation only; $PWD, HOME and the
+        // filesystem are unchanged, and ~/.shrc can still override PS1.
+        shell_script.add("__thothterm_prompt_path() {");
+        shell_script.add("  case \"$PWD\" in");
+        shell_script.add("    \"$HOME\") printf '%s' \"${HOME##*/}\" ;;");
+        shell_script.add("    \"$HOME\"/*) printf '%s/%s' \"${HOME##*/}\" \"${PWD#\"$HOME\"/}\" ;;");
+        shell_script.add("    *) printf '%s' \"$PWD\" ;;");
+        shell_script.add("  esac");
+        shell_script.add("}");
+        shell_script.add("PS1='$(__thothterm_prompt_path) $ '");
+
         // Source application startup script
         shell_script.add("test -f ~/.shrc && . ~/.shrc");
 

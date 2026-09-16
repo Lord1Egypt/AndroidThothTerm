@@ -118,26 +118,6 @@
     </string-array>
 
     <!-- These are the 'short' names for the control keys. They are used in the special keys dialog. -->
-    <string-array name="control_keys_short_names">
-        <item>Ball</item>
-        <item>\@</item>
-        <item>Alt-links</item>
-        <item>Alt-rechts</item>
-        <item>Volume+</item>
-        <item>Volume-</item>
-        <item>Camera</item>
-        <item>Geen</item>
-    </string-array>
 
     <!-- These are the 'short' names for the Fn keys. They are used in the special keys dialog. -->
-    <string-array name="fn_keys_short_names">
-        <item>Ball</item>
-        <item>\@</item>
-        <item>Alt-links</item>
-        <item>Alt-rechts</item>
-        <item>Volume+</item>
-        <item>Volume-</item>
-        <item>Camera</item>
-        <item>Geen</item>
-    </string-array>
 </resources>

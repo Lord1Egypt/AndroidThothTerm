@@ -25,8 +25,6 @@
     <string name="prev_window">Прет. прозор</string>
     <string name="next_window">След. прозор</string>
     <string name="reset">Поново постави терм</string>
-    <string name="send_email">Пошаљи е-поштом</string>
-    <string name="special_keys">Посебни тастери</string>
     <string name="toggle_soft_keyboard">Пребаци софтверску тастатуру</string>
 
     <string name="reset_toast_notification">Стање терминала овог прозора је поново постављено.</string>
@@ -123,24 +121,16 @@
     <string name="title_home_path_preference">Домаћа фасцикла</string>
     <string name="summary_home_path_preference">Путања до уписиве фасцикле која ће бити коришћена као HOME.</string>
 
-    <string name="control_key_dialog_title">Контролни и функцијски тастери</string>
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->
-    <string name="control_key_dialog_control_text">CTRLKEY Размак : Control-@ (NUL)\nCTRLKEY A..Z : Control-A..Z\nCTRLKEY 5 : Control-]\nCTRLKEY 6 : Control-^\nCTRLKEY 7 : Control-_\nCTRLKEY 9 : F11\nCTRLKEY 0 : F12</string>
-    <string name="control_key_dialog_control_disabled_text">Контролни тастер није постављен.</string>
     <!-- The word FNKEY should be left un-translated. It will be replaced at run-time with the
          actual function key key name. -->
-    <string name="control_key_dialog_fn_text">FNKEY 1..9 : F1-F9\nFNKEY 0 : F10\nFNKEY W : Горе\nFNKEY A : Лево\nFNKEY S : Доле\nFNKEY D : Десно\nFNKEY P : СтрГоре\nFNKEY N : СтрДоле\nFNKEY T : Таб\nFNKEY L : | (цев)\nFNKEY U : _ (подвлака)\nFNKEY E : Control-[ (ESC)\nFNKEY X : Обриши\nFNKEY I : Уметни\nFNKEY H : Почетак\nFNKEY F : Крај\nFNKEY . : Control-\\\n</string>
-    <string name="control_key_dialog_fn_disabled_text">Функцијски тастер није постављен.</string>
 
     <string name="confirm_window_close_message">Затворити овај прозор?</string>
 
     <string name="perm_run_script">Покретање произвољних наредби у Емулатору Терминала</string>
     <string name="permdesc_run_script">Омогућава апликацији да отвара нове прозоре у Емулатору Терминала за Андроид и покреће наредбе у тим прозорима са свим дозволама Емулатора Терминала, укључујући приступ интернету и вашој СД картици.</string>
 
-    <string name="email_transcript_subject">Препис са Емулатора Терминала за Андроид</string>
-    <string name="email_transcript_chooser_title">Пошаљи препис користећи:</string>
-    <string name="email_transcript_no_email_activity_found">Не могу да изаберем активност е-поште за слање преписа.</string>
 
     <string name="alt_sends_esc">Алт тастер шаље ESC</string>
     <string name="alt_sends_esc_summary_on">Алт тастер шаље ESC.</string>
@@ -153,7 +143,6 @@
     <string name="use_keyboard_shortcuts_summary_on">Ctrl-Tab: пребаци прозор, Ctrl-Shift-N: нови прозор, Ctrl-Shift-V: налепи.</string>
     <string name="use_keyboard_shortcuts_summary_off">Пречице тастатуре су онемогућене.</string>
 
-    <string name="help">Помоћ</string>
     <string name="activity_term_here_title">Терминал овде</string>
     <!-- BEGIN SHORTCUT RELATED STRINGS -->
     <!-- AndroidManifest.xml -->

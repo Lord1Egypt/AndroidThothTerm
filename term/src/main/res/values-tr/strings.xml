@@ -19,8 +19,6 @@
     <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Tercihler</string>
     <string name="reset">Terminali yeniden başlat</string>
-    <string name="send_email">Email olarak yolla</string>
-    <string name="special_keys">Özel tuşlar</string>
     <string name="toggle_soft_keyboard">Ekran klavyesine geç</string>
 
     <string name="edit_text">Metni düzenle</string>
