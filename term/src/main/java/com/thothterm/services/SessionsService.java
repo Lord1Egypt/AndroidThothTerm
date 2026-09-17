@@ -19,6 +19,9 @@ package com.thothterm.services;
 
 import android.app.Service;
 
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
+
 import jackpal.androidterm.emulatorview.TermSession;
 import jackpal.androidterm.util.SessionList;
 
@@ -50,13 +53,17 @@ public abstract class SessionsService extends Service {
     protected void addSession(TermSession session, TermSession.FinishCallback callback) {
         sessions.add(session);
         session.setFinishCallback(callback);
+        ThothLog.i(LogCategory.SESSION, "Session created; active=" + sessions.size());
     }
 
     protected void removeSession(TermSession session) {
         sessions.remove(session);
+        ThothLog.i(LogCategory.SESSION, "Session closed; active=" + sessions.size());
     }
 
     public void clearSessions() {
+        if (!sessions.isEmpty())
+            ThothLog.i(LogCategory.SESSION, "Closing all sessions; active=" + sessions.size());
         for (TermSession session : sessions) {
             /* Don't automatically remove from list of sessions -- we clear the
              * list below anyway and we could trigger

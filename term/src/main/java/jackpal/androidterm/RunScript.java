@@ -20,9 +20,10 @@ package jackpal.androidterm;
 import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.thothterm.Application;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 
 import androidx.annotation.NonNull;
 
@@ -82,7 +83,7 @@ public final class RunScript extends RemoteInterface {
         }
 
         if (command == null) {
-            Log.e(Application.APP_TAG, "No command provided in script!");
+            ThothLog.e(LogCategory.SESSION, "Run script request had no command");
             return;
         }
 
