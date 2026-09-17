@@ -1,34 +1,290 @@
-ThothTerm for Android
-=====================
+= ThothTerm Terminal Emulator
+:toc: macro
+:toclevels: 3
+:icons: font
 
-https://github.com/Lord1Egypt/AndroidThothTerm
+[.text-center]
+image::docs/thothterm-brand-mark.svg[ThothTerm,96,96]
 
-*ThothTerm* is an Android application that turns your Android device into a computer terminal.
+[.text-center]
+*Modern Android terminal emulator with multiple sessions, fit-to-screen extra keys, UTF-8, and Arabic/RTL rendering.*
 
-Terminal is useful for accessing the command line shell (built into every Android phone) or use custom one (installed separately).
-This allows you to run various command line utilities.
-It emulates a reasonably large subset of Digital Equipment Corporation VT-100 terminal codes.
-Supported terminal types include *vt100*, *screen* (default), *linux* and *xterm*.
-As result console programs like *ssh* (PKIX-SSH), *vi* (unix visual editor), *emacs*, *mc* (Midnight Commander file manager), *nano* (Nano's ANOther editor), and other work smoothly.
+[.text-center]
+image:https://img.shields.io/github/v/release/Lord1Egypt/AndroidThothTerm?label=release[Latest Release,link=https://github.com/Lord1Egypt/AndroidThothTerm/releases/latest]
+image:https://img.shields.io/badge/Android-API%2016%2B-3DDC84?logo=android&logoColor=white[Android API 16+,link=https://developer.android.com/]
+image:https://img.shields.io/badge/license-Apache--2.0-blue[Apache 2.0,link=LICENSE]
+image:https://img.shields.io/badge/Arabic-RTL%20%2B%20BiDi-40d5c2[Arabic RTL]
 
-Code of *ThothTerm* is hosted in https://github.com/Lord1Egypt/AndroidThothTerm[public repository].
+https://github.com/Lord1Egypt/AndroidThothTerm[Repository] · https://github.com/Lord1Egypt/AndroidThothTerm/releases/tag/terminal-v1.0.0[Golden Release 1.0.0] · link:docs/GOLDEN_BASELINE.md[Golden Baseline Manifest]
 
-Building
---------
+toc::[]
 
-Requirements: JDK 17, Android SDK, Android NDK and CMake.
+== What is ThothTerm?
+
+*ThothTerm Terminal Emulator* is a standalone Android terminal emulator built for people who want a clean, capable command-line environment on Android without carrying a full Linux distribution inside the app.
+
+It connects to Android's shell through a real PTY, supports multiple terminal windows, keeps sessions owned by a foreground service, provides a compact extra-keys toolbar for terminal work, and includes modern Unicode rendering with Arabic contextual shaping and bidirectional text support.
+
+The current stable product is the *terminal-emulator edition*:
+
+* Package: `com.thothterm`
+* Version: `1.0.0` (`versionCode 10000`)
+* Golden tag: `terminal-v1.0.0`
+* Android: API 16+ (`minSdk 16`, `targetSdk 36`, `compileSdk 36`)
+* ABIs: `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`
+
+IMPORTANT: This edition does *not* contain Ubuntu, PRoot, apt, or an embedded Linux root filesystem. A separate *ThothTerm Linux* edition is planned; see <<editions>>.
+
+== Highlights
+
+=== Terminal experience
+
+* Real Android PTY/process integration.
+* Multiple terminal windows with a dedicated Windows list.
+* Sessions are owned by the foreground `TermService`, allowing the UI to be recreated without destroying active sessions.
+* Supported terminal types include `vt100`, `screen` (default), `linux`, and `xterm`.
+* UTF-8 terminal support.
+* Terminal cursor/cell alignment and right-edge clipping fixes.
+* Friendly `app_HOME` prompt while preserving the real filesystem path for commands such as `pwd`.
+* Dark, Light, System, and AMOLED application themes.
+
+=== Extra Keys toolbar
+
+The toolbar is designed to fit normal phone widths without horizontal scrolling.
+
+*NAV page*
+
+`ESC` · `CTRL` · `ALT` · `TAB` · `HOME` · `END` · `←` · `↓` · `↑` · `→` · `SYM`
+
+*SYM page*
+
+`PGUP` · `PGDN` · `INS` · `DEL` plus common shell symbols such as `|`, `/`, `~`, `_`, `-`, `=`, and `+`.
+
+`CTRL` and `ALT` support both one-shot and locked modifier states.
+
+=== Arabic and bidirectional text
+
+ThothTerm includes renderer-level support for:
+
+* Arabic contextual shaping.
+* Unicode BiDi visual ordering.
+* Mixed Arabic, English, and numeric terminal lines.
+* Natural Arabic glyph advances without artificial letter stretching.
+* Logical-to-visual cursor and selection mapping.
+* LTR terminal-row semantics preserved while genuine RTL runs are reordered in place.
+
+The PTY data and terminal buffer remain logical Unicode text; Arabic support is a rendering feature, not string reversal or presentation-form rewriting.
+
+== Quick start
+
+Install a testing APK from the https://github.com/Lord1Egypt/AndroidThothTerm/releases/tag/terminal-v1.0.0[1.0.0 Golden Release], launch *ThothTerm*, and start using the Android shell.
+
+The default home prompt is intentionally compact:
+
+[source,text]
+----
+app_HOME $
+----
+
+Subdirectories remain visible:
+
+[source,text]
+----
+app_HOME/projects $
+----
+
+The actual filesystem location is unchanged. `pwd` still reports the real Android path.
+
+CAUTION: The attached `*-debug.apk` files are signed with the Android debug key and are intended for device testing. The release APK/AAB outputs are currently unsigned because no production ThothTerm signing identity has been configured.
+
+[[editions]]
+== Editions
+
+ThothTerm is designed as two independently installable products sharing the same terminal engine.
+
+[cols="1,2,2",options="header"]
+|===
+| | ThothTerm Terminal Emulator | ThothTerm Linux
+
+| Application ID
+| `com.thothterm`
+| `com.thothterm.linux`
+
+| Status
+| *Released — 1.0.0 Golden Baseline*
+| *Planned / not implemented yet*
+
+| Purpose
+| Standalone Android terminal emulator
+| Linux development workspace for Android
+
+| Runtime
+| Android shell / PTY
+| Embedded Ubuntu ARM64 runtime (planned)
+
+| Distribution size
+| Lightweight terminal application
+| Larger Linux/runtime payload (planned)
+|===
+
+Both application IDs are intentionally distinct so the editions can coexist on one Android device without sharing application data or signatures.
+
+See link:docs/EDITION_PLAN.md[EDITION_PLAN.md] for the architecture and coexistence plan.
+
+== Architecture
+
+ThothTerm keeps the terminal engine separate from the Android application layer.
+
+[source,text]
+----
+Android UI
+   |
+   v
+TermActivity / Term controller
+   |
+   v
+Foreground TermService
+   |
+   v
+SessionList
+   |
+   v
+ShellTermSession
+   |
+   +--> /dev/ptmx
+   +--> Process / TermIO JNI
+   +--> libterm-system.so
+
+TermView / EmulatorView
+   |
+   v
+TermSession / TerminalEmulator
+----
+
+Main modules:
+
+`emulatorview/`:: Terminal parser, screen/transcript model, rendering, selection, key handling, Unicode/BiDi rendering.
+
+`libtermexec/`:: Native PTY/process and terminal-control JNI layer.
+
+`term/`:: Android application layer: activities, service, settings, resources, installer/bootstrap logic, extra keys, themes, menus, and product flavors.
+
+The future Linux edition is planned to reuse `emulatorview` and `libtermexec` rather than fork the terminal engine.
+
+== Building
+
+=== Requirements
+
+The 1.0 golden baseline was built with:
+
+[cols="1,2",options="header"]
+|===
+| Component | Version
+| JDK | 17
+| Gradle wrapper | 9.7.1
+| Android Gradle Plugin | 9.4.0
+| Android SDK | compile/target 36
+| Android Build Tools | 37.0.0
+| Android NDK | 23.2.8568313
+| CMake | 3.22.1
+|===
+
+=== Debug build
 
 [source,sh]
 ----
-./gradlew :term:assembleFullDebug
+./gradlew :term:clean :term:assembleFullDebug -x :term:elfcleaner
 ----
 
-License and attribution
------------------------
+Play-flavor debug build:
 
-Licensed under the Apache License, Version 2.0. See link:LICENSE[LICENSE] and link:NOTICE[NOTICE].
+[source,sh]
+----
+./gradlew :term:clean :term:assemblePlayDebug -x :term:elfcleaner
+----
 
-This project is a rebranded derivative work of the *TermOne Plus* terminal
-emulator and of Jack Palevich's *Terminal Emulator for Android* (the Android
-Open Source Project). The original copyright notices and license terms are
-retained in the source files and in the link:NOTICE[NOTICE] file.
+The project currently references an external host `elf-cleaner` tool for an optional cleanup step. If it is not installed, the documented baseline build skips that task with `-x :term:elfcleaner`.
+
+=== Release outputs
+
+The project can produce Full/Play release APKs and AABs. The 1.0 baseline release artifacts are unsigned until a dedicated production signing identity is configured.
+
+Exact build commands, artifact sizes, SHA-256 values, package IDs, and signing status are recorded in link:docs/GOLDEN_BASELINE.md[GOLDEN_BASELINE.md].
+
+== Golden baseline and recovery
+
+`terminal-v1.0.0` is the immutable recovery point for the accepted terminal-only release.
+
+[source,sh]
+----
+git fetch --tags
+git checkout terminal-v1.0.0
+
+# Preferred: work from a recovery branch
+git switch -c recovery/terminal-v1.0.0 terminal-v1.0.0
+----
+
+The full release manifest is in link:docs/GOLDEN_BASELINE.md[GOLDEN_BASELINE.md].
+
+== Current status
+
+* Stable terminal baseline: *1.0.0*.
+* `master`: stable/documented terminal baseline.
+* `feature/thotterm-linux`: development branch reserved for the future Linux edition.
+* Production signing: pending.
+* Lint baseline: 1 pre-existing predictive-back error and 67 warnings.
+* Gradle unit-test tasks currently report `NO-SOURCE`.
+
+Known technical-debt items are documented in link:docs/GOLDEN_BASELINE.md[GOLDEN_BASELINE.md] and link:docs/THOTHTERM_HANDOFF.md[THOTHTERM_HANDOFF.md].
+
+== Roadmap
+
+The roadmap is intentionally staged so the released terminal baseline remains recoverable.
+
+. *Diagnostics / Logging*
+** Structured app/session/runtime logging.
+** User-visible diagnostics screen.
+** Safe log export without terminal input, API keys, passwords, or other secrets.
+
+. *ThothTerm Linux*
+** Separate installable application: `com.thothterm.linux`.
+** Planned embedded Ubuntu 26.04 LTS ARM64 environment.
+** One-hit UX: install, open, and enter the Linux terminal without manual distro setup.
+** Shared terminal/PTY engine with the terminal-emulator edition.
+
+. *Linux integration and runtime polish*
+** Multi-session integration on one Linux rootfs.
+** Background/runtime controls.
+** Storage and Android integration.
+
+. *Web Terminal / LAN Mode*
+** Browser access from another device on the local network.
+** Authentication and temporary access tokens.
+** No automatic Internet exposure or port forwarding.
+
+Roadmap items are plans, not features of the current 1.0.0 terminal release.
+
+== Releases and documentation
+
+* https://github.com/Lord1Egypt/AndroidThothTerm/releases/tag/terminal-v1.0.0[ThothTerm Terminal Emulator 1.0.0 — Golden Baseline]
+* link:docs/RELEASE_NOTES_1.0.md[Release notes]
+* link:docs/TERMINAL_RELEASE_1.0.md[Terminal 1.0 release report]
+* link:docs/GOLDEN_BASELINE.md[Golden baseline manifest and recovery guide]
+* link:docs/EDITION_PLAN.md[Terminal/Linux edition plan]
+* link:docs/THOTHTERM_HANDOFF.md[Engineering handoff and architecture notes]
+
+== License and attribution
+
+ThothTerm is licensed under the Apache License, Version 2.0. See link:LICENSE[LICENSE] and link:NOTICE[NOTICE].
+
+This project is a rebranded derivative work of *TermOne Plus* and Jack Palevich's *Terminal Emulator for Android*. Original copyright notices and license terms are retained in the source files and in link:NOTICE[NOTICE].
+
+== Project links
+
+* Repository: https://github.com/Lord1Egypt/AndroidThothTerm
+* Releases: https://github.com/Lord1Egypt/AndroidThothTerm/releases
+* Golden release: https://github.com/Lord1Egypt/AndroidThothTerm/releases/tag/terminal-v1.0.0
+
+---
+
+*ThothTerm Terminal Emulator* — a focused Android terminal today, with a separate Linux workspace edition planned for tomorrow.
