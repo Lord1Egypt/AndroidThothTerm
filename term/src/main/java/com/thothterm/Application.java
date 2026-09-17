@@ -23,6 +23,8 @@ import android.text.TextUtils;
 import androidx.preference.PreferenceManager;
 
 import com.google.android.material.color.DynamicColors;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 import com.thothterm.utils.ThemeManager;
 
 import java.io.File;
@@ -105,6 +107,10 @@ public class Application extends android.app.Application {
     public void onCreate() {
         super.onCreate();
 
+        ThothLog.init(this);
+        ThothLog.i(LogCategory.APP, "Application start version=" + VER
+                + " flavor=" + BuildConfig.FLAVOR + "-" + BuildConfig.BUILD_TYPE);
+
         // enable Material3 dynamic colors
         DynamicColors.applyToActivitiesIfAvailable(this);
 
@@ -114,11 +120,14 @@ public class Application extends android.app.Application {
         xbindir = libdir;
         cachedir = getCacheDir();
 
+        ThothLog.i(LogCategory.STORAGE, "Initializing application private directories");
+
         setupPreferences();
         ThemeManager.migrateFileSelectionThemeMode(this);
 
         TypefaceSetting.create(getAssets());
 
+        ThothLog.i(LogCategory.INSTALLER, "Bootstrap start");
         Installer.install_directory(etcdir, false);
         install_skeleton();
 
@@ -133,6 +142,8 @@ public class Application extends android.app.Application {
         }
 
         Installer.installAppScriptFile();
+        ThothLog.i(LogCategory.INSTALLER, "Bootstrap complete");
+        ThothLog.i(LogCategory.STORAGE, "Application private directories ready");
     }
 
     private void setupPreferences() {

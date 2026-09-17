@@ -23,7 +23,6 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -32,6 +31,8 @@ import android.widget.ImageView;
 
 import com.thothterm.Application;
 import com.thothterm.R;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 import com.thothterm.utils.TextIcon;
 import com.thothterm.widget.ScreenMessage;
 
@@ -195,7 +196,7 @@ public class AddShortcut extends AppCompatActivity {
             try {
                 keys = ShortcutEncryption.generateKeys();
             } catch (GeneralSecurityException e) {
-                Log.e(Application.APP_TAG, "Generating shortcut encryption keys failed: " + e.toString());
+                ThothLog.e(LogCategory.SESSION, "Shortcut key generation failed", e);
                 throw new RuntimeException(e);
             }
             ShortcutEncryption.saveKeys(context, keys);
@@ -210,7 +211,7 @@ public class AddShortcut extends AppCompatActivity {
         try {
             cmdEnc = ShortcutEncryption.encrypt(cmdStr, keys);
         } catch (GeneralSecurityException e) {
-            Log.e(Application.APP_TAG, "Shortcut encryption failed: " + e.toString());
+            ThothLog.e(LogCategory.SESSION, "Shortcut encryption failed", e);
             throw new RuntimeException(e);
         }
 

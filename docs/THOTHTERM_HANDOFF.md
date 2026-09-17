@@ -768,6 +768,92 @@ Next recommended phase (not started): shared Diagnostics/Logging, then the
 future `com.thothterm.linux` edition. Do not begin Ubuntu/PRoot/Web Terminal
 from the terminal baseline without a separate design.
 
+## POST-1.0 PHASE: Diagnostics / structured logging foundation
+
+Branch `feature/thotterm-linux`, starting from the accepted baseline commit
+`55b4ba931371ac957dad163913f1050a38d0b739`. The immutable golden tag
+`terminal-v1.0.0` (`7a3c88e5…`) is untouched. This phase adds diagnostics only;
+no Ubuntu/PRoot/rootfs/runtime/Web Terminal/SSH/networking work was started.
+
+### What was added
+
+- A single logging facade, `com.thothterm.logging.ThothLog`, used by all
+  application code. Raw `android.util.Log` calls were replaced in the app
+  module (the pointer `jackpal.androidterm.compat.PRNGCFixes` utility and the
+  `emulatorview` renderer intentionally keep their own behaviour; the renderer
+  must stay independent of the logger).
+- Structured levels `ERROR`/`WARN`/`INFO`/`DEBUG`/`VERBOSE` (default `INFO`)
+  and categories `APP`, `UI`, `SESSION`, `PTY`, `SHELL`, `INSTALLER`,
+  `STORAGE`, `NETWORK`, with reserved `RUNTIME`, `LINUX`, `ROOTFS`, `PROOT`,
+  `WEB`, `SECURITY` for the Linux phase.
+- `Settings → Diagnostics` with View logs, Log level, Developer logging,
+  Clear logs, and Export logs. Log level and developer logging apply
+  immediately, with no reinstall.
+- A live Logs screen (`com.thothterm.LogsActivity`) with timestamp, level,
+  category and message; search; level/category filters; pause/resume;
+  auto-scroll; clear; and export.
+- Bounded rotating persistence in `<app files dir>/logs/`:
+  `thotterm.log` … `thotterm.3.log`, 4 MB × 4 files ≈ 16 MB maximum, oldest
+  removed automatically. Writes are asynchronous on a single low-priority
+  daemon thread; logging failures are swallowed and can never crash the app.
+- Privacy rules: terminal input, command text, terminal output, environment
+  values, clipboard data, and credentials are never logged; every message is
+  normalized to one line and capped. Future Linux code must log through the
+  same API with the reserved categories.
+
+See `docs/DIAGNOSTICS.md` for the full architecture, API, rotation, privacy
+rules, and the "how future Linux code must log" section.
+
+### Files changed
+
+- New logging core: `term/src/main/java/com/thothterm/logging/{ThothLog,
+  LogLevel, LogCategory, LogEntry, LogBuffer, LogFileStore, LogExporter,
+  Formats}.java`.
+- New UI: `term/src/main/java/com/thothterm/LogsActivity.java`,
+  `term/src/main/java/com/thothterm/LogsAdapter.java`,
+  `term/src/main/res/layout/activity_logs.xml`,
+  `term/src/main/res/layout/item_log.xml`, `term/src/main/res/menu/logs.xml`.
+- Settings/manifest/resources: `TermPreferencesActivity.java`,
+  `xml/preferences.xml`, `values/strings.xml`, `values/arrays.xml`,
+  `values/defaults.xml`, `values/colors.xml`, `AndroidManifest.xml`.
+- Instrumentation: `Application.java`, `Installer.java`,
+  `jackpal/androidterm/{Term,TermService,ShellTermSession,GenericTermSession,
+  RunScript,RunShortcut}.java`, `services/SessionsService.java`,
+  `WindowListActivity.java`, `RemoteActionActivity.java`,
+  `shortcuts/AddShortcut.java`, `utils/ThemeManager` consumers.
+- Docs: this section and `docs/DIAGNOSTICS.md`.
+
+### Build, lint, and verification
+
+Validated with the documented JDK/SDK environment and `-x :term:elfcleaner`.
+Artifacts, sizes, SHA-256 values, `git diff --check`, lint count, and the
+existing `NO-SOURCE` unit-test tasks are recorded in the phase commit message
+and in the owner-facing phase report. The known lint baseline must not silently
+worsen; the only expected pre-existing error remains `GestureBackNavigation`.
+
+Logging core logic (`LogLevel`, `LogCategory`, `LogBuffer`, `LogFileStore`,
+`LogEntry`, `Formats`) is Android-free and was exercised by a standalone JVM
+harness: level/category parsing, ring-buffer bounding and ordering, timestamp
+and line formatting, rotation bounded to 4 files, and `deleteAll`.
+
+### Device acceptance still required
+
+1. Settings → Diagnostics exists. 2. Logs screen opens. 3. INFO logs appear at
+startup. 4. New Window logs a SESSION event. 5. Closing a window logs an event.
+6. Switching sessions logs an event. 7. PTY resize appears at DEBUG. 8. Level
+filtering works. 9. Search works. 10. Pause/resume works. 11. Auto-scroll
+works. 12. Clear logs works. 13. Export logs works. 14. Restart preserves
+rotated/persistent logs as designed. 15. Logging does not noticeably affect
+terminal responsiveness. 16. Typed terminal text never appears in logs.
+17. Secrets/environment values never appear in logs. 18. Dark/Light/System/
+AMOLED render correctly.
+
+### Exact next recommended phase
+
+Embedded Ubuntu 26.04 LTS ARM64 runtime (separate, explicitly authorized). The
+Linux layer must use the reserved `RUNTIME`/`LINUX`/`ROOTFS`/`PROOT`/`WEB`/
+`SECURITY` categories through `ThothLog`. No Ubuntu/PRoot work has begun.
+
 ## Known risks and technical debt
 
 - Target SDK 36 predictive back is not migrated; lint fails on legacy `KEYCODE_BACK` handling. Treat this as a focused behavior task because back can close sessions or send terminal characters.

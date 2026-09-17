@@ -39,7 +39,6 @@ import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.ResultReceiver;
 import android.text.TextUtils;
-import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
@@ -50,6 +49,8 @@ import com.thothterm.R;
 import com.thothterm.RemoteSession;
 import com.thothterm.TermActivity;
 import com.thothterm.compat.PackageManagerCompat;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 import com.thothterm.services.CommandService;
 import com.thothterm.services.SessionsService;
 
@@ -94,11 +95,11 @@ public class TermService extends SessionsService {
     @Override
     public IBinder onBind(Intent intent) {
         if (TermExec.SERVICE_ACTION_V1.equals(intent.getAction())) {
-            Log.i("TermService", "Outside process called onBind()");
+            ThothLog.d(LogCategory.SESSION, "Service bound by external process");
 
             return new RBinder();
         } else {
-            Log.i("TermService", "Activity called onBind()");
+            ThothLog.d(LogCategory.SESSION, "Service bound by activity");
 
             return mTSBinder;
         }
@@ -113,11 +114,12 @@ public class TermService extends SessionsService {
         command_service = new CommandService(this);
         command_service.start();
 
-        Log.d(Application.APP_TAG, "TermService started");
+        ThothLog.i(LogCategory.APP, "Terminal service started");
     }
 
     @Override
     public void onTimeout(int startId, int fgsType) {
+        ThothLog.w(LogCategory.SESSION, "Foreground service timeout; clearing sessions");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M /*API Level 23*/) {
             NotificationManager notificationManager = this.getApplicationContext().getSystemService(NotificationManager.class);
             notificationManager.notify(
@@ -142,6 +144,8 @@ public class TermService extends SessionsService {
         clearSessions();
         StopForeground.stop(this);
         super.onDestroy();
+
+        ThothLog.i(LogCategory.APP, "Terminal service stopped");
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM /*API Level 35*/) {
             // forced VM exist may start new timeout counter ...
@@ -280,7 +284,7 @@ public class TermService extends SessionsService {
 
     public class TSBinder extends Binder {
         public TermService getService() {
-            Log.i("TermService", "Activity binding to service");
+            ThothLog.d(LogCategory.SESSION, "Activity binding to service");
             return TermService.this;
         }
     }

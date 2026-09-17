@@ -18,9 +18,10 @@
 package jackpal.androidterm;
 
 import android.content.Intent;
-import android.util.Log;
 
 import com.thothterm.Application;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 
 import java.security.GeneralSecurityException;
 
@@ -43,18 +44,18 @@ public final class RunShortcut extends RemoteInterface {
         try {
             String request = intent.getStringExtra(Application.ARGUMENT_SHELL_COMMAND);
             if (request == null) {
-                Log.e(Application.APP_TAG, "No command provided in shortcut!");
+                ThothLog.e(LogCategory.SESSION, "Run shortcut request had no command");
                 return;
             }
             ShortcutEncryption.Keys keys = ShortcutEncryption.getKeys(this);
             if (keys == null) {
                 // No keys -- no valid shortcuts can exist
-                Log.e(Application.APP_TAG, "No shortcut encryption keys found!");
+                ThothLog.e(LogCategory.SESSION, "Shortcut encryption keys missing");
                 return;
             }
             command = ShortcutEncryption.decrypt(request, keys);
         } catch (GeneralSecurityException e) {
-            Log.e(Application.APP_TAG, "Invalid shortcut: " + e.toString());
+            ThothLog.e(LogCategory.SESSION, "Shortcut request rejected", e);
             return;
         }
 

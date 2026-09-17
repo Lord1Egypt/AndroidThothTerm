@@ -20,9 +20,10 @@ package jackpal.androidterm;
 import java.io.*;
 
 import android.os.ParcelFileDescriptor;
-import android.util.Log;
 
 import com.thothterm.TermIO;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 
 import jackpal.androidterm.emulatorview.TermSession;
 import jackpal.androidterm.util.TermSettings;
@@ -59,6 +60,8 @@ class GenericTermSession extends TermSession {
         this.createdAt = System.currentTimeMillis();
 
         updatePrefs(settings);
+
+        ThothLog.d(LogCategory.PTY, "PTY opened");
     }
 
     public void updatePrefs(TermSettings settings) {
@@ -85,6 +88,7 @@ class GenericTermSession extends TermSession {
             columns = 80;
             rows = 24;
         }
+        ThothLog.d(LogCategory.PTY, "PTY resize rows=" + rows + " cols=" + columns);
         // Inform the attached pty of our new size:
         setPtyWindowSize(rows, columns);
         super.updateSize(columns, rows);
@@ -113,6 +117,7 @@ class GenericTermSession extends TermSession {
 
     @Override
     public void finish() {
+        ThothLog.d(LogCategory.PTY, "PTY closed");
         try {
             mTermFd.close();
         } catch (IOException e) {
@@ -167,7 +172,7 @@ class GenericTermSession extends TermSession {
         try {
             TermIO.setWindowSize(mTermFd, row, col);
         } catch (IOException e) {
-            Log.e("exec", "Failed to set window size: " + e.getMessage());
+            ThothLog.w(LogCategory.PTY, "PTY resize failed: " + e.getMessage());
 
             if (isFailFast())
                 throw new IllegalStateException(e);
@@ -186,7 +191,7 @@ class GenericTermSession extends TermSession {
         try {
             TermIO.setUTF8Input(mTermFd, getUTF8Mode());
         } catch (IOException e) {
-            Log.e("exec", "Failed to set UTF mode: " + e.getMessage());
+            ThothLog.w(LogCategory.PTY, "PTY UTF-8 mode failed: " + e.getMessage());
 
             if (isFailFast())
                 throw new IllegalStateException(e);

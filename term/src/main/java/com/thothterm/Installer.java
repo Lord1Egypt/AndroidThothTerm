@@ -20,6 +20,8 @@ import android.content.res.AssetManager;
 import android.text.TextUtils;
 
 import com.thothterm.compat.FilesCompat;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 
 import java.io.File;
 import java.io.IOException;
@@ -92,7 +94,13 @@ public class Installer {
             shell_script.add("}");
         }
 
-        return install_text_file(shell_script.toArray(new String[0]), Application.getScriptFile());
+        boolean installed = install_text_file(
+                shell_script.toArray(new String[0]), Application.getScriptFile());
+        if (installed)
+            ThothLog.d(LogCategory.INSTALLER, "Startup script updated");
+        else
+            ThothLog.w(LogCategory.INSTALLER, "Startup script update failed");
+        return installed;
     }
 
     public static boolean copy_executable(File source, File target_path) {
