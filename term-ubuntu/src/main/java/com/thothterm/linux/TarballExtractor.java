@@ -21,6 +21,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Minimal, safe tar (ustar/GNU/pax) extractor used for the embedded Ubuntu
@@ -34,6 +38,14 @@ public final class TarballExtractor {
     private static final int BLOCK = 512;
     private static final Charset ASCII = Charset.forName("US-ASCII");
 
+    /**
+     * Directories are created writable during extraction; their archived modes
+     * are recorded and applied only after every entry has been materialized.
+     * Applying a restrictive final directory mode too early would break later
+     * child or hardlink creation.
+     */
+    private static final int TEMP_DIR_MODE = 0700;
+
     public interface EntryListener {
         void onEntry(long extractedEntries);
     }
@@ -46,6 +58,9 @@ public final class TarballExtractor {
     private long rejectedEntries;
     private long skippedSpecialEntries;
     private long copiedBytes;
+    private long hardlinkFallbacks;
+
+    private final List<PendingDir> pendingDirs = new ArrayList<>();
 
     public TarballExtractor(FileOps ops, File targetDir, EntryListener listener) {
         this.ops = ops;
@@ -67,6 +82,11 @@ public final class TarballExtractor {
 
     public long copiedBytes() {
         return copiedBytes;
+    }
+
+    /** Hardlinks that had to be materialized as copies (Android SELinux). */
+    public long hardlinkFallbacks() {
+        return hardlinkFallbacks;
     }
 
     public void extract(InputStream tar) throws IOException {
@@ -132,7 +152,54 @@ public final class TarballExtractor {
             extractEntry(tar, type, name, link, size, mode, mtime, canonicalTarget);
         }
 
+        applyFinalDirectoryModes();
         if (listener != null) listener.onEntry(extractedEntries);
+    }
+
+    /**
+     * Materializes a hardlink. Android SELinux forbids untrusted apps from
+     * creating hardlinks ({@code neverallow all_untrusted_apps file_type:file
+     * link}), which returns EACCES. When a real hardlink is refused, an
+     * archived hardlink whose validated target is a regular file inside the
+     * staging root is materialized as a local copy instead. The target is never
+     * a directory or symlink, and containment is enforced before this call.
+     */
+    private void linkOrCopy(File existing, File dest, int mode, String entry, String target)
+            throws IOException {
+        try {
+            ops.hardlink(existing, dest);
+            return;
+        } catch (IOException e) {
+            if (!ops.isRegularFile(existing)) {
+                throw new IOException("hardlink failed entry=" + entry
+                        + " target=" + target + ": " + e.getMessage(), e);
+            }
+            try {
+                ops.copyFile(existing, dest, mode);
+            } catch (IOException copyError) {
+                throw new IOException("hardlink failed entry=" + entry
+                        + " target=" + target + ": " + e.getMessage(), e);
+            }
+            hardlinkFallbacks++;
+        }
+    }
+
+    private void applyFinalDirectoryModes() {
+        List<PendingDir> dirs = new ArrayList<>(pendingDirs);
+        Collections.sort(dirs, new Comparator<PendingDir>() {
+            @Override
+            public int compare(PendingDir a, PendingDir b) {
+                return depth(b.file) - depth(a.file);
+            }
+        });
+        for (PendingDir dir : dirs) {
+            ops.setMode(dir.file, dir.mode);
+            ops.setLastModified(dir.file, dir.mtime * 1000L);
+        }
+    }
+
+    private static int depth(File file) {
+        return file.getAbsolutePath().split("/").length;
     }
 
     private void extractEntry(InputStream tar, char type, String name, String link,
@@ -152,8 +219,8 @@ public final class TarballExtractor {
                 rejectedEntries++;
                 return;
             }
-            ops.mkdirs(dest, mode);
-            ops.setLastModified(dest, mtime * 1000L);
+            ops.mkdirs(dest, TEMP_DIR_MODE);
+            pendingDirs.add(new PendingDir(dest, mode, mtime));
             onEntry();
             return;
         }
@@ -215,7 +282,7 @@ public final class TarballExtractor {
                 return;
             }
             removeNonDirectory(dest);
-            ops.hardlink(existing, dest);
+            linkOrCopy(existing, dest, mode, rel, linkRel);
             onEntry();
             return;
         }
@@ -440,5 +507,17 @@ public final class TarballExtractor {
             value = (value << 8) | b;
         }
         return value;
+    }
+
+    private static final class PendingDir {
+        final File file;
+        final int mode;
+        final long mtime;
+
+        PendingDir(File file, int mode, long mtime) {
+            this.file = file;
+            this.mode = mode;
+            this.mtime = mtime;
+        }
     }
 }

@@ -18,10 +18,13 @@ package com.thothterm.linux;
 
 import android.system.ErrnoException;
 import android.system.Os;
+import android.system.OsConstants;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -38,6 +41,43 @@ public final class AndroidFileOps implements FileOps {
     @Override
     public boolean isDirectory(File file) {
         return file.isDirectory();
+    }
+
+    @Override
+    public boolean isSymlink(File file) {
+        try {
+            return OsConstants.S_ISLNK(Os.lstat(file.getAbsolutePath()).st_mode);
+        } catch (ErrnoException e) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isRegularFile(File file) {
+        try {
+            return OsConstants.S_ISREG(Os.lstat(file.getAbsolutePath()).st_mode);
+        } catch (ErrnoException e) {
+            return false;
+        }
+    }
+
+    @Override
+    public void copyFile(File source, File destination, int mode) throws IOException {
+        OutputStream out = createFile(destination, mode);
+        InputStream in = new FileInputStream(source);
+        try {
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            while ((read = in.read(buffer)) > 0) {
+                out.write(buffer, 0, read);
+            }
+        } finally {
+            try {
+                in.close();
+            } catch (IOException ignored) {
+            }
+            out.close();
+        }
     }
 
     @Override

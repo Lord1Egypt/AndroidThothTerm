@@ -69,6 +69,7 @@ public final class RootfsManager {
     private final File runtimeLibDir;
     private final File prootTmpDir;
     private final File nativeLibDir;
+    private final FileOps fileOps = new AndroidFileOps();
 
     private ImageInfo image;
     private volatile Listener listener;
@@ -201,10 +202,28 @@ public final class RootfsManager {
         } catch (Throwable t) {
             failed = true;
             lastError = t;
-            ThothLog.e(LogCategory.ROOTFS, "Linux environment preparation failed", t);
+            ThothLog.e(LogCategory.ROOTFS, "Extraction failed type="
+                    + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
+            cleanupStagingQuietly();
             notifyError();
         } finally {
             running = false;
+        }
+    }
+
+    /**
+     * Best-effort removal of the staging tree after a failure. A cleanup
+     * failure is logged separately and never replaces the original error.
+     */
+    private void cleanupStagingQuietly() {
+        try {
+            ThothLog.d(LogCategory.ROOTFS, "Staging cleanup started");
+            SafeFileTree.deleteTree(fileOps, linuxDir, stagingDir);
+            ThothLog.i(LogCategory.ROOTFS, "Staging cleanup complete");
+        } catch (Throwable cleanup) {
+            ThothLog.e(LogCategory.ROOTFS, "Staging cleanup failed type="
+                    + cleanup.getClass().getSimpleName()
+                    + " message=" + cleanup.getMessage(), cleanup);
         }
     }
 
@@ -234,7 +253,13 @@ public final class RootfsManager {
         ThothLog.i(LogCategory.ROOTFS, "Extraction started image=" + image.imageId()
                 + " version=" + image.ubuntuVersion());
 
-        deleteRecursively(stagingDir);
+        ThothLog.d(LogCategory.ROOTFS, "Staging cleanup started");
+        SafeFileTree.deleteTree(fileOps, linuxDir, stagingDir);
+        if (stagingDir.exists()) {
+            throw new IOException("Cannot clear staging directory");
+        }
+        ThothLog.i(LogCategory.ROOTFS, "Staging cleanup complete");
+
         if (!stagingDir.mkdirs()) {
             throw new IOException("Cannot create staging directory");
         }
@@ -249,7 +274,7 @@ public final class RootfsManager {
         GZIPInputStream gzip = new GZIPInputStream(digesting, 64 * 1024);
 
         TarballExtractor extractor = new TarballExtractor(
-                new AndroidFileOps(), stagingDir,
+                fileOps, stagingDir,
                 count -> publishProgress(count, expectedSize));
         try {
             extractor.extract(gzip);
@@ -262,9 +287,15 @@ public final class RootfsManager {
             ThothLog.w(LogCategory.SECURITY, "Embedded rootfs checksum mismatch");
             throw new IOException("Embedded rootfs checksum mismatch");
         }
-        ThothLog.d(LogCategory.ROOTFS, "Extraction complete files=" + extractor.extractedEntries()
+        ThothLog.d(LogCategory.ROOTFS, "Archive entries processed count="
+                + extractor.extractedEntries()
                 + " rejected=" + extractor.rejectedEntries()
                 + " skipped=" + extractor.skippedSpecialEntries());
+        if (extractor.hardlinkFallbacks() > 0) {
+            ThothLog.w(LogCategory.ROOTFS,
+                    "Hardlink fallback used count=" + extractor.hardlinkFallbacks()
+                            + " (Android SELinux forbids untrusted-app hardlinks)");
+        }
 
         if (!new File(stagingDir, "usr/bin/bash").exists()
                 || !new File(stagingDir, "etc/os-release").exists()) {
@@ -273,7 +304,7 @@ public final class RootfsManager {
 
         setupUserHome(stagingDir);
 
-        deleteRecursively(rootfsDir);
+        SafeFileTree.deleteTree(fileOps, linuxDir, rootfsDir);
         if (!stagingDir.renameTo(rootfsDir)) {
             throw new IOException("Cannot finalize extracted rootfs");
         }
@@ -440,18 +471,6 @@ public final class RootfsManager {
         while ((read = in.read(buffer)) > 0) {
             out.write(buffer, 0, read);
         }
-    }
-
-    private static void deleteRecursively(File file) {
-        if (file == null || !file.exists()) return;
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            if (children != null) {
-                for (File child : children) deleteRecursively(child);
-            }
-        }
-        //noinspection ResultOfMethodCallIgnored
-        file.delete();
     }
 
     private static String toHex(byte[] bytes) {

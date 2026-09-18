@@ -29,9 +29,17 @@ public interface FileOps {
 
     boolean isDirectory(File file);
 
+    /** True when the path itself is a symbolic link (never follows it). */
+    boolean isSymlink(File file);
+
+    /** True when the path itself is a regular file (never follows symlinks). */
+    boolean isRegularFile(File file);
+
     void mkdirs(File dir, int mode) throws IOException;
 
     OutputStream createFile(File file, int mode) throws IOException;
+
+    void copyFile(File source, File destination, int mode) throws IOException;
 
     void symlink(String target, File link) throws IOException;
 
