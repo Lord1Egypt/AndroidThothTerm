@@ -250,4 +250,43 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory
+        android:key="diagnostics"
+        android:title="@string/diagnostics_preferences">
+
+        <Preference
+            android:key="diagnostics_view_logs"
+            android:persistent="false"
+            android:summary="@string/summary_diagnostics_view_logs"
+            android:title="@string/title_diagnostics_view_logs"/>
+
+        <ListPreference
+            android:defaultValue="@string/pref_log_level_default"
+            android:dialogTitle="@string/dialog_title_diagnostics_log_level"
+            android:entries="@array/entries_log_level_preference"
+            android:entryValues="@array/entryvalues_log_level_preference"
+            android:key="diagnostics_log_level"
+            android:summary="@string/summary_diagnostics_log_level"
+            android:title="@string/title_diagnostics_log_level"/>
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:defaultValue="@bool/pref_developer_logging_default"
+            android:key="diagnostics_developer_logging"
+            android:summary="@string/summary_diagnostics_developer_logging"
+            android:title="@string/title_diagnostics_developer_logging"/>
+
+        <Preference
+            android:key="diagnostics_clear"
+            android:persistent="false"
+            android:summary="@string/summary_diagnostics_clear"
+            android:title="@string/title_diagnostics_clear"/>
+
+        <Preference
+            android:key="diagnostics_export"
+            android:persistent="false"
+            android:summary="@string/summary_diagnostics_export"
+            android:title="@string/title_diagnostics_export"/>
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

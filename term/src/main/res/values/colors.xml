@@ -30,4 +30,11 @@
     <color name="colorvalue_red">#FFFF0000</color>
     <color name="colorvalue_green">#FF00FF00</color>
     <color name="colorvalue_blue">#FF0000FF</color>
+
+    <!-- Diagnostics log level accents (legible on dark, light, and AMOLED). -->
+    <color name="log_level_error">#FFE53935</color>
+    <color name="log_level_warn">#FFFB8C00</color>
+    <color name="log_level_info">#FF43A047</color>
+    <color name="log_level_debug">#FF1E88E5</color>
+    <color name="log_level_verbose">#FF9E9E9E</color>
 </resources>

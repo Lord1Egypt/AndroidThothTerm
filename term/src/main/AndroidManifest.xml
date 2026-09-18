@@ -165,6 +165,14 @@
                 android:value="com.thothterm.TermActivity"/>
         </activity>
         <activity
+            android:name=".LogsActivity"
+            android:label="@string/diagnostics_logs"
+            android:parentActivityName="com.thothterm.TermActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.thothterm.TermActivity"/>
+        </activity>
+        <activity
             android:name=".shortcuts.AddShortcut"
             android:configChanges="orientation|keyboard|keyboardHidden"
             android:exported="true"

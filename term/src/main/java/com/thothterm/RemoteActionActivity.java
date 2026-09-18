@@ -18,13 +18,14 @@ package com.thothterm;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 import com.thothterm.remote.CommandCollector;
 import com.thothterm.services.ServiceManager;
 import com.thothterm.utils.ThemeManager;
@@ -41,11 +42,11 @@ public class RemoteActionActivity extends AppCompatActivity {
 
     private void onServiceConnection(TermService service) {
         if (service != null) {
-            Log.i(Application.APP_TAG, "Action connected to TermService");
+            ThothLog.d(LogCategory.SESSION, "Remote action connected to terminal service");
             term_service = service;
             processIntent();
         } else {
-            Log.i(Application.APP_TAG, "Action disconnected from TermService");
+            ThothLog.d(LogCategory.SESSION, "Remote action disconnected from terminal service");
             term_service = null;
         }
     }

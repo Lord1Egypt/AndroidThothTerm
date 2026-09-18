@@ -21,9 +21,10 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.util.Log;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
@@ -78,7 +79,7 @@ public class WindowListActivity extends AppCompatActivity
 
         Intent TSIntent = new Intent(this, TermService.class);
         if (!bindService(TSIntent, service_connection, BIND_AUTO_CREATE)) {
-            Log.e(Application.APP_TAG, "bind to service failed!");
+            ThothLog.e(LogCategory.SESSION, "Window list failed to bind to service");
         }
     }
 

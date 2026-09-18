@@ -28,7 +28,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -56,6 +55,8 @@ import com.thothterm.TermActionBar;
 import com.thothterm.TermPreferencesActivity;
 import com.thothterm.WindowListActivity;
 import com.thothterm.compat.SoftInputCompat;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 import com.thothterm.remote.CommandCollector;
 import com.thothterm.services.ServiceManager;
 import com.thothterm.utils.ConsoleStartupScript;
@@ -107,6 +108,7 @@ public class Term extends AppCompatActivity
     private TermActionBar mActionBar;
     private ExtraKeysView mExtraKeys;
     private TermSession mExtraKeysSession;
+    private int mLastDisplayedSession = -1;
     private int mActionBarMode;
     private boolean mHaveFullHwKeyboard = false;
     /**
@@ -172,11 +174,11 @@ public class Term extends AppCompatActivity
 
     private void onServiceConnection(TermService service) {
         if (service != null) {
-            Log.i(Application.APP_TAG, "Application connected to TermService");
+            ThothLog.d(LogCategory.SESSION, "Activity connected to terminal service");
             mTermService = service;
             populateSessions();
         } else {
-            Log.i(Application.APP_TAG, "Application disconnected from TermService");
+            ThothLog.d(LogCategory.SESSION, "Activity disconnected from terminal service");
             mTermService = null;
         }
     }
@@ -223,7 +225,7 @@ public class Term extends AppCompatActivity
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
-        Log.v(Application.APP_TAG, "onCreate");
+        ThothLog.d(LogCategory.UI, "Term activity created");
         command_collected = false;
         mHandler = new Handler(getMainLooper());
 
@@ -404,6 +406,12 @@ public class Term extends AppCompatActivity
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        ThothLog.d(LogCategory.UI, "Term activity resumed");
+    }
+
+    @Override
     public void onPause() {
         super.onPause();
 
@@ -422,6 +430,7 @@ public class Term extends AppCompatActivity
 
     @Override
     protected void onStop() {
+        ThothLog.d(LogCategory.UI, "Term activity stopped");
         mViewFlipper.onPause();
         if (mTermSessions != null) {
             mTermSessions.removeCallback(this);
@@ -503,7 +512,7 @@ public class Term extends AppCompatActivity
 
     private void doCreateNewWindow() {
         if (mTermService == null) {
-            Log.w(Application.APP_TAG, "Couldn't create new window because mTermService == null");
+            ThothLog.w(LogCategory.UI, "New window requested before service was ready");
             return;
         }
 
@@ -820,6 +829,10 @@ public class Term extends AppCompatActivity
         if (mActionBar == null || mViewFlipper == null) return;
 
         int position = mViewFlipper.getDisplayedChild();
+        if (position != mLastDisplayedSession) {
+            mLastDisplayedSession = position;
+            ThothLog.d(LogCategory.SESSION, "Session switched index=" + position);
+        }
         TermSession session = getCurrentTermSession();
         CharSequence title = (session != null) ? session.getTitle() : null;
         if (TextUtils.isEmpty(title))

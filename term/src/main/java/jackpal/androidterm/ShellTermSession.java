@@ -21,10 +21,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
-import android.util.Log;
 
 import com.thothterm.Application;
 import com.thothterm.Process;
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -59,11 +60,11 @@ public class ShellTermSession extends GenericTermSession {
         mInitialCommand = initialCommand;
 
         mProcId = createShellProcess(settings);
+        ThothLog.i(LogCategory.SHELL, "Shell process started pid=" + mProcId);
         final Handler handler = new ProcessHandler(this);
         mWatcherThread = new Thread(() -> {
-            Log.i(Application.APP_TAG, "waiting for: " + mProcId);
+            ThothLog.d(LogCategory.SHELL, "Waiting for shell exit pid=" + mProcId);
             int result = Process.waitExit(mProcId);
-            Log.i(Application.APP_TAG, "subprocess exited: " + result);
             handler.sendMessage(handler.obtainMessage(PROCESS_EXITED, result));
         });
         mWatcherThread.setName("Process watcher");
@@ -101,10 +102,12 @@ public class ShellTermSession extends GenericTermSession {
             arg0 = argList.get(0);
             File file = new File(arg0);
             if (!file.exists()) {
-                Log.e(Application.APP_TAG, "Shell " + arg0 + " not found!");
+                ThothLog.e(LogCategory.SHELL,
+                        "Shell executable not found: " + new File(arg0).getName());
                 throw new FileNotFoundException(arg0);
             } else if (!file.canExecute()) {
-                Log.e(Application.APP_TAG, "Shell " + arg0 + " not executable!");
+                ThothLog.e(LogCategory.SHELL,
+                        "Shell executable not executable: " + new File(arg0).getName());
                 throw new FileNotFoundException(arg0);
             }
             args = argList.toArray(new String[0]);
@@ -113,6 +116,7 @@ public class ShellTermSession extends GenericTermSession {
             arg0 = argList.get(0);
             args = argList.toArray(new String[0]);
         }
+        ThothLog.d(LogCategory.SHELL, "Shell executable name=" + new File(arg0).getName());
 
         Map<String, String> map = new HashMap<>(System.getenv());
         map.put("TERM", settings.getTermType());
@@ -178,6 +182,10 @@ public class ShellTermSession extends GenericTermSession {
     }
 
     private void onProcessExit(int result) {
+        if (result == 0)
+            ThothLog.i(LogCategory.SHELL, "Shell exited code=0");
+        else
+            ThothLog.w(LogCategory.SHELL, "Shell exited code=" + result);
         onProcessExit();
     }
 
