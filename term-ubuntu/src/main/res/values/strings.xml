@@ -28,6 +28,7 @@
     <string name="ubuntu_prepare_once">This happens only once.</string>
     <string name="ubuntu_extracting_percent">Extracting Ubuntu\u2026 %1$d%%</string>
     <string name="ubuntu_prepare_failed">Linux environment could not be prepared.</string>
+    <string name="ubuntu_prepare_failed_hint">Preparation failed. Retry or view diagnostics for details.</string>
     <string name="ubuntu_retry">Retry</string>
     <string name="ubuntu_view_logs">View logs</string>
     <string name="preferences">Settings</string>

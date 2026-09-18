@@ -110,7 +110,7 @@ public final class RootfsManager {
     }
 
     public boolean isSupportedDevice() {
-        return "aarch64".equals(android.os.Build.SUPPORTED_ABIS[0]);
+        return DeviceArchitecture.isArm64Supported(android.os.Build.SUPPORTED_ABIS);
     }
 
     public File rootfsDir() {
@@ -177,9 +177,21 @@ public final class RootfsManager {
             if (image == null) {
                 throw new IOException("Embedded image metadata is missing");
             }
-            if (!isSupportedDevice()) {
+
+            String[] supportedAbis = android.os.Build.SUPPORTED_ABIS;
+            String osArch = System.getProperty("os.arch");
+            ThothLog.d(LogCategory.RUNTIME, "Supported Android ABIs count="
+                    + (supportedAbis == null ? 0 : supportedAbis.length)
+                    + " supportedAbis=" + DeviceArchitecture.describe(supportedAbis)
+                    + " osArch=" + osArch);
+
+            if (!DeviceArchitecture.isArm64Supported(supportedAbis)) {
+                ThothLog.e(LogCategory.RUNTIME, "ARM64 compatibility check failed supportedAbis="
+                        + DeviceArchitecture.describe(supportedAbis)
+                        + " osArch=" + osArch);
                 throw new IOException("ThothTerm Ubuntu requires an arm64 device");
             }
+            ThothLog.i(LogCategory.RUNTIME, "ARM64 compatibility verified");
 
             publish("Preparing Linux environment\u2026");
             copyRuntimeLibraries();

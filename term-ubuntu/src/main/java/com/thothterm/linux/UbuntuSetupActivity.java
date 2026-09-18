@@ -41,6 +41,7 @@ public class UbuntuSetupActivity extends AppCompatActivity
     private final Handler main = new Handler(Looper.getMainLooper());
 
     private TextView status;
+    private TextView hint;
     private ProgressBar progress;
     private View actions;
 
@@ -59,6 +60,7 @@ public class UbuntuSetupActivity extends AppCompatActivity
         setContentView(R.layout.activity_ubuntu_setup);
 
         status = findViewById(R.id.setup_status);
+        hint = findViewById(R.id.setup_hint);
         progress = findViewById(R.id.setup_progress);
         actions = findViewById(R.id.setup_actions);
 
@@ -67,6 +69,7 @@ public class UbuntuSetupActivity extends AppCompatActivity
             actions.setVisibility(View.GONE);
             progress.setIndeterminate(true);
             status.setText(R.string.ubuntu_preparing);
+            hint.setText(R.string.ubuntu_prepare_once);
             manager.start();
         });
 
@@ -98,6 +101,7 @@ public class UbuntuSetupActivity extends AppCompatActivity
     public void onStatus(String message) {
         main.post(() -> {
             if (status != null) status.setText(message);
+            if (hint != null) hint.setText(R.string.ubuntu_prepare_once);
         });
     }
 
@@ -122,6 +126,7 @@ public class UbuntuSetupActivity extends AppCompatActivity
     public void onError(String message, Throwable cause) {
         main.post(() -> {
             if (status != null) status.setText(R.string.ubuntu_prepare_failed);
+            if (hint != null) hint.setText(R.string.ubuntu_prepare_failed_hint);
             if (progress != null) {
                 progress.setIndeterminate(false);
                 progress.setProgress(0);
