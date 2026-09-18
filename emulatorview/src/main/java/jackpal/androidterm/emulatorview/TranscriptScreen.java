@@ -478,6 +478,58 @@ class TranscriptScreen implements Screen {
         return PaintRenderer.logicalCellForVisual(getScriptLine(row), visualColumn);
     }
 
+    /** Convert a logical buffer column to its displayed bidi column. */
+    int visualColumnForLogical(int row, int logicalColumn) {
+        return PaintRenderer.visualCellForLogical(getScriptLine(row), logicalColumn);
+    }
+
+    /** Return the displayed cell boundary for a logical selection endpoint. */
+    int visualSelectionBoundary(int row, int logicalColumn, boolean start) {
+        return PaintRenderer.visualSelectionBoundary(
+                getScriptLine(row), logicalColumn, start);
+    }
+
+    /** Return the inclusive terminal-cell bounds of the word at a logical column. */
+    int[] getWordBounds(int row, int logicalColumn) {
+        int column = Math.max(0, Math.min(mColumns - 1, logicalColumn));
+        char[] line = getScriptLine(row);
+        if (line == null) return new int[] {column, column};
+
+        boolean[] wordCells = new boolean[mColumns];
+        int cell = 0;
+        for (int index = 0; index < line.length && line[index] != 0
+                && cell < mColumns;) {
+            int codePoint = Character.codePointAt(line, index);
+            int charCount = Character.charCount(codePoint);
+            int width = Math.max(0, UnicodeTranscript.charWidth(codePoint));
+            if (width > 0) {
+                boolean word = isWordCodePoint(codePoint);
+                for (int offset = 0; offset < width && cell + offset < mColumns;
+                        offset++) {
+                    wordCells[cell + offset] = word;
+                }
+                cell += width;
+            }
+            index += charCount;
+        }
+
+        if (!wordCells[column]) return new int[] {column, column};
+        int start = column;
+        int end = column;
+        while (start > 0 && wordCells[start - 1]) start--;
+        while (end + 1 < mColumns && wordCells[end + 1]) end++;
+        return new int[] {start, end};
+    }
+
+    private static boolean isWordCodePoint(int codePoint) {
+        if (codePoint == '_') return true;
+        if (Character.isLetterOrDigit(codePoint)) return true;
+        int type = Character.getType(codePoint);
+        return type == Character.NON_SPACING_MARK
+                || type == Character.COMBINING_SPACING_MARK
+                || type == Character.ENCLOSING_MARK;
+    }
+
     /**
      * Get the line wrap status of the row provided.
      * @param row The row to check for line-wrap status

@@ -16,7 +16,8 @@
  * limitations under the License.
 -->
 
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@string/edit_text,@string/select_text,@string/paste">
     <string name="application_site" translatable="false">https://github.com/Lord1Egypt/AndroidThothTerm</string>
 
     <string name="application_terminal">ThothTerm Ubuntu</string>

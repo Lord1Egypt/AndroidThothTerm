@@ -348,8 +348,19 @@ public class Term extends AppCompatActivity
         emulatorView.setOnKeyListener(mKeyListener);
         emulatorView.setOnToggleSelectingTextListener(
                 () -> mActionBar.lockDrawer(emulatorView.getSelectingText()));
+        emulatorView.setOnSelectionActionListener(
+                new EmulatorView.OnSelectionActionListener() {
+                    @Override
+                    public boolean canPaste() {
+                        return Term.this.canPaste();
+                    }
+
+                    @Override
+                    public void onPaste() {
+                        Term.this.doPaste();
+                    }
+                });
         emulatorView.setOnExtraModifierStateChangedListener(mExtraKeys);
-        registerForContextMenu(emulatorView);
 
         return emulatorView;
     }
@@ -651,6 +662,11 @@ public class Term extends AppCompatActivity
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_BACK:
+                EmulatorView currentView = getCurrentEmulatorView();
+                if (currentView != null && currentView.getSelectingText()) {
+                    currentView.finishSelectingText();
+                    return true;
+                }
                 if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES && mActionBar.isShowing()) {
                     mActionBar.hide();
                     return true;
