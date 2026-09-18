@@ -372,9 +372,10 @@ public final class RootfsManager {
             throw new IOException("Cannot create profile.d directory");
         }
         File localeFix = new File(profileDir, "01-locale-fix.sh");
-        writeTextIfChanged(localeFix, "export LANG=C.UTF-8\nexport LC_ALL=C.UTF-8\n");
+        writeTextIfChanged(localeFix, GuestConfig.localeFixScript());
 
         setupDebconfFrontend(root);
+        writeRuntimeConfigVersion(root);
 
         copyManagedAsset("linux/thothterm-ubuntu.sh",
                 new File(profileDir, "thothterm-ubuntu.sh"));
@@ -420,119 +421,67 @@ public final class RootfsManager {
 
     private void setupUserAccount(File root) throws IOException {
         File passwd = new File(root, "etc/passwd");
-        String passwdText = passwd.isFile() ? readText(passwd) : "";
-        if (!passwdText.contains("thoth:")) {
-            if (!passwdText.endsWith("\n") && !passwdText.isEmpty()) passwdText += "\n";
-            passwdText += "thoth:x:1000:1000:Thoth User:/home/thoth:/bin/bash\n";
-            writeText(passwd, passwdText);
+        if (passwd.isFile()) {
+            writeTextIfChanged(passwd, GuestConfig.ensurePasswd(readText(passwd)));
         }
 
         File group = new File(root, "etc/group");
-        String groupText = group.isFile() ? readText(group) : "";
-        if (!groupText.contains("thoth:")) {
-            if (!groupText.endsWith("\n") && !groupText.isEmpty()) groupText += "\n";
-            groupText += "thoth:x:1000:\n";
+        if (group.isFile()) {
+            writeTextIfChanged(group, GuestConfig.ensureGroup(readText(group)));
         }
-        if (groupText.contains("sudo:x:")) {
-            if (!groupText.contains("sudo:x:27:thoth") && !groupText.contains(":thoth")) {
-                groupText = groupText.replace("sudo:x:27:", "sudo:x:27:thoth");
-            }
-        } else {
-            groupText += "sudo:x:27:thoth\n";
-        }
-        writeTextIfChanged(group, groupText);
 
         File shadow = new File(root, "etc/shadow");
         if (shadow.isFile()) {
-            String shadowText = readText(shadow);
-            if (!shadowText.contains("thoth:")) {
-                if (!shadowText.endsWith("\n") && !shadowText.isEmpty()) shadowText += "\n";
-                shadowText += "thoth:!:19000:0:99999:7:::\n";
-                writeText(shadow, shadowText);
-            }
+            writeTextIfChanged(shadow, GuestConfig.ensureShadow(readText(shadow)));
         }
     }
 
     private void setupSudo(File root) throws IOException {
         File sudoersDir = new File(root, "etc/sudoers.d");
-        if (!sudoersDir.exists()) sudoersDir.mkdirs();
-
-        File thothSudoers = new File(sudoersDir, "thoth");
-        writeTextIfChanged(thothSudoers, "thoth ALL=(ALL:ALL) NOPASSWD: ALL\n");
-        fileOps.setMode(thothSudoers, 0440);
-
-        File sudoers = new File(root, "etc/sudoers");
-        if (sudoers.isFile()) {
-            String text = readText(sudoers);
-            if (!text.contains("thoth ALL")) {
-                text += "\nthoth ALL=(ALL:ALL) NOPASSWD: ALL\n";
-                writeText(sudoers, text);
-            }
+        if (!sudoersDir.exists() && !sudoersDir.mkdirs()) {
+            throw new IOException("Cannot create sudoers.d directory");
         }
+        File thothSudoers = new File(sudoersDir, "thoth");
+        writeTextIfChanged(thothSudoers, GuestConfig.sudoersEntry());
+        fileOps.setMode(thothSudoers, 0440);
 
         File pamSu = new File(root, "etc/pam.d/su");
         if (pamSu.isFile()) {
-            String pamText = readText(pamSu);
-            if (!pamText.contains("pam_permit.so")) {
-                writeText(pamSu, "auth sufficient pam_permit.so\n" + pamText);
-            }
+            writeTextIfChanged(pamSu, GuestConfig.ensurePasswordlessSu(readText(pamSu)));
         }
 
-        File binDir = new File(root, "usr/local/bin");
-        if (!binDir.exists()) binDir.mkdirs();
-        File sudoHelper = new File(binDir, "sudo");
-        String script = "#!/bin/bash\n"
-                + "# Managed by ThothTerm fallback sudo\n"
-                + "if [ -x /usr/bin/sudo ] && [ \"$(realpath /usr/bin/sudo 2>/dev/null)\" != \"$(realpath \"$0\" 2>/dev/null)\" ]; then\n"
-                + "  exec /usr/bin/sudo \"$@\"\n"
-                + "fi\n"
-                + "if [ $# -eq 0 ]; then\n"
-                + "  echo \"usage: sudo command...\" >&2\n"
-                + "  exit 1\n"
-                + "fi\n"
-                + "USER_TO_RUN=\"root\"\n"
-                + "ARGS=()\n"
-                + "while [ $# -gt 0 ]; do\n"
-                + "  case \"$1\" in\n"
-                + "    -n|--non-interactive) shift ;;\n"
-                + "    -E|--preserve-env) shift ;;\n"
-                + "    -u|--user) USER_TO_RUN=\"$2\"; shift 2 ;;\n"
-                + "    -s|--shell) shift; ARGS+=(/bin/bash \"$@\"); break ;;\n"
-                + "    -i|--login) shift; ARGS+=(/bin/bash --login \"$@\"); break ;;\n"
-                + "    --) shift; ARGS+=(\"$@\"); break ;;\n"
-                + "    -*) shift ;;\n"
-                + "    *) ARGS+=(\"$@\"); shift ;;\n"
-                + "  esac\n"
-                + "done\n"
-                + "if [ ${#ARGS[@]} -eq 0 ]; then ARGS=(/bin/bash); fi\n"
-                + "CMD=\"\"\n"
-                + "for arg in \"${ARGS[@]}\"; do CMD=\"$CMD $(printf '%q' \"$arg\")\"; done\n"
-                + "exec /usr/bin/su -s /bin/bash \"$USER_TO_RUN\" -c \"$CMD\"\n";
-        writeTextIfChanged(sudoHelper, script);
+        File sudoHelper = new File(new File(root, "usr/local/bin"), "sudo");
+        writeTextIfChanged(sudoHelper, GuestConfig.managedSudoScript());
         fileOps.setMode(sudoHelper, 0755);
     }
 
     private void setupDebconfFrontend(File root) throws IOException {
         File debconfDir = new File(root, "var/cache/debconf");
-        if (!debconfDir.exists()) debconfDir.mkdirs();
+        if (!debconfDir.exists() && !debconfDir.mkdirs()) {
+            throw new IOException("Cannot create debconf cache directory");
+        }
 
         File configDat = new File(debconfDir, "config.dat");
-        String configText = configDat.isFile() ? readText(configDat) : "";
-        if (!configText.contains("Name: debconf/frontend")) {
-            configText += "\nName: debconf/frontend\nTemplate: debconf/frontend\nValue: Teletype\nOwners: debconf\nFlags: seen\n";
-            writeText(configDat, configText);
-        } else if (!configText.contains("Value: Teletype")) {
-            configText = configText.replaceAll("Name: debconf/frontend\\nTemplate: debconf/frontend\\nValue: [^\\n]+",
-                    "Name: debconf/frontend\nTemplate: debconf/frontend\nValue: Teletype");
-            writeText(configDat, configText);
+        if (configDat.isFile()) {
+            writeTextIfChanged(configDat,
+                    GuestConfig.ensureDebconfFrontendConfig(readText(configDat)));
         }
 
         File templatesDat = new File(debconfDir, "templates.dat");
-        String templatesText = templatesDat.isFile() ? readText(templatesDat) : "";
-        if (!templatesText.contains("Template: debconf/frontend")) {
-            templatesText += "\nTemplate: debconf/frontend\nType: select\nChoices: Dialog, Readline, Gnome, Kde, Editor, Noninteractive, Teletype\nDescription: Interface to use for configuring packages\n";
-            writeText(templatesDat, templatesText);
+        if (templatesDat.isFile()) {
+            writeTextIfChanged(templatesDat,
+                    GuestConfig.ensureDebconfFrontendTemplate(readText(templatesDat)));
         }
+    }
+
+    /** Records the managed guest-configuration schema applied to this rootfs. */
+    private void writeRuntimeConfigVersion(File root) throws IOException {
+        File managedDir = new File(root, "etc/thothterm");
+        if (!managedDir.exists() && !managedDir.mkdirs()) {
+            throw new IOException("Cannot create managed configuration directory");
+        }
+        writeTextIfChanged(new File(managedDir, "runtime-config-version"),
+                GuestConfig.RUNTIME_CONFIG_VERSION + "\n");
     }
 
     private void installBashIntegration(File bashrc) throws IOException {

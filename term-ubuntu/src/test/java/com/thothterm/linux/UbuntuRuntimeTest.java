@@ -50,9 +50,14 @@ public class UbuntuRuntimeTest {
         assertTrue(argv.contains("--bind=/sys"));
         assertTrue(argv.contains("--bind=/data/user/0/com.thothterm.ubuntu/files/linux/runtime/resolv.conf:/etc/resolv.conf"));
         assertTrue(argv.contains("/usr/bin/su"));
+        assertTrue(argv.contains("-m"));
         assertTrue(argv.contains("thoth"));
         assertTrue(argv.contains("/bin/bash"));
-        assertTrue(argv.contains("--login"));
+        // su options must precede the user name, and -i is not a su option.
+        assertTrue(argv.indexOf("/usr/bin/su") < argv.indexOf("thoth"));
+        assertTrue(argv.indexOf("-s") < argv.indexOf("thoth"));
+        assertFalse("su must not receive -i", argv.contains("-i"));
+        assertFalse(argv.contains("--login"));
         assertFalse("must not bind the whole Android /data", argv.contains("--bind=/data"));
     }
 
@@ -69,6 +74,8 @@ public class UbuntuRuntimeTest {
         assertEquals("/data/user/0/com.thothterm.ubuntu/files/linux/runtime/lib",
                 env.get("LD_LIBRARY_PATH"));
         assertEquals("xterm-256color", env.get("TERM"));
+        assertEquals("C.UTF-8", env.get("LANG"));
+        assertEquals("C.UTF-8", env.get("LC_ALL"));
         assertFalse(env.containsKey("LD_PRELOAD"));
         assertFalse(env.containsKey("ENV"));
     }

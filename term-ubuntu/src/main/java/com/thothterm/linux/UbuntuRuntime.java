@@ -77,12 +77,17 @@ public final class UbuntuRuntime {
         argv.add("--bind=/sys");
         argv.add("--bind=/proc/mounts:/etc/mtab");
         argv.add("--bind=" + resolverFile + ":/etc/resolv.conf");
+        // Drop from PRoot fake-root to the guest "thoth" account through the
+        // guest's own util-linux su. Options must precede the user name;
+        // "-i" is not a su option and previously made su exit immediately
+        // ("invalid option -- 'i'"), which closed the session window.
+        // "-m" preserves the PRoot environment (notably LD_LIBRARY_PATH, which
+        // the PRoot loader needs for every later guest execve).
         argv.add("/usr/bin/su");
+        argv.add("-m");
         argv.add("-s");
         argv.add("/bin/bash");
         argv.add("thoth");
-        argv.add("--login");
-        argv.add("-i");
         return argv;
     }
 
@@ -96,6 +101,7 @@ public final class UbuntuRuntime {
         env.put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
         env.put("TMPDIR", "/tmp");
         env.put("LANG", "C.UTF-8");
+        env.put("LC_ALL", "C.UTF-8");
         env.put("PROOT_TMP_DIR", prootTmpDir);
         env.put("PROOT_LOADER", loaderPath);
         env.put("LD_LIBRARY_PATH", runtimeLibDir);
