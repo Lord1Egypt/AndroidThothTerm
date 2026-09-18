@@ -159,6 +159,15 @@ public class Application extends android.app.Application {
             updated = true;
         }
 
+        // Older releases used "cd ~" as an implicit startup command. The
+        // native launcher now starts the child in HOME, so retaining this
+        // exact legacy value would visibly type it and add it to history.
+        String pref_initial_command = getString(R.string.key_initialcommand_preference);
+        if ("cd ~".equals(prefs.getString(pref_initial_command, null))) {
+            editor.remove(pref_initial_command);
+            updated = true;
+        }
+
         // clean-up obsolete preferences:
         // "allow_prepend_path" was removed in 3.1.0
         if (prefs.contains("allow_prepend_path")) {

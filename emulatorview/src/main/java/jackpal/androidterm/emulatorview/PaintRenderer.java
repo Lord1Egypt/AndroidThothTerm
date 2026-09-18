@@ -58,6 +58,29 @@ class PaintRenderer extends BaseTextRenderer {
         return layout == null ? visualCell : layout.logicalCell(visualCell);
     }
 
+    static int visualCellForLogical(char[] text, int logicalCell) {
+        if (text == null || logicalCell < 0) return logicalCell;
+        BidiLayout layout = BidiLayout.create(text);
+        if (layout == null) return logicalCell;
+        int visualCell = layout.visualCell(logicalCell);
+        return visualCell < 0 ? logicalCell : visualCell;
+    }
+
+    static int visualSelectionBoundary(char[] text, int logicalCell,
+                                       boolean start) {
+        if (text == null || logicalCell < 0) {
+            return logicalCell + (start ? 0 : 1);
+        }
+        BidiLayout layout = BidiLayout.create(text);
+        if (layout == null) return logicalCell + (start ? 0 : 1);
+        BidiRun run = layout.runForLogicalCell(logicalCell);
+        int visualCell = layout.visualCell(logicalCell);
+        if (run == null || visualCell < 0) {
+            return logicalCell + (start ? 0 : 1);
+        }
+        return visualCell + (run.rtl ? (start ? 1 : 0) : (start ? 0 : 1));
+    }
+
     public void drawTextRun(Canvas canvas, float x, float y, int lineOffset,
                             int runWidth, char[] text, int index, int count,
                             boolean selectionStyle, int textStyle,

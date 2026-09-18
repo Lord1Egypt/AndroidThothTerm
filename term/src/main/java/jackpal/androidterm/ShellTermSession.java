@@ -130,7 +130,8 @@ public class ShellTermSession extends GenericTermSession {
         for (Map.Entry<String, String> entry : map.entrySet())
             env[k++] = entry.getKey() + "=" + entry.getValue();
 
-        return Process.createSubprocess(mTermFd, arg0, args, env);
+        return Process.createSubprocess(mTermFd, arg0, args, env,
+                settings.getHomePath());
     }
 
     private ArrayList<String> parse(String cmd) {

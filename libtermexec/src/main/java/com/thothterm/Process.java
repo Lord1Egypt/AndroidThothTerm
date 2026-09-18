@@ -32,6 +32,14 @@ public class Process {
             ParcelFileDescriptor masterPty,
             String cmd, String[] arguments, String[] environment
     ) throws IOException {
+        return createSubprocess(masterPty, cmd, arguments, environment, null);
+    }
+
+    public static int createSubprocess(
+            ParcelFileDescriptor masterPty,
+            String cmd, String[] arguments, String[] environment,
+            String workingDirectory
+    ) throws IOException {
         // Let convert to UTF-8 in java code instead in native methods
         try {
             // prepare command path
@@ -53,9 +61,12 @@ public class Process {
                 envp[k] = val.getBytes("UTF-8");
             }
 
+            byte[] cwd = workingDirectory == null
+                    ? new byte[0] : workingDirectory.getBytes("UTF-8");
+
             // create terminal process ...
             int ptm = masterPty.getFd();
-            return Native.createSubprocess(ptm, path, argv, envp);
+            return Native.createSubprocess(ptm, path, argv, envp, cwd);
         } catch (UnsupportedEncodingException ignore) {
             // TODO: ignore for now
         }
@@ -74,7 +85,7 @@ public class Process {
     private static class Native {
         private static native int createSubprocess(
                 int ptm,
-                byte[] path, byte[][] argv, byte[][] envp
+                byte[] path, byte[][] argv, byte[][] envp, byte[] cwd
         ) throws IOException;
         private static native int waitExit(int pid);
         private static native void finishChilds(int pid);

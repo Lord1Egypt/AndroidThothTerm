@@ -23,8 +23,8 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 10100
-        versionName '1.1.0'
+        versionCode 10200
+        versionName '1.2.0'
 
         manifestPlaceholders.applicationIdSuffix = ""
         buildConfigField("String", "APPLICATION_ID_SUFFIX", "\"\"")
@@ -114,8 +114,8 @@ dependencies {
 }
 
 tasks.register('elfcleaner', Exec) {
-    // only unix
-    commandLine 'sh', '-c', 'find build/*/stripped* -name lib*.so -print0 | xargs -0 -P 0 elf-cleaner'
+    // only unix, run elf-cleaner if available on host
+    commandLine 'sh', '-c', 'which elf-cleaner >/dev/null 2>&1 && find build/*/stripped* -name lib*.so -print0 | xargs -0 -P 0 elf-cleaner || true'
 }
 
 tasks.configureEach { task ->
