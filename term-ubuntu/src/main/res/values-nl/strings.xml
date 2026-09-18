@@ -95,13 +95,6 @@
     <string name="dialog_title_ime_preference">Invoermethode</string>
 
     <string name="shell_preferences">Shell</string>
-    <string name="title_shell_preference">Opdrachtregel</string>
-    <string name="summary_shell_preference">Opdrachtregel-shell opgeven</string>
-    <string name="dialog_title_shell_preference">Shell</string>
-
-    <string name="title_initialcommand_preference">Beginopdracht</string>
-    <string name="summary_initialcommand_preference">Wordt naar de shell verzonden bij opstarten</string>
-    <string name="dialog_title_initialcommand_preference">Beginopdracht</string>
 
     <string name="title_termtype_preference">Soort terminal</string>
     <string name="summary_termtype_preference">Welk soort terminal te melden aan de shell</string>
@@ -109,9 +102,6 @@
 
     <string name="title_close_window_on_process_exit_preference">Venster sluiten bij exit</string>
     <string name="summary_close_window_on_process_exit_preference">Venster sluiten als de shell afgesloten wordt</string>
-
-    <string name="title_home_path_preference">HOME folder</string>
-    <string name="summary_home_path_preference">Pad naar een beschrijfbare map te gebruiken als HOME</string>
 
 
 

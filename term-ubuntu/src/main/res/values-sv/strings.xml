@@ -42,10 +42,4 @@
     <string name="summary_ime_preference">Välj inmatningsmetod för virtuellt tangentbord.</string>
     <string name="dialog_title_ime_preference">Inmatningsmetod</string>
     <string name="shell_preferences">Skal</string>
-    <string name="title_shell_preference">Kommandorad</string>
-    <string name="summary_shell_preference">Ange skalkommandorad.</string>
-    <string name="dialog_title_shell_preference">Skal</string>
-    <string name="title_initialcommand_preference">Inledande kommando</string>
-    <string name="summary_initialcommand_preference">Skickas till skalet när det börjar.</string>
-    <string name="dialog_title_initialcommand_preference">Inledande kommando</string>
 </resources>

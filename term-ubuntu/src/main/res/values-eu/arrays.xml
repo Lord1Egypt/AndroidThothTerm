@@ -74,6 +74,7 @@
         <item>Solarized Dark</item>
         <item>Linux Console</item>
         <item>Dark Pastels</item>
+        <item>ThothTerm Garden</item>
     </string-array>
 
     <string-array name="entries_backaction_preference">

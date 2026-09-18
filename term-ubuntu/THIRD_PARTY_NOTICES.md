@@ -41,3 +41,10 @@ storage at first run: `libtalloc.so.2` (Samba talloc, LGPL-3.0-or-later),
 
 `emulatorview/` and `libtermexec/` are the original ThothTerm terminal-engine
 modules and are covered by the repository's top-level `NOTICE` and `LICENSE`.
+
+## DejaVu Sans Mono
+
+- Component: DejaVu Sans Mono, version 2.37 (bundled terminal font).
+- Source: `https://dejavu-fonts.github.io/`.
+- Licence: permissive DejaVu Fonts licence; the complete text is packaged at
+  `assets/font/DejaVu.lic`.

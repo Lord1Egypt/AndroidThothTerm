@@ -9,7 +9,7 @@
    <string name="pref_cursorstyle_default" translatable="false">0</string>
    <string name="pref_cursorblink_default" translatable="false">0</string>
    <string name="pref_fontsize_default" translatable="false">10</string>
-   <string name="pref_color_default" translatable="false">1</string>
+   <string name="pref_color_default" translatable="false">11</string>
    <bool name="pref_utf8_by_default_default">true</bool>
    <string name="pref_backaction_default" translatable="false">2</string>
    <string name="pref_controlkey_default" translatable="false">5</string>
@@ -18,7 +18,7 @@
    <bool name="pref_alt_sends_esc_default">false</bool>
    <string name="pref_shell_default" translatable="false">/system/bin/sh -</string>
    <bool name="pref_source_sys_shrc_default">true</bool>
-   <string name="pref_initialcommand_default" translatable="false">cd ~</string>
+   <string name="pref_initialcommand_default" translatable="false"></string>
    <string name="pref_termtype_default" translatable="false">screen</string>
    <bool name="pref_close_window_on_process_exit_default">true</bool>
    <!-- the home_path default is set dynamically in Application.onCreate() -->
@@ -28,4 +28,5 @@
     <bool name="pref_extra_keys_symbols_default">true</bool>
     <string name="pref_log_level_default" translatable="false">INFO</string>
     <bool name="pref_developer_logging_default">false</bool>
+    <bool name="pref_ubuntu_welcome_default">true</bool>
 </resources>

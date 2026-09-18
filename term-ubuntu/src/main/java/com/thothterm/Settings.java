@@ -46,7 +46,8 @@ public class Settings {
             new ColorScheme(0xFF657B83, 0xFFFDF6E3) /*solarized light*/,
             new ColorScheme(0xFF839496, 0xFF002B36) /*solarized dark*/,
             new ColorScheme(0xFFAAAAAA, 0xFF000000) /*linux console*/,
-            new ColorScheme(0xFFDCDCCC, 0xFF2C2C2C) /*dark pastels*/
+            new ColorScheme(0xFFDCDCCC, 0xFF2C2C2C) /*dark pastels*/,
+            new ColorScheme(0xFFE8EDF2, 0xFF07111F) /*ThothTerm Garden*/
     };
 
     @FontSource
@@ -68,7 +69,7 @@ public class Settings {
     public Settings(Resources r, SharedPreferences preferences) {
         font_source = parseInteger(preferences,
                 r.getString(R.string.key_fontsource_preference),
-                FontSource.SYSTEM);
+                FontSource.EMBED);
         orientation = parseInteger(preferences,
                 r.getString(R.string.key_orientation_preference),
                 r.getInteger(R.integer.pref_orientation_default));
@@ -82,12 +83,9 @@ public class Settings {
 
     @NonNull
     public static String prepareInitialCommand(Context context, String extraCommand) {
-        Settings settings = new Settings(context);
-        String cmd = settings.initial_command;
-        if (cmd == null /*just in case*/) cmd = "";
-        if (!TextUtils.isEmpty(extraCommand))
-            cmd += "\r" + extraCommand;
-        return cmd;
+        // Ubuntu already starts in /home/thoth and is configured through
+        // profile files. Only an explicitly requested external command is sent.
+        return TextUtils.isEmpty(extraCommand) ? "" : extraCommand;
     }
 
     public void parsePreference(Context context, SharedPreferences preferences, String key) {

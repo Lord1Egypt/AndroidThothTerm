@@ -99,13 +99,6 @@
     <string name="dialog_title_ime_preference">შეყვანის მეთოდი</string>
 
     <string name="shell_preferences">გარსი</string>
-    <string name="title_shell_preference">ბრძანების ხაზი</string>
-    <string name="summary_shell_preference">აირჩიეთ გარსის ბრძანების ხაზი.</string>
-    <string name="dialog_title_shell_preference">გარსი</string>
-
-    <string name="title_initialcommand_preference">საწყისი ბრძანება</string>
-    <string name="summary_initialcommand_preference">გაეგზავნოს გარსს მისი გაშვებისას.</string>
-    <string name="dialog_title_initialcommand_preference">საწყისი ბრძანება</string>
 
     <string name="title_termtype_preference">ტერმინალის ტიპი</string>
     <string name="summary_termtype_preference">ტერმინალის რომელი ტიპი იქნება მიწოდებული გარსისათვის.</string>

@@ -31,6 +31,9 @@
     <string name="ubuntu_prepare_failed_hint">Preparation failed. Retry or view diagnostics for details.</string>
     <string name="ubuntu_retry">Retry</string>
     <string name="ubuntu_view_logs">View logs</string>
+    <string name="linux_preferences">Linux</string>
+    <string name="title_ubuntu_show_welcome">Show welcome banner</string>
+    <string name="summary_ubuntu_show_welcome">Show ThothTerm system information in each new window.</string>
     <string name="preferences">Settings</string>
     <string name="new_window">New window</string>
     <string name="close_window">Close window</string>
@@ -56,10 +59,6 @@
 
     <!-- access "external storage" -->
     <string name="message_external_storage_rationale">Access to \"External Storage\" is required to manage its files</string>
-    <string name="message_external_storage_granted">Granted access to \"External Storage\"</string>
-    <string name="message_external_storage_not_granted">Denied access to \"External Storage\"</string>
-
-    <string name="message_all_files_access_rationale">Request permission \"All files access\" to manage all in \"External Storage\" directory tree</string>
 
     <!-- Context menu -->
     <string name="edit_text">Edit text</string>
@@ -148,7 +147,7 @@
     <string name="summary_fontsource_preference">System or built-in font.</string>
     <string name="dialog_title_fontsource_preference">Font</string>
     <string name="fontsource_system_label">System</string>
-    <string name="fontsource_buildin_label">Build-In</string>
+    <string name="fontsource_buildin_label">Built-in</string>
 
     <string name="keyboard_preferences">Keyboard</string>
     <string name="title_extra_keys_enabled">Show extra keys toolbar</string>
@@ -178,24 +177,12 @@
     <string name="dialog_title_ime_preference">Input method</string>
 
     <string name="shell_preferences">Terminal</string>
-    <string name="title_shell_preference">Command line</string>
-    <string name="summary_shell_preference">Shell command line.</string>
-    <string name="dialog_title_shell_preference">Shell</string>
 
     <string name="key_source_sys_shrc_preference" translatable="false">source_sys_shrc</string>
-    <string name="title_source_sys_shrc_preference">Source system mkshrc</string>
-    <string name="summary_source_sys_shrc_preference">Source commands from the system mkshrc.</string>
 
     <string name="key_initialcommand_preference" translatable="false">initialcommand</string>
-    <string name="title_initialcommand_preference">Initial command</string>
-    <string name="summary_initialcommand_preference">Sent to the shell when it starts.</string>
-    <string name="dialog_title_initialcommand_preference">Initial Command</string>
 
     <string name="key_shellrc_preference" translatable="false">shrc</string>
-    <string name="title_shellrc_preference">Shell startup</string>
-    <string name="summary_shellrc_preference">Shell startup commands.</string>
-    <string name="dialog_title_shellrc_preference">Shell startup</string>
-    <string name="hint_shellrc_preference">(shell startup commands)</string>
 
     <string name="title_termtype_preference">Terminal type</string>
     <string name="summary_termtype_preference">What terminal type to report to the shell.</string>
@@ -205,8 +192,6 @@
     <string name="summary_close_window_on_process_exit_preference">Close the window when its shell exits.</string>
 
     <string name="key_home_path_preference" translatable="false">home_path</string>
-    <string name="title_home_path_preference">HOME folder</string>
-    <string name="summary_home_path_preference">Path to a writable folder to be used as HOME.</string>
 
     <string name="confirm_window_close_message">Close this window?</string>
 

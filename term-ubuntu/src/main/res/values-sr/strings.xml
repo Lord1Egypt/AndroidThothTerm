@@ -103,13 +103,6 @@
     <string name="dialog_title_ime_preference">Метода уноса</string>
 
     <string name="shell_preferences">Шкољка</string>
-    <string name="title_shell_preference">Командна линија</string>
-    <string name="summary_shell_preference">Одредите командну линију шкољке.</string>
-    <string name="dialog_title_shell_preference">Шкољка</string>
-
-    <string name="title_initialcommand_preference">Почетна наредба</string>
-    <string name="summary_initialcommand_preference">Наредба послата шкољки по покретању.</string>
-    <string name="dialog_title_initialcommand_preference">Почетна наредба</string>
 
     <string name="title_termtype_preference">Тип терминала</string>
     <string name="summary_termtype_preference">Који тип терминала да буде пријављен шкољки.</string>
@@ -117,9 +110,6 @@
 
     <string name="title_close_window_on_process_exit_preference">Затвори прозор по излазу</string>
     <string name="summary_close_window_on_process_exit_preference">Да ли да прозор буде затворен по излазу из његове шкољке.</string>
-
-    <string name="title_home_path_preference">Домаћа фасцикла</string>
-    <string name="summary_home_path_preference">Путања до уписиве фасцикле која ће бити коришћена као HOME.</string>
 
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->

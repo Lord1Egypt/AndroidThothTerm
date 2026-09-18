@@ -58,10 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!-- access "external storage" -->
     <string name="message_external_storage_rationale">Достъпът до \"външен носител\" е необходим за управление на файловете му</string>
-    <string name="message_external_storage_granted">Получен достъп до \"външен носител\"</string>
-    <string name="message_external_storage_not_granted">Отказан достъп до \"външен носител\"</string>
-
-    <string name="message_all_files_access_rationale">Искане за разрешение \"Достъп до всички файлове\", за да се управлява всичко в дървото от директории на \"външния носител\"</string>
 
     <string name="edit_text">Редактиране на текст</string>
 
@@ -151,24 +147,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="dialog_title_ime_preference">Начин на въвеждане</string>
 
     <string name="shell_preferences">Обвивка</string>
-    <string name="title_shell_preference">Команден ред</string>
-    <string name="summary_shell_preference">Задаване на команден ред за обвивката</string>
-    <string name="dialog_title_shell_preference">Обвивка</string>
-
-    <string name="title_source_sys_shrc_preference">Обработване на системния mkshrc</string>
-    <string name="summary_source_sys_shrc_preference">
-        В зареждащия скрипт на обвивката, присъщ на приложението, обработи командите от системния (/system/etc/mkshrc).
-        Зависи от командния ред на обвивката.
-    </string>
-
-    <string name="title_initialcommand_preference">Начална команда</string>
-    <string name="summary_initialcommand_preference">Изпращане към обвивката при пускане на терминала</string>
-    <string name="dialog_title_initialcommand_preference">Начална команда</string>
-
-    <string name="title_shellrc_preference">Зареждане на обвивката</string>
-    <string name="summary_shellrc_preference">Команди при зареждане на обвивката.</string>
-    <string name="dialog_title_shellrc_preference">Зареждане на обвивката</string>
-    <string name="hint_shellrc_preference">(команди при зареждане)</string>
 
     <string name="title_termtype_preference">Модел терминал</string>
     <string name="summary_termtype_preference">Модел терминал за обвивката</string>
@@ -176,9 +154,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <string name="title_close_window_on_process_exit_preference">Затваряне на прозореца при изход</string>
     <string name="summary_close_window_on_process_exit_preference">Затваряне на прозореца когато обвивката завърши работа</string>
-
-    <string name="title_home_path_preference">Домашна директория</string>
-    <string name="summary_home_path_preference">Път към разрешена за запис директория, която да се използва като домашна</string>
 
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->

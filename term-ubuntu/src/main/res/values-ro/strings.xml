@@ -92,11 +92,6 @@
     <string name="summary_ime_preference">Alegeți metoda de intrare pentru tastatură.</string>
     <string name="dialog_title_ime_preference">Metoda de intrare</string>
 
-    <string name="title_shell_preference">Linie de comandă</string>
-
-    <string name="title_initialcommand_preference">Comandă inițială</string>
-    <string name="dialog_title_initialcommand_preference">Comandă inițială</string>
-
     <string name="title_termtype_preference">Tip terminal</string>
     <string name="dialog_title_termtype_preference">Tip terminal</string>
 

@@ -73,11 +73,4 @@
     <string name="dialog_title_ime_preference">輸入方式</string>
 
     <string name="shell_preferences">殼層</string>
-    <string name="title_shell_preference">命令列</string>
-    <string name="summary_shell_preference">指定殼層的命令列</string>
-    <string name="dialog_title_shell_preference">殼層</string>
-
-    <string name="title_initialcommand_preference">初始命令</string>
-    <string name="summary_initialcommand_preference">在啟動時傳送至殼層</string>
-    <string name="dialog_title_initialcommand_preference">初始命令</string>
 </resources>

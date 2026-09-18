@@ -33,6 +33,7 @@ public class ImageInfoTest {
                 + "filename=ubuntu-base-26.04.1-base-arm64.tar.gz\n"
                 + "upstreamSha256=5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd\n"
                 + "compressedSize=35092106\n"
+                + "uncompressedSize=122122240\n"
                 + "schemaVersion=1\n";
 
         ImageInfo info = ImageInfo.load(
@@ -45,6 +46,7 @@ public class ImageInfoTest {
         assertEquals("5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd",
                 info.upstreamSha256());
         assertEquals(35092106L, info.compressedSize());
+        assertEquals(122122240L, info.uncompressedSize());
         assertEquals(1, info.schemaVersion());
     }
 }

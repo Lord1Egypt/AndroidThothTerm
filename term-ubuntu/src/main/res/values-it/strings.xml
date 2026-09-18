@@ -103,13 +103,6 @@
     <string name="dialog_title_ime_preference">Metodo inserimento</string>
 
     <string name="shell_preferences">Shell</string>
-    <string name="title_shell_preference">Linea di comando</string>
-    <string name="summary_shell_preference">Specifica la shell da usare.</string>
-    <string name="dialog_title_shell_preference">Shell</string>
-
-    <string name="title_initialcommand_preference">Comando iniziale</string>
-    <string name="summary_initialcommand_preference">Inviato alla shell all\'avvio.</string>
-    <string name="dialog_title_initialcommand_preference">Comando iniziale</string>
 
     <string name="title_termtype_preference">Tipo terminale</string>
     <string name="summary_termtype_preference">Quale tipo di terminale da riportare sulla shell.</string>
@@ -117,9 +110,6 @@
 
     <string name="title_close_window_on_process_exit_preference">Chiudi finestra all\'uscita</string>
     <string name="summary_close_window_on_process_exit_preference">Chiusura della finestra quando la sua shell termina.</string>
-
-    <string name="title_home_path_preference">Cartella HOME</string>
-    <string name="summary_home_path_preference">Inserisci il percorso di una cartella scrivibile da usare come HOME.</string>
 
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->

@@ -87,6 +87,14 @@ public final class ImageInfo {
         }
     }
 
+    public long uncompressedSize() {
+        try {
+            return Long.parseLong(get("uncompressedSize"));
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
+    }
+
     public int schemaVersion() {
         try {
             return Integer.parseInt(get("schemaVersion"));

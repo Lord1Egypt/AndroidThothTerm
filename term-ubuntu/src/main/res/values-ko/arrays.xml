@@ -81,6 +81,7 @@
         <item>어두운 솔라리스</item>
         <item>Linux Console</item>
         <item>Dark Pastels</item>
+        <item>ThothTerm Garden</item>
     </string-array>
 
     <string-array name="entries_backaction_preference">

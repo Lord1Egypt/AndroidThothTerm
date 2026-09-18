@@ -18,6 +18,7 @@ JNI_DIR="src/main/jniLibs/arm64-v8a"
 UBUNTU_URL="https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04.1-base-arm64.tar.gz"
 UBUNTU_SHA="5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd"
 UBUNTU_SIZE="35092106"
+UBUNTU_UNCOMPRESSED_SIZE="122122240"
 UBUNTU_FILE="ubuntu-base-26.04.1-base-arm64.tar.gz"
 # The packaged asset must not end in .gz: Android's asset packager transparently
 # expands *.gz assets, which would break the runtime asset lookup.
@@ -117,6 +118,7 @@ filename=$UBUNTU_FILE
 assetName=$UBUNTU_ASSET
 upstreamSha256=$UBUNTU_SHA
 compressedSize=$UBUNTU_SIZE
+uncompressedSize=$UBUNTU_UNCOMPRESSED_SIZE
 schemaVersion=1
 prootSource=$PROOT_URL
 prootVersion=ProotX-v1.2.0-modern

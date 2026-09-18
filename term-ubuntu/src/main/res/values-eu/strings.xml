@@ -98,13 +98,6 @@
     <string name="dialog_title_ime_preference">Sarrera-metodoa</string>
 
     <string name="shell_preferences">Shell</string>
-    <string name="title_shell_preference">Komando lerroa</string>
-    <string name="summary_shell_preference">Zehaztu shell komando lerroa.</string>
-    <string name="dialog_title_shell_preference">Shell</string>
-
-    <string name="title_initialcommand_preference">Hasierako komandoa</string>
-    <string name="summary_initialcommand_preference">Bidali shell-era abiarazten denean.</string>
-    <string name="dialog_title_initialcommand_preference">Hasierako Komandoa</string>
 
     <string name="title_termtype_preference">Terminal mota</string>
     <string name="summary_termtype_preference">Terminal motaren berri eman shell-ari.</string>

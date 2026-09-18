@@ -16,7 +16,11 @@
 
 package com.thothterm.linux;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.storage.StorageManager;
+
+import androidx.preference.PreferenceManager;
 
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
@@ -158,6 +162,10 @@ public final class RootfsManager {
         }
     }
 
+    public void clearListener(Listener expected) {
+        if (listener == expected) listener = null;
+    }
+
     public void start() {
         if (isReady()) {
             notifyComplete();
@@ -169,11 +177,13 @@ public final class RootfsManager {
         }
         running = true;
         failed = false;
+        percent = 0;
+        entries = 0;
+        message = "";
         new Thread(this::runPrepare, "ThothTerm-ubuntu-rootfs").start();
     }
 
     private void runPrepare() {
-        Listener current = listener;
         try {
             if (image == null) {
                 throw new IOException("Embedded image metadata is missing");
@@ -205,6 +215,7 @@ public final class RootfsManager {
             ThothLog.e(LogCategory.ROOTFS, "Extraction failed type="
                     + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
             cleanupStagingQuietly();
+            running = false;
             notifyError();
         } finally {
             running = false;
@@ -260,6 +271,12 @@ public final class RootfsManager {
         }
         ThothLog.i(LogCategory.ROOTFS, "Staging cleanup complete");
 
+        long usable = usableSpace();
+        if (!StorageSpace.isSufficient(usable, image.uncompressedSize())) {
+            ThothLog.w(LogCategory.STORAGE, "Insufficient storage for Ubuntu extraction");
+            throw new IOException("Not enough free storage to prepare Ubuntu");
+        }
+
         if (!stagingDir.mkdirs()) {
             throw new IOException("Cannot create staging directory");
         }
@@ -275,7 +292,7 @@ public final class RootfsManager {
 
         TarballExtractor extractor = new TarballExtractor(
                 fileOps, stagingDir,
-                count -> publishProgress(count, expectedSize));
+                count -> publishProgress(counting.getCount(), expectedSize, count));
         try {
             extractor.extract(gzip);
         } finally {
@@ -287,6 +304,7 @@ public final class RootfsManager {
             ThothLog.w(LogCategory.SECURITY, "Embedded rootfs checksum mismatch");
             throw new IOException("Embedded rootfs checksum mismatch");
         }
+        publishProgress(expectedSize, expectedSize, extractor.extractedEntries());
         ThothLog.d(LogCategory.ROOTFS, "Archive entries processed count="
                 + extractor.extractedEntries()
                 + " rejected=" + extractor.rejectedEntries()
@@ -302,7 +320,7 @@ public final class RootfsManager {
             throw new IOException("Extracted rootfs is incomplete");
         }
 
-        setupUserHome(stagingDir);
+        setupRootfs(stagingDir, true);
 
         SafeFileTree.deleteTree(fileOps, linuxDir, rootfsDir);
         if (!stagingDir.renameTo(rootfsDir)) {
@@ -312,33 +330,90 @@ public final class RootfsManager {
         ThothLog.i(LogCategory.ROOTFS, "Extraction complete");
     }
 
-    private void setupUserHome(File root) throws IOException {
+    @SuppressLint("UsableSpace") // Safe fallback when StorageManager cannot report a quota.
+    private long usableSpace() {
+        StorageManager storage = (StorageManager) appContext.getSystemService(
+                Context.STORAGE_SERVICE);
+        if (storage != null) {
+            try {
+                File volume = linuxDir.getParentFile();
+                return storage.getAllocatableBytes(storage.getUuidForPath(volume));
+            } catch (IOException | RuntimeException ignored) {
+                // Fall through to the conservative filesystem value.
+            }
+        }
+        return linuxDir.getParentFile().getUsableSpace();
+    }
+
+    /** Refreshes app-managed integration without re-extracting or replacing user data. */
+    public synchronized void prepareSession() throws IOException {
+        if (!isReady()) throw new IOException("Linux environment is not ready");
+        setupRootfs(rootfsDir, false);
+    }
+
+    private void setupRootfs(File root, boolean installSkeleton) throws IOException {
         File home = new File(root, "home/thoth");
         if (!home.exists() && !home.mkdirs()) {
             throw new IOException("Cannot create Linux home directory");
         }
 
         File skel = new File(root, "etc/skel");
-        if (skel.isDirectory()) {
+        if (installSkeleton && skel.isDirectory()) {
             copyDirectoryContents(skel, home);
         }
 
-        File bashrc = new File(home, ".bashrc");
-        appendLine(bashrc, "PS1='thoth@android:\\w\\$ '");
+        installBashIntegration(new File(home, ".bashrc"));
 
         File profileDir = new File(root, "etc/profile.d");
         if (!profileDir.exists() && !profileDir.mkdirs()) {
             throw new IOException("Cannot create profile.d directory");
         }
-        String profile = "# ThothTerm Ubuntu environment\n"
-                + "export HOME=/home/thoth\n"
-                + "export USER=thoth\n"
-                + "export LOGNAME=thoth\n"
-                + "export LANG=C.UTF-8\n"
-                + "export PS1='thoth@android:\\w\\$ '\n";
-        writeText(new File(profileDir, "thothterm-ubuntu.sh"), profile);
+        copyManagedAsset("linux/thothterm-ubuntu.sh",
+                new File(profileDir, "thothterm-ubuntu.sh"));
 
-        writeText(new File(root, "etc/hostname"), "android\n");
+        File binDir = new File(root, "usr/local/bin");
+        if (!binDir.exists() && !binDir.mkdirs()) {
+            throw new IOException("Cannot create managed command directory");
+        }
+        File thothfetch = new File(binDir, "thothfetch");
+        copyManagedAsset("linux/thothfetch", thothfetch);
+        fileOps.setMode(thothfetch, 0755);
+
+        File managedDir = new File(root, "etc/thothterm");
+        if (!managedDir.exists() && !managedDir.mkdirs()) {
+            throw new IOException("Cannot create managed configuration directory");
+        }
+        File welcomeEnabled = new File(managedDir, "welcome-enabled");
+        boolean showWelcome = PreferenceManager.getDefaultSharedPreferences(appContext)
+                .getBoolean("ubuntu_show_welcome", true);
+        if (showWelcome) {
+            writeTextIfChanged(welcomeEnabled, "enabled\n");
+        } else if (welcomeEnabled.exists() && !welcomeEnabled.delete()) {
+            throw new IOException("Cannot disable welcome banner");
+        }
+
+        File hostname = new File(root, "etc/hostname");
+        if (!hostname.exists() || "android".equals(readText(hostname).trim())) {
+            writeText(hostname, "thothterm\n");
+        }
+        File hosts = new File(root, "etc/hosts");
+        if (!hosts.exists()) {
+            writeText(hosts, "127.0.0.1 localhost thothterm\n::1 localhost ip6-localhost\n");
+        }
+        File resolv = new File(root, "etc/resolv.conf");
+        if (fileOps.isSymlink(resolv)) {
+            if (!resolv.delete()) throw new IOException("Cannot prepare resolver mount point");
+            writeText(resolv, "# Runtime resolver is bind-mounted by ThothTerm.\n");
+        }
+        File tmp = new File(root, "tmp");
+        if (!tmp.exists() && !tmp.mkdirs()) throw new IOException("Cannot create /tmp");
+        // Android app-private storage supplies isolation; sticky is intentionally stripped.
+        fileOps.setMode(tmp, 0777);
+    }
+
+    private void installBashIntegration(File bashrc) throws IOException {
+        String original = bashrc.isFile() ? readText(bashrc) : "";
+        writeTextIfChanged(bashrc, ShellIntegration.updateBashrc(original));
     }
 
     private void writeState() throws IOException {
@@ -372,13 +447,13 @@ public final class RootfsManager {
         if (current != null) current.onStatus(text);
     }
 
-    private void publishProgress(long count, long total) {
-        entries = count;
-        int value = 0;
-        if (total > 0) value = (int) Math.min(99, (count * 100) / total);
+    private void publishProgress(long consumedBytes, long totalBytes, long entryCount) {
+        entries = entryCount;
+        int value = ExtractionProgress.percent(consumedBytes, totalBytes);
+        if (value <= percent && value != 100) return;
         percent = value;
         Listener current = listener;
-        if (current != null) current.onProgress(value, count);
+        if (current != null) current.onProgress(value, entryCount);
     }
 
     private void notifyStatus() {
@@ -427,16 +502,6 @@ public final class RootfsManager {
         }
     }
 
-    private void appendLine(File file, String line) throws IOException {
-        StringBuilder text = new StringBuilder();
-        if (file.isFile()) {
-            text.append(readText(file));
-            if (text.length() > 0 && text.charAt(text.length() - 1) != '\n') text.append('\n');
-        }
-        text.append(line).append('\n');
-        writeText(file, text.toString());
-    }
-
     private void writeText(File file, String text) throws IOException {
         File parent = file.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
@@ -450,19 +515,37 @@ public final class RootfsManager {
         }
     }
 
+    private void writeTextIfChanged(File file, String text) throws IOException {
+        if (file.isFile() && text.equals(readText(file))) return;
+        writeText(file, text);
+    }
+
+    private void copyManagedAsset(String assetName, File destination) throws IOException {
+        InputStream input = appContext.getAssets().open(assetName);
+        try {
+            writeTextIfChanged(destination, readText(input));
+        } finally {
+            input.close();
+        }
+    }
+
     private String readText(File file) throws IOException {
         InputStream in = new FileInputStream(file);
         try {
-            byte[] buffer = new byte[8192];
-            StringBuilder text = new StringBuilder();
-            int read;
-            while ((read = in.read(buffer)) > 0) {
-                text.append(new String(buffer, 0, read, "UTF-8"));
-            }
-            return text.toString();
+            return readText(in);
         } finally {
             in.close();
         }
+    }
+
+    private String readText(InputStream in) throws IOException {
+        byte[] buffer = new byte[8192];
+        StringBuilder text = new StringBuilder();
+        int read;
+        while ((read = in.read(buffer)) > 0) {
+            text.append(new String(buffer, 0, read, "UTF-8"));
+        }
+        return text.toString();
     }
 
     private static void copyStream(InputStream in, OutputStream out) throws IOException {

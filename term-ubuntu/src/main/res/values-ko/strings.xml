@@ -103,13 +103,6 @@
     <string name="dialog_title_ime_preference">입력 방식</string>
 
     <string name="shell_preferences">명령줄</string>
-    <string name="title_shell_preference">명령줄</string>
-    <string name="summary_shell_preference">사용자 지정 명령줄을 설정합니다.</string>
-    <string name="dialog_title_shell_preference">명령줄</string>
-
-    <string name="title_initialcommand_preference">초기 명령어</string>
-    <string name="summary_initialcommand_preference">터미널이 실행될 때 실행될 명령어를 선택합니다.</string>
-    <string name="dialog_title_initialcommand_preference">초기 명령어</string>
 
     <string name="title_termtype_preference">터미널 종류</string>
     <string name="summary_termtype_preference">터미널의 종류를 선택합니다.</string>
@@ -117,9 +110,6 @@
 
     <string name="title_close_window_on_process_exit_preference">종료 시에 창 닫기</string>
     <string name="summary_close_window_on_process_exit_preference">터미널 프로세스가 종료되면 활성화된 창을 닫습니다.</string>
-
-    <string name="title_home_path_preference">HOME 경로</string>
-    <string name="summary_home_path_preference">HOME으로 설정 가능한 경로 (쓰기 가능한 경로)를 설정합니다.</string>
 
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->

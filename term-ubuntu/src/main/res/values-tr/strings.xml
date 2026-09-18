@@ -62,11 +62,4 @@
     <string name="dialog_title_ime_preference">Giriş yöntemi</string>
 
     <string name="shell_preferences">Kabuk</string>
-    <string name="title_shell_preference">Komut satırı</string>
-    <string name="summary_shell_preference">Kabukta kullanılacak komut satırını belirtin.</string>
-    <string name="dialog_title_shell_preference">Kabuk</string>
-
-    <string name="title_initialcommand_preference">Başlangıç komutu</string>
-    <string name="summary_initialcommand_preference">Başlangıçta kabukta çalıştır.</string>
-    <string name="dialog_title_initialcommand_preference">Başlangıç komutu</string>
 </resources>

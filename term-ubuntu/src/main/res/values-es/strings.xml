@@ -103,13 +103,6 @@
     <string name="dialog_title_ime_preference">Método de introducción</string>
 
     <string name="shell_preferences">Shell</string>
-    <string name="title_shell_preference">Lineas de comandos</string>
-    <string name="summary_shell_preference">Especifique el shell para la línea de comandos.</string>
-    <string name="dialog_title_shell_preference">Shell</string>
-
-    <string name="title_initialcommand_preference">Comando inicial</string>
-    <string name="summary_initialcommand_preference">Comando que se envía a la consola al iniciarla.</string>
-    <string name="dialog_title_initialcommand_preference">Comando inicial</string>
 
     <string name="title_termtype_preference">Tipo de terminal</string>
     <string name="summary_termtype_preference">Que tipo de terminal se indica al shell.</string>
@@ -117,9 +110,6 @@
 
     <string name="title_close_window_on_process_exit_preference">Cerrar ventana al salir</string>
     <string name="summary_close_window_on_process_exit_preference">Elegir si la ventana se cerrará al salir de ella.</string>
-
-    <string name="title_home_path_preference">Carpeta HOME</string>
-    <string name="summary_home_path_preference">Ruta a una carpeta con permisos de escritura para usar como HOME.</string>
 
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->

@@ -23,6 +23,7 @@ import android.text.TextUtils;
 import androidx.preference.PreferenceManager;
 
 import com.google.android.material.color.DynamicColors;
+import com.thothterm.linux.AndroidNetworkResolver;
 import com.thothterm.linux.RootfsManager;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
@@ -111,6 +112,7 @@ public class Application extends android.app.Application {
         ThothLog.init(this);
         ThothLog.i(LogCategory.APP, "Application start version=" + VER
                 + " flavor=" + BuildConfig.FLAVOR + "-" + BuildConfig.BUILD_TYPE);
+        AndroidNetworkResolver.init(this);
         RootfsManager.init(this);
 
         // enable Material3 dynamic colors
@@ -158,6 +160,14 @@ public class Application extends android.app.Application {
         if (!prefs.contains(pref_home_path)) {
             String path = getDir("HOME", MODE_PRIVATE).getAbsolutePath();
             editor.putString(pref_home_path, path);
+            updated = true;
+        }
+
+        // Ubuntu used to inherit the regular terminal's visible "cd ~" PTY
+        // startup command. The runtime already starts in /home/thoth.
+        String initialCommand = getString(R.string.key_initialcommand_preference);
+        if ("cd ~".equals(prefs.getString(initialCommand, null))) {
+            editor.remove(initialCommand);
             updated = true;
         }
 

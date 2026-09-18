@@ -11,31 +11,11 @@
         android:required="false"/>
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32">
-        <!-- Starting in API level 33, this permission has no effect. -->
-    </uses-permission>
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29">
-        <!-- Not used on Android 11 (API Level 30), so limit to 29 (Android 10)
-        as android:requestLegacyExternalStorage is set -->
-    </uses-permission>
-    <uses-permission android:name="android.permission.ACCESS_SUPERUSER"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
-
-    <!-- development/system permissions, sample:
-    $ adb shell pm grant com.thothterm android.permission.DUMP
-    -->
-    <uses-permission
-        android:name="android.permission.DUMP"
-        tools:ignore="ProtectedPermissions">
-        <!-- https://developer.android.com/studio/command-line/dumpsys -->
-    </uses-permission>
 
     <permission
         android:name="${applicationId}.permission.RUN_SCRIPT"
@@ -57,8 +37,6 @@
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/application_terminal"
-        android:preserveLegacyExternalStorage="true"
-        android:requestLegacyExternalStorage="true"
         android:resizeableActivity="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/AppTheme.NoActionBar"

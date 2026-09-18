@@ -119,13 +119,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="dialog_title_ime_preference">Input method</string>
 
     <string name="shell_preferences">Shell</string>
-    <string name="title_shell_preference">Command line</string>
-    <string name="summary_shell_preference">Specify the shell command line.</string>
-    <string name="dialog_title_shell_preference">Shell</string>
-
-    <string name="title_initialcommand_preference">Initial command</string>
-    <string name="summary_initialcommand_preference">Sent to the shell when it starts.</string>
-    <string name="dialog_title_initialcommand_preference">Initial Command</string>
 
     <string name="title_termtype_preference">Terminal type</string>
     <string name="summary_termtype_preference">What terminal type to report to the shell.</string>
@@ -133,9 +126,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <string name="title_close_window_on_process_exit_preference">Close window on exit</string>
     <string name="summary_close_window_on_process_exit_preference">Whether a window should close when its shell exits.</string>
-
-    <string name="title_home_path_preference">HOME folder</string>
-    <string name="summary_home_path_preference">Path to a writable folder to be used as HOME.</string>
 
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->

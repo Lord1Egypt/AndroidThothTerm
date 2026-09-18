@@ -33,7 +33,16 @@ import jackpal.androidterm.util.TermSettings;
 public class UbuntuTermSession extends ShellTermSession {
 
     public UbuntuTermSession(TermSettings settings, String initialCommand) throws IOException {
-        super(settings, initialCommand);
+        super(settings, prepareSession(initialCommand));
+    }
+
+    private static String prepareSession(String initialCommand) throws IOException {
+        RootfsManager.get().prepareSession();
+        AndroidNetworkResolver.get().refresh();
+        if (!AndroidNetworkResolver.get().resolverFile().isFile()) {
+            throw new IOException("Linux resolver could not be prepared");
+        }
+        return initialCommand;
     }
 
     @Override

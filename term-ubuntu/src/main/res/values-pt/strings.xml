@@ -99,13 +99,6 @@
     <string name="dialog_title_ime_preference">Método de inserção</string>
 
     <string name="shell_preferences">Consola</string>
-    <string name="title_shell_preference">Linha de comandos</string>
-    <string name="summary_shell_preference">Indique a linha de comandos da consola.</string>
-    <string name="dialog_title_shell_preference">Consola</string>
-
-    <string name="title_initialcommand_preference">Comando inicial</string>
-    <string name="summary_initialcommand_preference">O comando inicial da consola.</string>
-    <string name="dialog_title_initialcommand_preference">Comando inicial</string>
 
     <string name="title_termtype_preference">Tipo de Terminal</string>
     <string name="summary_termtype_preference">O tipo de terminal a reportar à consola.</string>

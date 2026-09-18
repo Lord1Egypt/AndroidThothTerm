@@ -45,10 +45,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.preference.PreferenceManager;
 
-import com.google.android.material.snackbar.Snackbar;
 import com.thothterm.AppCompatActivity;
 import com.thothterm.Application;
-import com.thothterm.Permissions;
 import com.thothterm.R;
 import com.thothterm.Settings;
 import com.thothterm.TermActionBar;
@@ -266,7 +264,7 @@ public class Term extends AppCompatActivity
         mHaveFullHwKeyboard = checkHaveFullHwKeyboard(getResources().getConfiguration());
 
         updatePrefs();
-        requestStoragePermission();
+        // Ubuntu V1 is intentionally app-private; shared storage is a separate milestone.
         mAlreadyStarted = true;
     }
 
@@ -702,37 +700,6 @@ public class Term extends AppCompatActivity
         }
 
         synchronizeActionBar();
-    }
-
-    private void requestStoragePermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M /*API Level 23*/) return;
-
-        if (Permissions.permissionExternalStorage(this))
-            return;
-
-        Permissions.requestExternalStorage(this, mViewFlipper, Permissions.REQUEST_EXTERNAL_STORAGE);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        System.err.println("TRACE Term.onRequestPermissionsResult()  requestCode: " + requestCode);
-        switch (requestCode) {
-            case Permissions.REQUEST_EXTERNAL_STORAGE: {
-                if (Permissions.isPermissionGranted(grantResults)) {
-                    Snackbar.make(mViewFlipper,
-                            R.string.message_external_storage_granted,
-                            Snackbar.LENGTH_SHORT)
-                            .show();
-                } else {
-                    Snackbar.make(mViewFlipper,
-                            R.string.message_external_storage_not_granted,
-                            Snackbar.LENGTH_SHORT)
-                            .show();
-                }
-                return;
-            }
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     protected boolean canPaste() {

@@ -37,15 +37,18 @@ public final class UbuntuRuntime {
     private final String rootfsDir;
     private final String runtimeLibDir;
     private final String prootTmpDir;
+    private final String resolverFile;
     private final String terminalType;
 
     public UbuntuRuntime(String prootPath, String loaderPath, String rootfsDir,
-                         String runtimeLibDir, String prootTmpDir, String terminalType) {
+                         String runtimeLibDir, String prootTmpDir, String resolverFile,
+                         String terminalType) {
         this.prootPath = prootPath;
         this.loaderPath = loaderPath;
         this.rootfsDir = rootfsDir;
         this.runtimeLibDir = runtimeLibDir;
         this.prootTmpDir = prootTmpDir;
+        this.resolverFile = resolverFile;
         this.terminalType = terminalType;
     }
 
@@ -56,6 +59,7 @@ public final class UbuntuRuntime {
                 manager.rootfsDir().getAbsolutePath(),
                 manager.runtimeLibDir().getAbsolutePath(),
                 manager.prootTmpDir().getAbsolutePath(),
+                AndroidNetworkResolver.get().resolverFile().getAbsolutePath(),
                 terminalType);
     }
 
@@ -72,6 +76,7 @@ public final class UbuntuRuntime {
         argv.add("--bind=/proc");
         argv.add("--bind=/sys");
         argv.add("--bind=/proc/mounts:/etc/mtab");
+        argv.add("--bind=" + resolverFile + ":/etc/resolv.conf");
         argv.add("/bin/bash");
         argv.add("--login");
         argv.add("-i");
@@ -81,8 +86,9 @@ public final class UbuntuRuntime {
     public Map<String, String> buildEnvironment() {
         Map<String, String> env = new LinkedHashMap<>();
         env.put("HOME", LINUX_HOME);
-        env.put("USER", "thoth");
-        env.put("LOGNAME", "thoth");
+        env.put("USER", "root");
+        env.put("LOGNAME", "root");
+        env.put("SHELL", "/bin/bash");
         env.put("TERM", terminalType == null ? "xterm-256color" : terminalType);
         env.put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
         env.put("TMPDIR", "/tmp");

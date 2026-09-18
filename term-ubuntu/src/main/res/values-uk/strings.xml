@@ -55,12 +55,6 @@
     <string name="summary_ime_preference">Виберіть спосіб введення для екранної клавіатури.</string>
     <string name="dialog_title_ime_preference">Спосіб введення</string>
     <string name="shell_preferences">Командна оболонка</string>
-    <string name="title_shell_preference">Командний рядок</string>
-    <string name="summary_shell_preference">Вкажіть рядок звернення до командної оболонки.</string>
-    <string name="dialog_title_shell_preference">Оболонка</string>
-    <string name="title_initialcommand_preference">Команди запуску</string>
-    <string name="summary_initialcommand_preference">Передаються облонці при запуску терміналу.</string>
-    <string name="dialog_title_initialcommand_preference">Команди запуску</string>
     <string name="title_termtype_preference">Тип терміналу</string>
     <string name="summary_termtype_preference">Вибір типу терміналу, для використання в оболонці.</string>
     <string name="dialog_title_termtype_preference">Тип терміналу</string>

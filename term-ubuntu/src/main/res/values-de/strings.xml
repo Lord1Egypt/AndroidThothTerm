@@ -76,9 +76,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <!-- access "external storage" -->
     <string name="message_external_storage_rationale">Zugriff auf Dateien im externen Speicher ist nicht erlaubt</string>
-    <string name="message_external_storage_granted">Zugriff auf den externen Speicher wurde zugelassen</string>
-    <string name="message_external_storage_not_granted">Zugriff auf den externen Speicher wurde abgelehnt</string>
-    <string name="message_all_files_access_rationale">Berechtigung »Zugriff auf alle Dateien«, damit alles im externen Speicher verwaltet werden kann</string>
 
     <!-- Context menu -->
     <string name="edit_text">Text bearbeiten</string>
@@ -169,24 +166,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="dialog_title_ime_preference">Eingabemethode</string>
 
     <string name="shell_preferences">Shell</string>
-    <string name="title_shell_preference">Shell</string>
-    <string name="summary_shell_preference">Die Shell-Kommandozeile festlegen.</string>
-    <string name="dialog_title_shell_preference">Shell</string>
-
-    <string name="title_source_sys_shrc_preference">Systemweite mkshrc einlesen</string>
-    <string name="summary_source_sys_shrc_preference">
-        Soll der Inhalt der Shell-Konfigurationsdatei des Systems (/system/etc/mkshrc) vor den festgelegten Shell-Startbefehlen ausgeführt werden?
-        (Hängt von der Shell-Kommandozeile ab.)
-    </string>
-
-    <string name="title_initialcommand_preference">Startbefehl</string>
-    <string name="summary_initialcommand_preference">Der Befehl, der bei ihrem Start an die Shell gesendet wird.</string>
-    <string name="dialog_title_initialcommand_preference">Startbefehl</string>
-
-    <string name="title_shellrc_preference">Shell-Start</string>
-    <string name="summary_shellrc_preference">Die Befehle festlegen, die von der Shell ausgeführt werden sollen, wenn diese startet.</string>
-    <string name="dialog_title_shellrc_preference">Shell-Start</string>
-    <string name="hint_shellrc_preference">(Shell-Startbefehle)</string>
 
     <string name="title_termtype_preference">Terminal-Typ</string>
     <string name="summary_termtype_preference">Den Terminal-Typ festlegen, den die Shell ausführen soll.</string>
@@ -194,9 +173,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <string name="title_close_window_on_process_exit_preference">Fenster beim Beenden schließen</string>
     <string name="summary_close_window_on_process_exit_preference">Soll das Fenster geschlossen werden, wenn die Shell beendet wird?</string>
-
-    <string name="title_home_path_preference">HOME-Verzeichnis</string>
-    <string name="summary_home_path_preference">Den Pfad zu einem beschreibbaren Verzeichnis festlegen, welches als $HOME genutzt werden soll.</string>
 
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->

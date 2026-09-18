@@ -62,12 +62,5 @@
     <string name="dialog_title_ime_preference">Método de entrada</string>
 
     <string name="shell_preferences">Shell</string>
-    <string name="title_shell_preference">Linha de comandos</string>
-    <string name="summary_shell_preference">Especificar a linha de comando do shell</string>
-    <string name="dialog_title_shell_preference">Shell</string>
-
-    <string name="title_initialcommand_preference">Comando inicial</string>
-    <string name="summary_initialcommand_preference">Enviar para o shell no arranque</string>
-    <string name="dialog_title_initialcommand_preference">Comando inicial</string>
 
 </resources>

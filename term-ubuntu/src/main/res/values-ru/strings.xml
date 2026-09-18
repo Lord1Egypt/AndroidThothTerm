@@ -87,23 +87,12 @@
 
     <string name="shell_preferences">Командная оболочка</string>
 
-    <string name="title_shell_preference">Обработчик команд</string>
-    <string name="summary_shell_preference">Укажите строку обращения к командной оболочке</string>
-    <string name="dialog_title_shell_preference">Оболочка</string>
-
-    <string name="title_initialcommand_preference">Команды запуска</string>
-    <string name="summary_initialcommand_preference">Передаются облочке при запуске терминала</string>
-    <string name="dialog_title_initialcommand_preference">Команды запуска</string>
-
     <string name="title_termtype_preference">Тип терминала</string>
     <string name="summary_termtype_preference">Выбор типа терминала для использования в оболочке</string>
     <string name="dialog_title_termtype_preference">Тип терминала</string>
 
     <string name="title_close_window_on_process_exit_preference">Закрытие окна при выходе</string>
     <string name="summary_close_window_on_process_exit_preference">Окно закроется, если выйти из оболочки</string>
-
-    <string name="title_home_path_preference">Домашняя папка</string>
-    <string name="summary_home_path_preference">Установка пути к папке, которая будет использована в качестве домашней (должны быть права записи)</string>
 
 
     <string name="confirm_window_close_message">Закрыть это окно?</string>

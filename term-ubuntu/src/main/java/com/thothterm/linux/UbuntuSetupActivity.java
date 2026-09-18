@@ -88,7 +88,7 @@ public class UbuntuSetupActivity extends AppCompatActivity
 
     @Override
     protected void onPause() {
-        RootfsManager.get().setListener(null);
+        RootfsManager.get().clearListener(this);
         super.onPause();
     }
 

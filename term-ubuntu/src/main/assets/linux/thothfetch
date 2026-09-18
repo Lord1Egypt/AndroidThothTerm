@@ -1,0 +1,26 @@
+#!/bin/bash
+# Lightweight ThothTerm-native welcome; no external commands.
+amber='\033[38;5;214m'; teal='\033[38;5;44m'
+white='\033[38;5;252m'; muted='\033[38;5;246m'; reset='\033[0m'
+
+if [ "${COLUMNS:-80}" -lt 58 ]; then
+  printf "${amber}    /\\${reset}\n"
+  printf "${amber} __/  \\__${reset}\n"
+  printf "${teal}/  \\  /  \\${reset}\n"
+  printf "${teal}\\   \\/   /${reset}\n"
+  printf "${amber}  \\  /\\  /${reset}\n"
+  printf "${amber}    \\/${reset}\n"
+  printf "${teal}    >_${reset}\n"
+  printf "${white}ThothTerm Ubuntu${reset}\n"
+  printf "${muted}Ubuntu 26.04.1 LTS${reset}\n"
+  printf "${muted}aarch64 | Bash | /home/thoth${reset}\n"
+  printf "${muted}Mode: PRoot admin (no Android root)${reset}\n"
+else
+  printf "${amber}    /\\${reset}        ${white}ThothTerm Ubuntu${reset}\n"
+  printf "${amber} __/  \\__${reset}     ${muted}Ubuntu 26.04.1 LTS${reset}\n"
+  printf "${teal}/  \\  /  \\${reset}    ${muted}Architecture  aarch64${reset}\n"
+  printf "${teal}\\   \\/   /${reset}    ${muted}Shell         Bash${reset}\n"
+  printf "${amber} \\  /\\  /${reset}     ${muted}Home          /home/thoth${reset}\n"
+  printf "${amber}   \\/${reset}        ${muted}Mode          PRoot admin${reset}\n"
+  printf "${teal}   >_${reset}         ${muted}Android remains unprivileged; sudo is unnecessary.${reset}\n"
+fi

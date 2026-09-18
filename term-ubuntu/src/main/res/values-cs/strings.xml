@@ -98,13 +98,6 @@
     <string name="dialog_title_ime_preference">Vstupní metoda</string>
 
     <string name="shell_preferences">Shell</string>
-    <string name="title_shell_preference">Příkazový řádek</string>
-    <string name="summary_shell_preference">Nastavte příkazový řádek.</string>
-    <string name="dialog_title_shell_preference">Shell</string>
-
-    <string name="title_initialcommand_preference">Počáteční příkaz</string>
-    <string name="summary_initialcommand_preference">Nastavte počáteční příkaz po spuštění terminálu.</string>
-    <string name="dialog_title_initialcommand_preference">Počáteční příkaz</string>
 
     <string name="title_termtype_preference">Typ terminálu</string>
     <string name="summary_termtype_preference">Vyberte typ terminálu pro interpretaci příkazů.</string>

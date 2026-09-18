@@ -103,13 +103,6 @@
     <string name="dialog_title_ime_preference">Inndatametode</string>
 
     <string name="shell_preferences">Skall</string>
-    <string name="title_shell_preference">Kommandolinje</string>
-    <string name="summary_shell_preference">Velg kommandolinjeskall.</string>
-    <string name="dialog_title_shell_preference">Skall</string>
-
-    <string name="title_initialcommand_preference">Innledende kommando</string>
-    <string name="summary_initialcommand_preference">Sendes til skallet når det starter.</string>
-    <string name="dialog_title_initialcommand_preference">Innledende kommando</string>
 
     <string name="title_termtype_preference">Terminaltype</string>
     <string name="summary_termtype_preference">Velg terminaltype.</string>
@@ -117,9 +110,6 @@
 
     <string name="title_close_window_on_process_exit_preference">Lukk vinduet ved avslutning</string>
     <string name="summary_close_window_on_process_exit_preference">Velg om vinduet skal lukkes når skallet avsluttes.</string>
-
-    <string name="title_home_path_preference">HOME-mappe</string>
-    <string name="summary_home_path_preference">Sti til en skrivbar mappe som skal brukes som HOME.</string>
 
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->

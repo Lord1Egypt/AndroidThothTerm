@@ -42,8 +42,6 @@
 
     <!-- access "external storage" -->
     <string name="message_external_storage_rationale">Dostęp do \"pamięci zewnętrznej\" jest wymagany do zarządzania plikami</string>
-    <string name="message_external_storage_granted">Dostęp przyznany do \"pamięci zewnętrznej\"</string>
-    <string name="message_external_storage_not_granted">Odmowa dostępu do \"pamięci zewnętrznej\"</string>
 
     <!-- Context menu -->
     <string name="edit_text">Edytuj tekst</string>
@@ -128,24 +126,6 @@
     <string name="dialog_title_ime_preference">Metoda wprowadzania</string>
 
     <string name="shell_preferences">Powłoka</string>
-    <string name="title_shell_preference">Wiersz poleceń</string>
-    <string name="summary_shell_preference">Określ wiersz poleceń powłoki.</string>
-    <string name="dialog_title_shell_preference">Powłoka</string>
-
-    <string name="title_source_sys_shrc_preference">Źródłowy plik systemowy mkshrc</string>
-    <string name="summary_source_sys_shrc_preference">
-      W specyficznych dla aplikacji komendach źródłowych skryptu startowego powłoki z pliku startowego powłoki systemowej (/system/etc/mkshrc).
-      Zależy od wiersza poleceń powłoki.
-    </string>
-
-    <string name="title_initialcommand_preference">Komenda początkowa</string>
-    <string name="summary_initialcommand_preference">Wysyłana do powłoki podczas startu.</string>
-    <string name="dialog_title_initialcommand_preference">Komenda początkowa</string>
-
-    <string name="title_shellrc_preference">Rozruch powłoki</string>
-    <string name="summary_shellrc_preference">Polecenia rozruchu powłoki</string>
-    <string name="dialog_title_shellrc_preference">Rozruch powłoki</string>
-    <string name="hint_shellrc_preference">(polecenia rozruchu powłoki)</string>
 
     <string name="title_termtype_preference">Typ terminala</string>
     <string name="summary_termtype_preference">Jaki typ terminala zgłosić do shella.</string>
@@ -153,9 +133,6 @@
 
     <string name="title_close_window_on_process_exit_preference">Zamknij okno przy wyjściu</string>
     <string name="summary_close_window_on_process_exit_preference">Określa, czy okno powinno zamykać się po zamknięciu powłoki.</string>
-
-    <string name="title_home_path_preference">Folder domowy (HOME)</string>
-    <string name="summary_home_path_preference">Ścieżka do folderu z możliwością zapisu, który będzie używany jako folder domowy (HOME)</string>
 
     <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
          actual control key key name. -->
