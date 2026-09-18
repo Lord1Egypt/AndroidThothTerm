@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <issue id="MissingTranslation" severity="ignore" />
+    <issue id="UseSparseArrays" severity="ignore" />
+    <!-- Lint: inappropriate warning - permission description can reference translated strings.
+      see https://code.google.com/p/android/issues/detail?id=194705 -->
+    <issue id="ManifestResource" severity="ignore" />
+</lint>

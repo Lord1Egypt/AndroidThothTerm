@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2025 Roumen Petrov.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+<!--
+Copyright (c) 2017, Tobias Bannert <tobannert@gmail.com>
+Copyright (c) 2022-2024, Ingo Brückl <ib@wupperonline.de>
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+  * Redistributions in binary form must reproduce the above
+    copyright notice, this list of conditions and the following
+    disclaimer in the documentation and/or other materials provided
+    with the distribution.
+
+  * Neither the name of the "ThothTerm" nor the names of its
+    contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<resources>
+    <string name="application_terminal">ThothTerm</string>
+    <string name="preferences">Einstellungen</string>
+    <string name="new_window">Neues Fenster</string>
+    <string name="close_window">Fenster schließen</string>
+    <string name="window_list">Fenster</string>
+    <string name="prev_window">Vorheriges Fenster</string>
+    <string name="next_window">Nächstes Fenster</string>
+    <string name="reset">Zurücksetzen</string>
+    <string name="toggle_soft_keyboard">Bildschirmtastatur ein/aus</string>
+
+    <string name="reset_toast_notification">Zustand dieses Terminalfensters wurde zurückgesetzt</string>
+
+    <string name="enable_wakelock">Bildschirm nie abschalten</string>
+    <string name="disable_wakelock">Bildschirm-Abschaltung erlauben</string>
+    <string name="ignore_battery_optimizations">%1$s erlauben, die Akku-Optimierung zu ignorieren?</string>
+    <string name="enable_wifilock">WLAN nie abschalten</string>
+    <string name="disable_wifilock">WLAN-Abschaltung erlauben</string>
+
+    <string name="app_collection_progress">Informationen anderer Apps werden abgefragt …</string>
+
+    <!-- Navigation drawer -->
+    <string name="navigation_drawer_open">Navigationsleiste öffnen</string>
+    <string name="navigation_drawer_close">Navigationsleiste schließen</string>
+
+    <!-- access "external storage" -->
+    <string name="message_external_storage_rationale">Zugriff auf Dateien im externen Speicher ist nicht erlaubt</string>
+    <string name="message_external_storage_granted">Zugriff auf den externen Speicher wurde zugelassen</string>
+    <string name="message_external_storage_not_granted">Zugriff auf den externen Speicher wurde abgelehnt</string>
+    <string name="message_all_files_access_rationale">Berechtigung »Zugriff auf alle Dateien«, damit alles im externen Speicher verwaltet werden kann</string>
+
+    <!-- Context menu -->
+    <string name="edit_text">Text bearbeiten</string>
+    <string name="select_text">Text auswählen</string>
+    <string name="copy_all">Alles kopieren</string>
+    <string name="paste">Einfügen</string>
+    <string name="paste_script">Skript einfügen</string>
+    <string name="send_control_key">Strg-Taste senden</string>
+    <string name="send_fn_key">Fn-Taste senden</string>
+
+    <!-- Miscellaneous -->
+    <string name="window_title">Fenster %1$d</string>
+
+    <string name="service_notify_text">Terminalsitzung wird ausgeführt</string>
+
+    <string name="process_exit_message">Terminalsitzung beendet</string>
+
+    <!-- Preference dialog -->
+    <string name="screen_preferences">Bildschirm</string>
+
+    <string name="title_statusbar_preference">Statuszeile</string>
+    <string name="summary_statusbar_preference">Die Sichtbarkeit der Statuszeile bestimmen.</string>
+    <string name="dialog_title_statusbar_preference">Sichtbarkeit der Statuszeile</string>
+    <string name="restart_statusbar_change">Neustart der App …\n(Änderung der Statuszeile)</string>
+
+    <string name="title_actionbar_preference">Aktionsleiste</string>
+    <string name="summary_actionbar_preference">Die Sichtbarkeit der Aktionsleiste bestimmen.</string>
+    <string name="summary_actionbar_preference_compat">Die Sichtbarkeit der Aktionsleiste bestimmen.</string>
+    <string name="dialog_title_actionbar_preference">Sichtbarkeit der Aktionsleiste</string>
+    <string name="restart_actionbar_change">Neustart der App …\n(Änderung der Aktionsleiste)</string>
+
+    <string name="title_thememode_preference">Darstellung</string>
+    <string name="summary_thememode_preference">Die Darstellung festlegen.</string>
+    <string name="dialog_title_thememode_preference">Darstellung</string>
+    <string name="restart_thememode_change">Neustart der App …\n(Änderung der Darstellung)</string>
+
+    <string name="title_orientation_preference">Bildschirmausrichtung</string>
+    <string name="summary_orientation_preference">Die Bildschirmausrichtung festlegen.</string>
+    <string name="dialog_title_orientation_preference">Bildschirmausrichtung</string>
+
+    <string name="title_sizecalc_preference">Größenberechnung</string>
+    <string name="summary_sizecalc_preference">Die Berechnung der Bildschirmgröße des Terminals (als Behelfslösung für alte Geräte oder einiger Bildschirmtastaturen) anpassen.</string>
+    <string name="dialog_title_sizecalc_preference">Methode zur Größenberechnung</string>
+
+    <string name="title_cursorstyle_preference">Cursor-Stil</string>
+    <string name="summary_cursorstyle_preference">Die Art des Cursors festlegen.</string>
+    <string name="dialog_title_cursorstyle_preference">Cursor-Stil</string>
+
+    <string name="title_cursorblink_preference">Cursor-Blinken</string>
+    <string name="summary_cursorblink_preference">Das Blinken des Cursors festlegen.</string>
+    <string name="dialog_title_cursorblink_preference">Cursor-Blinken</string>
+
+    <string name="text_preferences">Text</string>
+
+    <string name="title_utf8_by_default_preference">UTF-8 als Standard festlegen</string>
+    <string name="summary_utf8_by_default_preference">Sollen alle Zeichen in UTF-8 kodiert werden?</string>
+
+    <string name="title_fontsize_preference">Schriftgröße</string>
+    <string name="summary_fontsize_preference">Die Schriftgröße festlegen.</string>
+    <string name="dialog_title_fontsize_preference">Schriftgröße</string>
+
+    <string name="title_color_preference">Farben</string>
+    <string name="summary_color_preference">Die Text- und Hintergrundfarbe festlegen.</string>
+    <string name="dialog_title_color_preference">Text- und Hintergrundfarbe</string>
+
+    <string name="title_fontsource_preference">Schriftart</string>
+    <string name="summary_fontsource_preference">Die Art der Schrift wählen.</string>
+    <string name="dialog_title_fontsource_preference">Schriftart</string>
+    <string name="fontsource_system_label">Systemschrift</string>
+    <string name="fontsource_buildin_label">Alternative Schrift</string>
+
+    <string name="keyboard_preferences">Tastatur</string>
+
+    <string name="title_backaction_preference">Zurück</string>
+    <string name="summary_backaction_preference">Die Aktion bei Betätigung der »Zurück«-Schaltfläche festlegen.</string>
+    <string name="dialog_title_backaction_preference">Zurück</string>
+
+    <string name="title_controlkey_preference">Steuerungstaste (Strg)</string>
+    <string name="summary_controlkey_preference">Die Steuerungstaste festlegen.</string>
+    <string name="dialog_title_controlkey_preference">Steuerungstaste (Strg)</string>
+
+    <string name="title_fnkey_preference">Funktionstaste (Fn)</string>
+    <string name="summary_fnkey_preference">Die Funktionstaste festlegen.</string>
+    <string name="dialog_title_fnkey_preference">Funktionstaste (Fn)</string>
+
+    <string name="title_ime_preference">Eingabemethode</string>
+    <string name="summary_ime_preference">Die Eingabemethode der Bildschirmtastatur festlegen.</string>
+    <string name="dialog_title_ime_preference">Eingabemethode</string>
+
+    <string name="shell_preferences">Shell</string>
+    <string name="title_shell_preference">Shell</string>
+    <string name="summary_shell_preference">Die Shell-Kommandozeile festlegen.</string>
+    <string name="dialog_title_shell_preference">Shell</string>
+
+    <string name="title_source_sys_shrc_preference">Systemweite mkshrc einlesen</string>
+    <string name="summary_source_sys_shrc_preference">
+        Soll der Inhalt der Shell-Konfigurationsdatei des Systems (/system/etc/mkshrc) vor den festgelegten Shell-Startbefehlen ausgeführt werden?
+        (Hängt von der Shell-Kommandozeile ab.)
+    </string>
+
+    <string name="title_initialcommand_preference">Startbefehl</string>
+    <string name="summary_initialcommand_preference">Der Befehl, der bei ihrem Start an die Shell gesendet wird.</string>
+    <string name="dialog_title_initialcommand_preference">Startbefehl</string>
+
+    <string name="title_shellrc_preference">Shell-Start</string>
+    <string name="summary_shellrc_preference">Die Befehle festlegen, die von der Shell ausgeführt werden sollen, wenn diese startet.</string>
+    <string name="dialog_title_shellrc_preference">Shell-Start</string>
+    <string name="hint_shellrc_preference">(Shell-Startbefehle)</string>
+
+    <string name="title_termtype_preference">Terminal-Typ</string>
+    <string name="summary_termtype_preference">Den Terminal-Typ festlegen, den die Shell ausführen soll.</string>
+    <string name="dialog_title_termtype_preference">Terminal-Typ</string>
+
+    <string name="title_close_window_on_process_exit_preference">Fenster beim Beenden schließen</string>
+    <string name="summary_close_window_on_process_exit_preference">Soll das Fenster geschlossen werden, wenn die Shell beendet wird?</string>
+
+    <string name="title_home_path_preference">HOME-Verzeichnis</string>
+    <string name="summary_home_path_preference">Den Pfad zu einem beschreibbaren Verzeichnis festlegen, welches als $HOME genutzt werden soll.</string>
+
+    <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
+         actual control key key name. -->
+    <!-- The word FNKEY should be left un-translated. It will be replaced at run-time with the
+         actual function key key name. -->
+
+    <string name="confirm_window_close_message">Dieses Fenster schließen?</string>
+
+    <string name="perm_grp_term">Terminalemulator-Berechtigungen</string>
+    <string name="permdesc_grp_term">Wird für den Zugriff auf Terminalemulator-Funktionen verwendet.</string>
+
+    <string name="perm_run_script">Beliebige Skripte im Terminalemulator ausführen</string>
+    <string name="permdesc_run_script">Erlaubt der App, neue Fenster im Terminalemulator für Android zu öffnen und in diesen Fenstern Befehle mit allen Berechtigungen des Terminalemulators für Android auszuführen, einschließlich des Zugriffs auf das Internet und Ihre SD-Karte.</string>
+
+
+    <string name="alt_sends_esc">»Alt«-Taste sendet »Esc«</string>
+    <string name="alt_sends_esc_summary_on">Soll die »Alt«-Taste »Esc« ans Terminal senden?</string>
+    <string name="alt_sends_esc_summary_off">Soll die »Alt«-Taste »Esc« ans Terminal senden?</string>
+
+    <string name="title_mouse_tracking_preference">Maus-Ereignisse senden</string>
+    <string name="summary_mouse_tracking_preference">Sollen Tipp- und Scroll-Ereignisse als Escape-Sequenzen ans Terminal gesendet werden?</string>
+
+    <string name="title_use_keyboard_shortcuts">Tastenkombinationen verwenden</string>
+    <string name="use_keyboard_shortcuts_summary_on">(Strg-Tab: Fenster wechseln, Strg-Umschalt-N: Neues Fenster, Strg-Umschalt-V: Einfügen)</string>
+    <string name="use_keyboard_shortcuts_summary_off">(Tastenkombinationen sind deaktiviert)</string>
+
+    <string name="script_intent_title">Skript auswählen</string>
+    <string name="script_import_error">Das ausgewählte Skript konnte nicht gelesen werden</string>
+    <string name="script_access_error">Der Zugriff auf das ausgewählte Skript ist nicht möglich</string>
+    <string name="script_source_content_error">Es wurde keine App zum Lesen von Inhalten gefunden</string>
+
+    <string name="activity_term_here_title">Terminal hier</string>
+    <!-- BEGIN SHORTCUT RELATED STRINGS -->
+    <!-- AndroidManifest.xml -->
+    <string name="activity_shortcut_create">Terminal-Verknüpfung</string>
+    <!-- FileSelection activity -->
+    <string name="fsnavigator_title">Datei auswählen</string>
+    <string name="fsnavigator_no_external_storage">Externer Speicher nicht verfügbar</string>
+    <string name="fsnavigator_optional_enter_path">oder hier einen Pfad eingeben</string>
+    <string name="fsnavigator_change_theme">Darstellung ändern</string>
+    <!-- AddShortcut activity -->
+    <string name="addshortcut_command_hint">Befehl</string>
+    <string name="addshortcut_example_hint">--beispiel=\"a\"</string>
+    <string name="addshortcut_button_find_command">Befehl suchen</string>
+    <string name="addshortcut_navigator_title">Verknüpfungs-Ziel wählen</string>
+    <string name="addshortcut_command_window_instructions">Der Befehl erfordert einen vollständigen Pfad, keine Argumente. Andere Befehle (z. B.: cd /sdcard) geben Sie als Argumente ein.</string>
+    <string name="addshortcut_arguments_label">Argumente</string>
+    <string name="addshortcut_shortcut_label">Verknüpfungs-Bezeichnung</string>
+    <string name="addshortcut_button_text_icon">Textsymbol erstellen</string>
+    <string name="addshortcut_make_text_icon">Textsymbol erstellen</string>
+    <string name="addshortcut_title">Terminal-Verknüpfung</string>
+    <!-- ColorValue.java -->
+    <string name="colorvalue_letter_alpha">α</string>
+    <string name="colorvalue_letter_red">R</string>
+    <string name="colorvalue_letter_green">G</string>
+    <string name="colorvalue_letter_blue">B</string>
+    <string name="colorvalue_label_lock_button_column">Fest</string>
+    <string name="colorvalue_icon_text_entry_hint">Icon-Text eingeben</string>
+    <!-- END SHORTCUT RELATED STRINGS -->
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ThothTerm monochrome launcher foreground for themed icons.
+     Every glyph is white; the system tints it to match the launcher. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M33,36 L57,53 L33,70 L33,60 L45,53 L33,46 Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M57,60 L73,60 Q75,60 75,62 L75,68 Q75,70 73,70 L57,70 Q55,70 55,68 L55,62 Q55,60 57,60 Z" />
+</vector>

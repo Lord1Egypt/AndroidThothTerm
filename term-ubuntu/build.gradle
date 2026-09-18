@@ -1,0 +1,108 @@
+plugins {
+    id 'com.android.application'
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+        vendor = JvmVendorSpec.JETBRAINS
+    }
+}
+
+android {
+    namespace = "com.thothterm"
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    ndkVersion = rootProject.ext.ndkVersion
+    defaultConfig {
+        applicationId "com.thothterm.ubuntu"
+        minSdkVersion 26
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        vectorDrawables.useSupportLibrary = true
+
+        versionCode 100
+        versionName '0.1.0'
+
+        // ThothTerm Ubuntu V1 is ARM64 only.
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+
+        // Debug and release share the application id so the debug APK installs as
+        // com.thothterm.ubuntu and can coexist with com.thothterm (terminal edition).
+        manifestPlaceholders.applicationIdSuffix = ""
+        buildConfigField("String", "APPLICATION_ID_SUFFIX", "\"\"")
+        externalNativeBuild {
+            cmake {
+                arguments "-DAPPLICATION_ID:STRING=${applicationId}"
+            }
+        }
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    flavorDimensions = ["catalog"]
+    productFlavors {
+        full {
+            dimension 'catalog'
+        }
+    }
+    buildTypes {
+        debug {
+        }
+        release {
+            minifyEnabled = false
+        }
+    }
+    buildFeatures {
+        aidl = true
+        buildConfig = true
+    }
+    packaging {
+        jniLibs {
+            // Required so the PRoot runtime and its loader land on disk with the
+            // executable bit inside ApplicationInfo.nativeLibraryDir. Guest
+            // binaries are never execve'd by PRoot (they are mapped), so they can
+            // stay in app-private storage.
+            useLegacyPackaging = true
+            keepDebugSymbols += ["**/libproot.so", "**/libproot_loader.so"]
+        }
+    }
+}
+
+dependencies {
+    implementation project(':emulatorview')
+    implementation project(':libtermexec')
+
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.preference
+    implementation libs.annotation
+
+    testImplementation 'junit:junit:4.13.2'
+}
+
+def prepareUbuntu = tasks.register('prepareUbuntuRuntime', Exec) {
+    description = 'Fetch, verify, and stage the pinned Ubuntu rootfs and PRoot runtime.'
+    group = 'build'
+    workingDir projectDir
+    commandLine 'sh', 'tools/prepare-assets.sh'
+    // The script is cache-aware and exits quickly when the verified artifacts are present.
+}
+
+tasks.configureEach { task ->
+    if (task.name == 'preBuild') task.dependsOn prepareUbuntu
+}

@@ -852,7 +852,109 @@ AMOLED render correctly.
 
 Embedded Ubuntu 26.04 LTS ARM64 runtime (separate, explicitly authorized). The
 Linux layer must use the reserved `RUNTIME`/`LINUX`/`ROOTFS`/`PROOT`/`WEB`/
-`SECURITY` categories through `ThothLog`. No Ubuntu/PRoot work has begun.
+`SECURITY` categories through `ThothLog`.
+
+## POST-1.0 PHASE: embedded Ubuntu 26.04 LTS ARM64 runtime (ThothTerm Ubuntu)
+
+Branch `feature/thotterm-linux`, continuing from `7bfdcbf`. The golden tag
+`terminal-v1.0.0` (`7a3c88e5…`) and the terminal edition (`com.thothterm`) are
+untouched. Full design: `docs/UBUNTU_RUNTIME.md`.
+
+### Product and module
+
+- New application module `term-ubuntu/`, applicationId `com.thothterm.ubuntu`,
+  launcher label "ThothTerm Ubuntu", versionName `0.1.0`, versionCode `100`,
+  minSdk 26, targetSdk 36, **arm64-v8a only**.
+- Reuses `emulatorview` and `libtermexec` unchanged. Its application layer is a
+  copy of `term`'s, adapted (deliberate for milestone 1; no shared-UI refactor).
+- `settings.gradle` includes `:term-ubuntu`. The terminal edition still builds
+  byte-identically (`term-full-debug.apk` `e3a1f04e…`).
+- The Garden model replaces the old single `com.thothterm.linux` reservation:
+  `docs/EDITION_PLAN.md` now documents distro-specific IDs
+  (`com.thothterm.ubuntu`, future `kali`/`arch`/`almalinux`).
+
+### Embedded Ubuntu rootfs
+
+- Official Ubuntu base rootfs: `ubuntu-base-26.04.1-base-arm64.tar.gz` from
+  `cdimage.ubuntu.com`, Ubuntu 26.04.1 LTS "Resolute Raccoon", SHA-256
+  `5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd`
+  (matches upstream `SHA256SUMS`), 35,092,106 bytes, embedded byte-identical
+  (no repack).
+- Fetch/verify/stage pipeline: `term-ubuntu/tools/prepare-assets.sh`, cache at
+  `${THOTHTERM_CACHE_DIR:-$HOME/.cache/thothterm}`, fails closed on checksum or
+  size mismatch. The 35 MB image is git-ignored, never committed.
+- `.gz` asset gotcha: Android's asset packager expands `*.gz` assets and drops
+  the suffix, so the image is staged as `.tgz`; `image.properties` keeps the
+  upstream filename plus the packaged `assetName`.
+
+### PRoot runtime
+
+- ProotX support bundle v1.2.0, `arm64-v8a-assets.zip`, SHA-256
+  `42fd0042b18d8145ebb72aece000404bed8a0911c83505c1acf31e2da5033fe7`,
+  "modern" lane for host API 29+, NDK 29, 16 KB aligned. PRoot source lineage
+  `green-green-avk/proot` commit `7266fb3e…`; GPL-2.0.
+- Modern-Android execution: `proot`/`loader` ship as fake native libraries
+  (`libproot.so`, `libproot_loader.so`) extracted to `nativeLibraryDir` (allowed
+  to `execve` on targetSdk 36); guest binaries stay in app-private storage and
+  are mapped by PRoot's loader, not executed. `PROOT_LOADER`/`LD_LIBRARY_PATH`
+  point at the packaged loader and host libraries. `targetSdk` was not lowered.
+
+### First-run extraction and launch
+
+- Crash-safe: extract into `rootfs.staging`, verify SHA-256, require sentinels,
+  prepare `/home/thoth` + profile, then atomically rename to `rootfs` and write
+  `state.properties` (`complete=true`). Directory presence alone never means
+  ready.
+- Safe `TarballExtractor`: rejects absolute/`..`/NUL entries, verifies header
+  checksums, checks canonical parent containment, preserves symlinks, hardlinks,
+  and modes, drops setuid/setgid/sticky, skips device/FIFO.
+- `UbuntuRuntime` + `UbuntuTermSession` layer under the existing PTY/session
+  engine: `proot --rootfs=… --root-id --link2symlink --kill-on-exit
+  --cwd=/home/thoth --bind=/dev --bind=/proc --bind=/sys … /bin/bash --login -i`.
+  HOME `/home/thoth`, prompt `thoth@android:~$`. Fake-root (`--root-id`) is
+  documented; the app remains rootless.
+- New Window uses the same extracted rootfs and never re-extracts. Subsequent
+  launches skip preparation.
+
+### Diagnostics
+
+ROOTFS/PROOT/LINUX/SECURITY events via `ThothLog`; no terminal input/output,
+commands, environment values, or secrets are logged.
+
+### Build and verification
+
+- `:term-ubuntu:assembleFullDebug` succeeds; APK
+  `term-ubuntu/build/outputs/apk/full/debug/term-ubuntu-full-debug.apk`,
+  40,846,373 bytes, SHA-256
+  `0627ce52868422a24a862f3b79c06418cebc023a9fe79bcfebf6c7ede7403883`.
+- APK verified: package `com.thothterm.ubuntu`, v0.1.0 (100), targetSdk 36,
+  `native-code: arm64-v8a` only, `extractNativeLibs=true`, embedded rootfs
+  asset SHA-256 equals the pinned upstream value, PRoot + loader + host libs
+  present, all runtime ELFs 16 KB aligned.
+- `:term-ubuntu:testFullDebugUnitTest`: 11 JVM tests, 0 failures (traversal
+  rejection, tar extraction, symlink/hardlink, checksum/state matching, runtime
+  argument/environment construction). The extractor was also run against the
+  real Ubuntu tarball: 6,564 entries, 0 rejected.
+- `:term-ubuntu:lintFullDebug`: 1 error (inherited pre-existing
+  `GestureBackNavigation` at `Term.java:653`), 116 warnings (mostly
+  `ObsoleteSdkInt`/`RtlHardcoded` inherited from minSdk 26). `:term:lintFullDebug`
+  is unchanged at the baseline 1 error / 67 warnings. Shared module unit-test
+  tasks remain `NO-SOURCE`.
+- `git diff --check` clean.
+
+### Device acceptance still required
+
+The 22-item checklist in `docs/UBUNTU_RUNTIME.md` (install alongside the terminal
+edition, offline first run, automatic extraction and shell, os-release/uname/pwd,
+apt/bash, Extra Keys, Arabic/RTL, New Window without re-extraction, diagnostics,
+no secrets, terminal edition unaffected, no network needed).
+
+### Exact next recommended milestone
+
+Networking/DNS hardening inside Ubuntu (and `apt update`), then the
+`/home/thoth/shared` ↔ `Download/ThothTerm/` bind mount. Do not start Kali/Arch/
+AlmaLinux, the Developer Pack, Web Terminal, or release hardening without a
+separate authorization.
 
 ## Known risks and technical debt
 

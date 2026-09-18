@@ -33,6 +33,7 @@ dependencyResolutionManagement {
 }
 
 include ':term'
+include ':term-ubuntu'
 include ':libtermexec'
 include ':emulatorview'
 //include ':samples:addon'
