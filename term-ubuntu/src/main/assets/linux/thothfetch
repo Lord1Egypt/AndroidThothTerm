@@ -11,16 +11,17 @@ if [ "${COLUMNS:-80}" -lt 58 ]; then
   printf '%s\n' "${amber}  \\  /\\  /${reset}"
   printf '%s\n' "${amber}    \\/${reset}"
   printf '%s\n' "${teal}    >_${reset}"
+  printf '\n'
   printf '%s\n' "${white}ThothTerm Ubuntu${reset}"
   printf '%s\n' "${muted}Ubuntu 26.04.1 LTS${reset}"
-  printf '%s\n' "${muted}aarch64 | Bash | /home/thoth${reset}"
-  printf '%s\n' "${muted}User  thoth (sudo enabled)${reset}"
+  printf '%s\n' "${muted}User  thoth${reset}"
+  printf '%s\n' "${muted}Home  /home/thoth${reset}"
 else
   printf '%s\n' "${amber}    /\\${reset}        ${white}ThothTerm Ubuntu${reset}"
   printf '%s\n' "${amber} __/  \\__${reset}     ${muted}Ubuntu 26.04.1 LTS${reset}"
   printf '%s\n' "${teal}/  \\  /  \\${reset}    ${muted}Architecture  aarch64${reset}"
   printf '%s\n' "${teal}\\   \\/   /${reset}    ${muted}Shell         Bash${reset}"
   printf '%s\n' "${amber}  \\  /\\  /${reset}    ${muted}Home          /home/thoth${reset}"
-  printf '%s\n' "${amber}    \\/${reset}       ${muted}User          thoth (sudo enabled)${reset}"
+  printf '%s\n' "${amber}    \\/${reset}        ${muted}User          thoth${reset}"
   printf '%s\n' "${teal}    >_${reset}"
 fi

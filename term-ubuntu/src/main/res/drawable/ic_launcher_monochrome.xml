@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Simplified Garden silhouette for Android themed icons. -->
+<!-- Simplified Garden flower silhouette for Android themed icons. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path android:fillColor="@android:color/white"
-        android:pathData="M54,18 C44,27 42,40 54,51 C66,40 64,27 54,18 Z"/>
+        android:pathData="M54,20 C46,29 46,41 54,50 C62,41 62,29 54,20 Z"/>
     <path android:fillColor="@android:color/white"
-        android:pathData="M48,47 C38,34 25,35 25,49 C25,62 37,69 50,66 C46,60 45,54 48,47 Z"/>
+        android:pathData="M47,44 C36,33 24,36 26,48 C28,60 39,66 50,62 C45,56 44,50 47,44 Z"/>
     <path android:fillColor="@android:color/white"
-        android:pathData="M60,47 C70,34 83,35 83,49 C83,62 71,69 58,66 C62,60 63,54 60,47 Z"/>
+        android:pathData="M61,44 C72,33 84,36 82,48 C80,60 69,66 58,62 C63,56 64,50 61,44 Z"/>
     <path android:fillColor="@android:color/white"
-        android:pathData="M50,61 C38,64 33,75 39,86 C49,84 55,76 56,66 C54,64 52,62 50,61 Z"/>
+        android:pathData="M50,62 C40,66 35,76 41,86 C51,84 56,76 57,66 C55,64 52,63 50,62 Z"/>
     <path android:fillColor="@android:color/white"
-        android:pathData="M58,61 C70,64 75,75 69,86 C59,84 53,76 52,66 C54,64 56,62 58,61 Z"/>
+        android:pathData="M58,62 C68,66 73,76 67,86 C57,84 52,76 51,66 C53,64 56,63 58,62 Z"/>
 </vector>
