@@ -80,18 +80,19 @@ public class GuestConfigTest {
     }
 
     @Test
-    public void passwordlessSuPolicyAddedOnce() {
-        String base = "auth sufficient pam_rootok.so\n@include common-auth\n";
-        String once = GuestConfig.ensurePasswordlessSu(base);
-        assertTrue(once.startsWith("auth sufficient pam_permit.so\n"));
-        assertEquals(once, GuestConfig.ensurePasswordlessSu(once));
-        assertEquals(1, occurrences(once, "pam_permit.so"));
+    public void passwordlessSuCustomizationIsRemoved() {
+        String base = "auth sufficient pam_permit.so\n"
+                + "auth sufficient pam_rootok.so\n@include common-auth\n";
+        String cleaned = GuestConfig.removePasswordlessSu(base);
+        assertFalse(cleaned.contains("pam_permit.so"));
+        assertTrue(cleaned.contains("auth sufficient pam_rootok.so"));
+        assertEquals(cleaned, GuestConfig.removePasswordlessSu(cleaned));
     }
 
     @Test
-    public void passwordlessSuPolicyNotDuplicatedWhenWheelTrustPresent() {
-        String base = "auth sufficient pam_wheel.so trust group=sudo\n";
-        assertEquals(base, GuestConfig.ensurePasswordlessSu(base));
+    public void passwordlessSuRemovalLeavesStockPolicyUntouched() {
+        String stock = "auth sufficient pam_rootok.so\n@include common-auth\n";
+        assertEquals(stock, GuestConfig.removePasswordlessSu(stock));
     }
 
     @Test
@@ -122,11 +123,13 @@ public class GuestConfigTest {
     }
 
     @Test
-    public void managedSudoForwardsToGuestSu() {
-        String script = GuestConfig.managedSudoScript();
-        assertTrue(script.contains("/usr/bin/su -m -s /bin/bash"));
-        assertTrue(script.startsWith("#!/bin/bash\n"));
-        assertFalse(script.contains("echo root"));
+    public void managedSudoHelperDetection() {
+        assertTrue(GuestConfig.isManagedSudoHelper(
+                "#!/bin/bash\n# Managed by ThothTerm fallback sudo\n"));
+        assertTrue(GuestConfig.isManagedSudoHelper(
+                "# Managed by ThothTerm for the embedded Ubuntu/PRoot guest.\n"));
+        assertFalse(GuestConfig.isManagedSudoHelper("#!/bin/sh\necho user replacement\n"));
+        assertFalse(GuestConfig.isManagedSudoHelper(null));
     }
 
     @Test

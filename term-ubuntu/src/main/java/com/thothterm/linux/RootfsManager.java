@@ -19,6 +19,9 @@ package com.thothterm.linux;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.storage.StorageManager;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.system.OsConstants;
 
 import androidx.preference.PreferenceManager;
 
@@ -32,6 +35,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -55,6 +63,11 @@ public final class RootfsManager {
     private static final String IMAGE_ASSET = "ubuntu/image.properties";
     private static final String ROOTFS_ASSET_DIR = "ubuntu";
     private static final String RUNTIME_ASSET_DIR = "runtime/arm64-v8a";
+    private static final String SUDO_ASSET_DIR = "sudo";
+    private static final String SUDO_STAGE_DIR = "var/cache/thothterm/packages";
+    private static final long PROVISION_TIMEOUT_SECONDS = 180;
+    /** PRoot's fake_id0 elevates only on the setuid bit; force it on the real binary. */
+    private static final int SUDO_SETUID_MODE = 04755;
 
     private static final String[] RUNTIME_LIBS = {
             "libtalloc.so.2",
@@ -207,6 +220,7 @@ public final class RootfsManager {
             publish("Preparing Linux environment\u2026");
             copyRuntimeLibraries();
             extractRootfs();
+            ensureRealSudo(rootfsDir);
             failed = false;
             notifyComplete();
         } catch (Throwable t) {
@@ -349,6 +363,7 @@ public final class RootfsManager {
     public synchronized void prepareSession() throws IOException {
         if (!isReady()) throw new IOException("Linux environment is not ready");
         setupRootfs(rootfsDir, false);
+        ensureRealSudo(rootfsDir);
     }
 
     private void setupRootfs(File root, boolean installSkeleton) throws IOException {
@@ -365,6 +380,7 @@ public final class RootfsManager {
         installBashIntegration(new File(home, ".bashrc"));
 
         setupUserAccount(root);
+        removeManagedSudoHelper(root);
         setupSudo(root);
 
         File profileDir = new File(root, "etc/profile.d");
@@ -445,14 +461,39 @@ public final class RootfsManager {
         writeTextIfChanged(thothSudoers, GuestConfig.sudoersEntry());
         fileOps.setMode(thothSudoers, 0440);
 
+        // Real Ubuntu sudo is the only elevation path; drop the v2 passwordless
+        // su customization so su returns to its stock policy.
         File pamSu = new File(root, "etc/pam.d/su");
         if (pamSu.isFile()) {
-            writeTextIfChanged(pamSu, GuestConfig.ensurePasswordlessSu(readText(pamSu)));
+            writeTextIfChanged(pamSu, GuestConfig.removePasswordlessSu(readText(pamSu)));
         }
+    }
 
-        File sudoHelper = new File(new File(root, "usr/local/bin"), "sudo");
-        writeTextIfChanged(sudoHelper, GuestConfig.managedSudoScript());
-        fileOps.setMode(sudoHelper, 0755);
+    /**
+     * Removes the v2 ThothTerm-managed su-backed {@code /usr/local/bin/sudo}
+     * helper, which would otherwise shadow the real {@code /usr/bin/sudo}. Only
+     * a file carrying the ThothTerm marker is removed; a user replacement is
+     * left untouched and logged.
+     */
+    private void removeManagedSudoHelper(File root) {
+        File helper = new File(new File(root, "usr/local/bin"), "sudo");
+        if (!helper.isFile()) return;
+        try {
+            if (GuestConfig.isManagedSudoHelper(readText(helper))) {
+                if (helper.delete()) {
+                    ThothLog.i(LogCategory.INSTALLER,
+                            "Removed managed su-backed sudo helper");
+                } else {
+                    ThothLog.w(LogCategory.INSTALLER,
+                            "Could not remove managed sudo helper");
+                }
+            } else {
+                ThothLog.w(LogCategory.INSTALLER,
+                        "Leaving unrecognized /usr/local/bin/sudo in place");
+            }
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.INSTALLER, "Cannot inspect /usr/local/bin/sudo");
+        }
     }
 
     private void setupDebconfFrontend(File root) throws IOException {
@@ -482,6 +523,174 @@ public final class RootfsManager {
         }
         writeTextIfChanged(new File(managedDir, "runtime-config-version"),
                 GuestConfig.RUNTIME_CONFIG_VERSION + "\n");
+    }
+
+    /**
+     * Ensures the genuine Ubuntu {@code sudo} package is installed from the
+     * bundled offline packages and that PRoot's setuid-bit elevation can work.
+     * The embedded Canonical rootfs is never modified; this is a post-extraction
+     * layer. Best effort: any failure is logged and retried on the next session,
+     * and it never blocks the terminal from opening.
+     */
+    private synchronized void ensureRealSudo(File root) {
+        if (isSudoInstalled(root)) {
+            forceSudoSetuid(root);
+            return;
+        }
+        try {
+            stageSudoPackages(root);
+            runProvisioning(root, sudoInstallScript());
+            boolean setuid = forceSudoSetuid(root);
+            String report = runProvisioning(root, sudoVerifyScript());
+            ThothLog.i(LogCategory.ROOTFS, "sudo provisioning complete setuid="
+                    + setuid + " report=" + report.replace('\n', ' ').trim());
+        } catch (Throwable t) {
+            ThothLog.e(LogCategory.ROOTFS, "sudo provisioning failed type="
+                    + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
+        }
+    }
+
+    /** True when the dpkg database already records sudo as installed. */
+    private boolean isSudoInstalled(File root) {
+        File status = new File(root, "var/lib/dpkg/status");
+        if (!status.isFile()) return false;
+        try {
+            String text = readText(status);
+            for (String stanza : text.split("\n\n")) {
+                if (!(stanza.startsWith("Package: sudo\n")
+                        || stanza.contains("\nPackage: sudo\n"))) {
+                    continue;
+                }
+                if (stanza.contains("\nStatus: install ok installed\n")
+                        || stanza.endsWith("\nStatus: install ok installed")) {
+                    return true;
+                }
+            }
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.ROOTFS, "Cannot read dpkg status");
+        }
+        return false;
+    }
+
+    private void stageSudoPackages(File root) throws IOException {
+        File stage = new File(root, SUDO_STAGE_DIR);
+        if (!stage.exists() && !stage.mkdirs()) {
+            throw new IOException("Cannot create sudo package staging directory");
+        }
+        String[] assets = appContext.getAssets().list(SUDO_ASSET_DIR);
+        int count = 0;
+        if (assets != null) {
+            for (String name : assets) {
+                if (!name.endsWith(".deb")) continue;
+                InputStream in = null;
+                OutputStream out = null;
+                try {
+                    in = appContext.getAssets().open(SUDO_ASSET_DIR + "/" + name);
+                    out = new FileOutputStream(new File(stage, name));
+                    copyStream(in, out);
+                    count++;
+                } finally {
+                    closeQuietly(out);
+                    closeQuietly(in);
+                }
+            }
+        }
+        if (count == 0) throw new IOException("No bundled admin packages");
+        ThothLog.i(LogCategory.INSTALLER, "Staged admin packages count=" + count);
+    }
+
+    private String sudoInstallScript() {
+        String stage = "/" + SUDO_STAGE_DIR;
+        return "set -e\n"
+                + PATH_EXPORT + "\n"
+                + "cd /\n"
+                + "dpkg --force-confold -i " + stage + "/libapparmor1_*.deb\n"
+                + "dpkg --force-confold -i " + stage + "/sudo-common_*.deb\n"
+                + "dpkg --force-confold -i " + stage + "/sudo_*.deb\n"
+                + "dpkg --configure -a\n";
+    }
+
+    private String sudoVerifyScript() {
+        return "set -e\n"
+                + PATH_EXPORT + "\n"
+                + "dpkg-query -W -f='${Status} ${Version}\\n' sudo\n"
+                + "test -x /usr/bin/sudo\n"
+                + "visudo -c\n";
+    }
+
+    private static final String PATH_EXPORT =
+            "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+
+    /**
+     * Forces the real setuid bit on {@code /usr/bin/sudo.ws} from Java, bypassing
+     * PRoot's chmod shim. PRoot's fake_id0 extension grants fake euid 0 only when
+     * the executed binary carries S_ISUID, and the Android-side extraction masks
+     * setuid bits, so this explicit chmod is the required PRoot adjustment.
+     */
+    private boolean forceSudoSetuid(File root) {
+        File sudo = new File(root, "usr/bin/sudo.ws");
+        if (!sudo.isFile()) return false;
+        try {
+            Os.chmod(sudo.getAbsolutePath(), SUDO_SETUID_MODE);
+        } catch (ErrnoException e) {
+            ThothLog.w(LogCategory.ROOTFS,
+                    "Cannot chmod /usr/bin/sudo.ws: " + e.getMessage());
+        }
+        try {
+            return (Os.stat(sudo.getAbsolutePath()).st_mode & OsConstants.S_ISUID) != 0;
+        } catch (ErrnoException e) {
+            return false;
+        }
+    }
+
+    /** Runs a one-shot fake-root PRoot command for offline provisioning. */
+    private String runProvisioning(File root, String script) throws IOException {
+        UbuntuRuntime runtime = UbuntuRuntime.from(this, "xterm-256color");
+        List<String> argv = runtime.buildProvisioningArgv(
+                Arrays.asList("/bin/sh", "-c", script));
+        Map<String, String> env = runtime.buildProvisioningEnvironment();
+
+        ProcessBuilder builder = new ProcessBuilder(argv);
+        builder.redirectErrorStream(true);
+        builder.environment().clear();
+        builder.environment().putAll(env);
+
+        ThothLog.i(LogCategory.ROOTFS, "Provisioning command start");
+        Process process = builder.start();
+        final StringBuilder output = new StringBuilder();
+        Thread reader = new Thread(() -> {
+            try {
+                output.append(readText(process.getInputStream()));
+            } catch (IOException ignored) {
+            }
+        }, "ThothTerm-sudo-provision");
+        reader.start();
+
+        boolean finished;
+        try {
+            finished = process.waitFor(PROVISION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            process.destroyForcibly();
+            throw new IOException("Provisioning interrupted");
+        }
+        if (!finished) {
+            process.destroyForcibly();
+            throw new IOException("Provisioning timed out");
+        }
+        try {
+            reader.join(5000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        int code = process.exitValue();
+        String report = output.toString();
+        ThothLog.d(LogCategory.ROOTFS, "Provisioning exit=" + code);
+        if (code != 0) {
+            throw new IOException("Provisioning command failed (" + code + "): "
+                    + report.replace('\n', ' ').trim());
+        }
+        return report;
     }
 
     private void installBashIntegration(File bashrc) throws IOException {

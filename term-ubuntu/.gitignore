@@ -7,4 +7,5 @@
 src/main/assets/ubuntu/*.tgz
 src/main/assets/ubuntu/*.tar.gz
 src/main/assets/runtime/
+src/main/assets/sudo/
 src/main/jniLibs/

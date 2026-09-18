@@ -40,10 +40,14 @@ cat /etc/hosts
 cat /etc/resolv.conf
 ```
 
-Expected V1 identity is explicit PRoot fake-root: `id -u` and `whoami` report
-`0`/`root`, `USER` and `LOGNAME` are `root`, `HOME` and `pwd` are
-`/home/thoth`, and the prompt ends in `#`. Android itself remains unprivileged.
-`sudo` is intentionally absent and unnecessary in this model.
+Expected identity is the normal guest user: `id -u` and `whoami` report
+`1000`/`thoth`, `USER` and `LOGNAME` are `thoth`, `HOME` and `pwd` are
+`/home/thoth`, and the prompt is `thoth@thothterm:~$`. Android itself remains
+unprivileged. Administration uses the genuine Ubuntu `sudo` package, which is
+provisioned offline from packages bundled in the APK
+(`docs/UBUNTU_SUDO_PROVENANCE.md`): `sudo whoami` reports `root` and
+`sudo apt ...` works without a password, while non-sudo `apt install ...` fails
+with a superuser-privilege error.
 
 ## Networking and packages
 

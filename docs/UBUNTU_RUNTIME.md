@@ -90,8 +90,11 @@ Staged, git-ignored build inputs:
 | PRoot runtime | `term-ubuntu/src/main/jniLibs/arm64-v8a/libproot.so` | runtime executable |
 | PRoot loader | `term-ubuntu/src/main/jniLibs/arm64-v8a/libproot_loader.so` | PRoot's loader |
 | Host libraries | `term-ubuntu/src/main/assets/runtime/arm64-v8a/{libtalloc.so.2,libandroid-shmem.so,libandroid-selinux.so}` | copied to app-private storage for `LD_LIBRARY_PATH` |
+| Admin packages | `term-ubuntu/src/main/assets/sudo/*.deb` | genuine Ubuntu `sudo` + missing dependencies, installed offline on first run |
 
 Committed provenance metadata: `term-ubuntu/src/main/assets/ubuntu/image.properties`.
+Sudo package provenance and the offline provisioning design are documented in
+`docs/UBUNTU_SUDO_PROVENANCE.md`.
 
 **`.gz` asset naming gotcha:** Android's asset packager transparently expands
 files ending in `.gz` and drops the suffix. The rootfs is therefore staged as

@@ -64,19 +64,7 @@ public final class UbuntuRuntime {
     }
 
     public List<String> buildArgv() {
-        List<String> argv = new ArrayList<>();
-        argv.add(prootPath);
-        argv.add("--rootfs=" + rootfsDir);
-        argv.add("--root-id");
-        argv.add("--link2symlink");
-        argv.add("--cwd=" + LINUX_HOME);
-        argv.add("--kill-on-exit");
-        argv.add("--kernel-release=6.1.0-thothterm");
-        argv.add("--bind=/dev");
-        argv.add("--bind=/proc");
-        argv.add("--bind=/sys");
-        argv.add("--bind=/proc/mounts:/etc/mtab");
-        argv.add("--bind=" + resolverFile + ":/etc/resolv.conf");
+        List<String> argv = baseArgv(LINUX_HOME, true);
         // Drop from PRoot fake-root to the guest "thoth" account through the
         // guest's own util-linux su. Options must precede the user name;
         // "-i" is not a su option and previously made su exit immediately
@@ -88,6 +76,36 @@ public final class UbuntuRuntime {
         argv.add("-s");
         argv.add("/bin/bash");
         argv.add("thoth");
+        return argv;
+    }
+
+    /**
+     * One-shot PRoot command that runs as fake-root in {@code /}. Used to install
+     * the bundled admin packages offline. The resolver bind is omitted because
+     * provisioning is network-free and the resolver file may not exist yet.
+     */
+    public List<String> buildProvisioningArgv(List<String> command) {
+        List<String> argv = baseArgv("/", false);
+        argv.addAll(command);
+        return argv;
+    }
+
+    private List<String> baseArgv(String cwd, boolean bindResolver) {
+        List<String> argv = new ArrayList<>();
+        argv.add(prootPath);
+        argv.add("--rootfs=" + rootfsDir);
+        argv.add("--root-id");
+        argv.add("--link2symlink");
+        argv.add("--cwd=" + cwd);
+        argv.add("--kill-on-exit");
+        argv.add("--kernel-release=6.1.0-thothterm");
+        argv.add("--bind=/dev");
+        argv.add("--bind=/proc");
+        argv.add("--bind=/sys");
+        argv.add("--bind=/proc/mounts:/etc/mtab");
+        if (bindResolver) {
+            argv.add("--bind=" + resolverFile + ":/etc/resolv.conf");
+        }
         return argv;
     }
 
@@ -105,6 +123,15 @@ public final class UbuntuRuntime {
         env.put("PROOT_TMP_DIR", prootTmpDir);
         env.put("PROOT_LOADER", loaderPath);
         env.put("LD_LIBRARY_PATH", runtimeLibDir);
+        return env;
+    }
+
+    /** Environment for the one-shot fake-root provisioning command (HOME=/root). */
+    public Map<String, String> buildProvisioningEnvironment() {
+        Map<String, String> env = buildEnvironment();
+        env.put("HOME", "/root");
+        env.put("USER", "root");
+        env.put("LOGNAME", "root");
         return env;
     }
 

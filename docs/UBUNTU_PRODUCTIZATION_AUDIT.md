@@ -37,9 +37,10 @@ foundation. Physical-device items remain acceptance work, not inferred passes.
 - Complete the physical checklist, especially live DNS changes, `apt update`, a
   tiny dpkg install/remove cycle, signals, rotation/IME resize, multi-session
   isolation, and persistence after force-stop.
-- Design a first-class non-root session plus explicit admin-window workflow if
-  product research shows it is worth the added process/UI surface. Do not use a
-  nested PRoot or pretend `sudo` elevates.
+- Non-root session and admin elevation are now first-class: the default shell
+  is `thoth` (uid 1000) and the genuine Ubuntu `sudo` package is provisioned
+  offline. See `docs/UBUNTU_SUDO_PROVENANCE.md`. No nested PRoot is used and the
+  PRoot setuid-bit elevation is documented rather than faked.
 - Add explicit corrupted-rootfs diagnosis/rebuild UX and a versioned migration
   policy before changing the embedded image or schema.
 - Exercise interrupted extraction and low-storage behavior with Android storage
@@ -67,7 +68,9 @@ foundation. Physical-device items remain acceptance work, not inferred passes.
 ## NOT A PROBLEM
 
 - Absence of systemd is expected for this PRoot product and is not a boot bug.
-- Absence of sudo is intentional while the shell is already PRoot fake-root.
+- Real Ubuntu `sudo` is provisioned offline (bundled packages) rather than
+  inheriting the base image's missing sudo; see
+  `docs/UBUNTU_SUDO_PROVENANCE.md`.
 - `/tmp` cannot preserve a host sticky bit through the hardened extraction
   abstraction; it is writable inside one app-private UID boundary.
 - Application-layer duplication between `term/` and `term-ubuntu/` remains

@@ -30,6 +30,18 @@ PROOT_URL="https://github.com/Lord1Egypt/ProotX-Assets-Support/releases/download
 PROOT_SHA="42fd0042b18d8145ebb72aece000404bed8a0911c83505c1acf31e2da5033fe7"
 PROOT_FILE="prootx-arm64-v8a-v1.2.0-assets.zip"
 
+# Genuine Ubuntu sudo admin stack, provisioned offline on first run. The
+# dependency closure was resolved against the pinned Ubuntu Base image: only
+# libapparmor1, sudo-common and sudo are missing (libc6, libpam0g,
+# libpam-modules, libselinux1, libssl3t64, zlib1g and libaudit1 are present).
+# Fields: filename|pool path|sha256|size.
+SUDO_PORTS_BASE="http://ports.ubuntu.com/ubuntu-ports"
+SUDO_ASSETS_DIR="src/main/assets/sudo"
+SUDO_PACKAGES="\
+libapparmor1_5.0.0~beta1-0ubuntu7_arm64.deb|pool/main/a/apparmor/libapparmor1_5.0.0~beta1-0ubuntu7_arm64.deb|97bc3adba874fdda34afba6a206d3fcd5b531bb8681ba27c4442ee1379834cfa|50608
+sudo-common_1.2ubuntu_all.deb|pool/main/s/sudo-common/sudo-common_1.2ubuntu_all.deb|ba909e8e796115f442d0915ed3baa1b752e8809ec4d8e723d2bbd0d177750d2c|4034
+sudo_1.9.17p2-1ubuntu3_arm64.deb|pool/main/s/sudo/sudo_1.9.17p2-1ubuntu3_arm64.deb|a1f04e24343ad3b73123ca2dc2b43684ef1562ea3ed43788dc8ec79da574a873|923956"
+
 log() {
     echo "prepare-assets: $*"
 }
@@ -108,6 +120,21 @@ cp "$_tmpdir/modern/libandroid-shmem.so" "$RUNTIME_ASSETS_DIR/libandroid-shmem.s
 cp "$_tmpdir/modern/libandroid-selinux.so" "$RUNTIME_ASSETS_DIR/libandroid-selinux.so"
 chmod 644 "$RUNTIME_ASSETS_DIR"/*
 
+# Stage the verified Ubuntu admin packages for offline first-run provisioning.
+mkdir -p "$SUDO_ASSETS_DIR"
+while IFS='|' read -r _name _path _sha _size; do
+    [ -n "$_name" ] || continue
+    _cache="$CACHE_DIR/$_name"
+    fetch_verified "$SUDO_PORTS_BASE/$_path" "$_sha" "$_cache"
+    _actual_size="$(wc -c < "$_cache" | tr -d ' ')"
+    [ "$_actual_size" = "$_size" ] \
+        || die "unexpected size for $_name (expected $_size, got $_actual_size)"
+    cp "$_cache" "$SUDO_ASSETS_DIR/$_name"
+    chmod 644 "$SUDO_ASSETS_DIR/$_name"
+done <<EOF
+$SUDO_PACKAGES
+EOF
+
 # Runtime metadata used to validate the embedded image at first-run extraction.
 cat > "$ASSETS_DIR/image.properties" <<EOF
 imageId=ubuntu-26.04.1-base-arm64
@@ -129,3 +156,4 @@ log "ready"
 log "  rootfs : $ASSETS_DIR/$UBUNTU_ASSET"
 log "  proot  : $JNI_DIR/libproot.so"
 log "  loader : $JNI_DIR/libproot_loader.so"
+log "  sudo   : $SUDO_ASSETS_DIR (offline admin packages)"

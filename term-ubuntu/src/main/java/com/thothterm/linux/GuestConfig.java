@@ -33,7 +33,14 @@ final class GuestConfig {
     static final String USER_SHELL = "/bin/bash";
 
     /** Bumped when managed guest configuration changes so it can be re-applied. */
-    static final int RUNTIME_CONFIG_VERSION = 2;
+    static final int RUNTIME_CONFIG_VERSION = 3;
+
+    /** Exact text of the {@code auth sufficient pam_permit.so} line ThothTerm
+     *  added to {@code /etc/pam.d/su} in runtime config v2. */
+    private static final String MANAGED_PAM_PERMIT = "auth sufficient pam_permit.so";
+
+    /** First line of the ThothTerm-managed {@code /usr/local/bin/sudo} helper. */
+    private static final String MANAGED_SUDO_MARKER = "# Managed by ThothTerm";
 
     private GuestConfig() {
     }
@@ -62,21 +69,19 @@ final class GuestConfig {
     }
 
     /**
-     * Makes the guest {@code su} passwordless. The embedded Ubuntu Base has no
-     * {@code sudo} package; the managed admin helper forwards to {@code su}, and
-     * this explicit PAM policy is what lets a normal guest user switch to the
-     * PRoot fake-root account without a password. It grants nothing on Android.
+     * Reverts the runtime-config-v2 {@code su} PAM customization. Real Ubuntu
+     * {@code sudo} is now the only elevation path, so {@code su} must go back to
+     * its stock policy ({@code auth sufficient pam_rootok.so}) and must not offer
+     * a passwordless route to root. Only the exact managed line is removed.
      */
-    static String ensurePasswordlessSu(String pamSu) {
-        for (String line : pamSu.split("\n", -1)) {
-            String trimmed = line.trim();
-            if (trimmed.startsWith("#")) continue;
-            if (trimmed.contains("pam_permit.so")
-                    || trimmed.contains("pam_wheel.so")) {
-                return pamSu;
-            }
+    static String removePasswordlessSu(String pamSu) {
+        String[] lines = pamSu.split("\n", -1);
+        java.util.List<String> kept = new java.util.ArrayList<>(lines.length);
+        for (String line : lines) {
+            if (line.trim().equals(MANAGED_PAM_PERMIT)) continue;
+            kept.add(line);
         }
-        return "auth sufficient pam_permit.so\n" + pamSu;
+        return String.join("\n", kept);
     }
 
     static String ensureDebconfFrontendConfig(String text) {
@@ -98,34 +103,12 @@ final class GuestConfig {
     }
 
     /**
-     * The managed admin helper. Ubuntu Base does not ship sudo; the guest does
-     * ship util-linux {@code su}, which performs a real uid transition inside
-     * PRoot. This helper only translates the common sudo options and forwards
-     * the command to {@code su}; it never fabricates output.
+     * True when {@code /usr/local/bin/sudo} is the ThothTerm-managed su-backed
+     * helper from runtime config v2 (or the earlier "fallback sudo" variant).
+     * A file without this marker is treated as user-owned and is never deleted.
      */
-    static String managedSudoScript() {
-        return "#!/bin/bash\n"
-                + "# Managed by ThothTerm for the embedded Ubuntu/PRoot guest.\n"
-                + "# Real sudo is absent from Ubuntu Base; this forwards to the guest's\n"
-                + "# util-linux su, which performs a genuine uid 0 transition inside PRoot.\n"
-                + "# It grants no Android privileges.\n"
-                + "if [ -x /usr/bin/sudo ]; then exec /usr/bin/sudo \"$@\"; fi\n"
-                + "if [ $# -eq 0 ]; then echo 'usage: sudo command ...' >&2; exit 1; fi\n"
-                + "target=root\n"
-                + "while [ $# -gt 0 ]; do\n"
-                + "  case \"$1\" in\n"
-                + "    -n|--non-interactive|-E|--preserve-env|--preserve-env=*|-H|--set-home)"
-                + " shift ;;\n"
-                + "    -k|--reset-timestamp|-S|--stdin|-b|--background|-v|--validate) shift ;;\n"
-                + "    --) shift; break ;;\n"
-                + "    -u|--user) target=\"$2\"; shift 2 ;;\n"
-                + "    -s|--shell|-i|--login) shift; exec /usr/bin/su -m -s /bin/bash \"$target\" ;;\n"
-                + "    -*) shift ;;\n"
-                + "    *) break ;;\n"
-                + "  esac\n"
-                + "done\n"
-                + "if [ $# -eq 0 ]; then exec /usr/bin/su -m -s /bin/bash \"$target\"; fi\n"
-                + "exec /usr/bin/su -m -s /bin/bash -c \"$(printf '%q ' \"$@\")\" \"$target\"\n";
+    static boolean isManagedSudoHelper(String content) {
+        return content != null && content.contains(MANAGED_SUDO_MARKER);
     }
 
     /**
