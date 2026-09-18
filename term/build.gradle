@@ -111,6 +111,8 @@ dependencies {
     implementation libs.activity
     implementation libs.preference
     implementation libs.annotation
+
+    testImplementation 'junit:junit:4.13.2'
 }
 
 tasks.register('elfcleaner', Exec) {
