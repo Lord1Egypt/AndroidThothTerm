@@ -23,8 +23,8 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 10000
-        versionName '1.0.0'
+        versionCode 10100
+        versionName '1.1.0'
 
         manifestPlaceholders.applicationIdSuffix = ""
         buildConfigField("String", "APPLICATION_ID_SUFFIX", "\"\"")

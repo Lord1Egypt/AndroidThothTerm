@@ -854,6 +854,42 @@ Embedded Ubuntu 26.04 LTS ARM64 runtime (separate, explicitly authorized). The
 Linux layer must use the reserved `RUNTIME`/`LINUX`/`ROOTFS`/`PROOT`/`WEB`/
 `SECURITY` categories through `ThothLog`. No Ubuntu/PRoot work has begun.
 
+## TERMINAL EMULATOR 1.1.0 RELEASE (Diagnostics)
+
+The terminal edition was released as **1.1.0**: the 1.0 golden baseline plus the
+completed Diagnostics / Structured Logging feature.
+
+- Product: ThothTerm Terminal Emulator (`com.thothterm`; debug
+  `com.thothterm.devel`).
+- Version: `1.1.0`, versionCode `10100`.
+- Annotated tag: `terminal-v1.1.0`.
+- Release title: "ThothTerm Terminal Emulator 1.1.0 — Diagnostics Release".
+- `terminal-v1.0.0` (`7a3c88e`) remains the immutable Golden Baseline and was
+  not modified, moved, or retagged.
+
+The Diagnostics implementation was authored on `feature/thotterm-linux` as
+commit `7e716b7` and cherry-picked onto a `release/terminal-v1.1.0` branch off
+`master` as `5308000`, so no Ubuntu branch content entered the terminal edition.
+The cherry-picked commit was audited first: it contains only the terminal-app
+Diagnostics work (plus the `docs/DIAGNOSTICS.md` documentation and reserved
+log-category names); no `term-ubuntu`, rootfs, PRoot, or
+`com.thothterm.ubuntu` code.
+
+Added in 1.1.0: `Settings → Diagnostics` (View logs, Log level, Developer
+logging, Clear logs, Export logs); live log viewer with search, level/category
+filters, pause/resume, auto-scroll; levels ERROR/WARN/INFO/DEBUG/VERBOSE
+(default INFO); bounded rotating app-private logs (~4 MB × 4 files); SAF export;
+privacy-safe logging with no terminal input/output/commands/secrets. See
+`docs/DIAGNOSTICS.md`, `docs/TERMINAL_RELEASE_1.1.md`, and
+`docs/RELEASE_NOTES_1.1.md`.
+
+Signing: no ThothTerm production signing credentials exist, so debug APKs use
+the Android debug key and release APKs/AABs are unsigned. Lint is unchanged at
+the baseline 1 error (`GestureBackNavigation`) and 67 warnings.
+
+The Linux/Ubuntu edition remains a separate product on `feature/thotterm-linux`
+(`com.thothterm.ubuntu`) and is not part of this release.
+
 ## Known risks and technical debt
 
 - Target SDK 36 predictive back is not migrated; lint fails on legacy `KEYCODE_BACK` handling. Treat this as a focused behavior task because back can close sessions or send terminal characters.
