@@ -17,6 +17,7 @@
 
 package jackpal.androidterm;
 
+import android.app.ForegroundServiceStartNotAllowedException;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -89,7 +90,11 @@ public class TermService extends SessionsService {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        return START_STICKY;
+        return restartPolicy();
+    }
+
+    static int restartPolicy() {
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -109,7 +114,7 @@ public class TermService extends SessionsService {
     public void onCreate() {
         /* Put the service in the foreground. */
         Notification notification = buildNotification();
-        StartForeground.start(this, notification);
+        if (!StartForeground.start(this, notification)) return;
 
         command_service = new CommandService(this);
         command_service.start();
@@ -140,7 +145,7 @@ public class TermService extends SessionsService {
 
     @Override
     public void onDestroy() {
-        command_service.stop();
+        if (command_service != null) command_service.stop();
         clearSessions();
         StopForeground.stop(this);
         super.onDestroy();
@@ -229,12 +234,43 @@ public class TermService extends SessionsService {
     }
 
 
-    private static class StartForeground {
-        private static void start(Service service, Notification notification) {
+    static class StartForeground {
+        private static boolean start(Service service, Notification notification) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S /*API level 31*/)
+                return Compat31.start(service, notification);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q /*API level 29*/)
                 Compat29.start(service, notification);
             else
                 Compat5.start(service, notification);
+            return true;
+        }
+
+        @FunctionalInterface
+        interface ForegroundStartAction {
+            void start();
+        }
+
+        @RequiresApi(31)
+        static class Compat31 {
+            private static boolean start(Service service, Notification notification) {
+                return attempt(
+                        () -> Compat29.start(service, notification),
+                        () -> {
+                            ThothLog.w(LogCategory.APP,
+                                    "Foreground service promotion rejected; stopping service");
+                            service.stopSelf();
+                        });
+            }
+
+            static boolean attempt(ForegroundStartAction action, Runnable onRejected) {
+                try {
+                    action.start();
+                    return true;
+                } catch (ForegroundServiceStartNotAllowedException e) {
+                    onRejected.run();
+                    return false;
+                }
+            }
         }
 
         @RequiresApi(29)
