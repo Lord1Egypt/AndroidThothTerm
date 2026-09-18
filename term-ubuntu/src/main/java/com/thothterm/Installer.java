@@ -78,6 +78,7 @@ public class Installer {
         shell_script.add("  esac");
         shell_script.add("}");
         shell_script.add("PS1='$(__thothterm_prompt_path) $ '");
+        shell_script.add("export PS1");
 
         // Source application startup script
         shell_script.add("test -f ~/.shrc && . ~/.shrc");

@@ -1999,8 +1999,8 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         public void onGetContentRect(ActionMode mode, View view, Rect outRect) {
             float[] start = selectionHandlePosition(true);
             float[] end = selectionHandlePosition(false);
-            int left = Math.round(Math.min(start[0], end[0]) - mCharacterWidth);
-            int right = Math.round(Math.max(start[0], end[0]) + mCharacterWidth);
+            int left = Math.round(Math.min(start[0], end[0]));
+            int right = Math.round(Math.max(start[0], end[0]));
             int top = Math.round(mTopOfScreenMargin
                     + (mSelY1 - mTopRow) * mCharacterHeight);
             int bottom = Math.round(mTopOfScreenMargin

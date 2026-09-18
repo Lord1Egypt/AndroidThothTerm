@@ -49,6 +49,8 @@ public class UbuntuRuntimeTest {
         assertTrue(argv.contains("--bind=/proc"));
         assertTrue(argv.contains("--bind=/sys"));
         assertTrue(argv.contains("--bind=/data/user/0/com.thothterm.ubuntu/files/linux/runtime/resolv.conf:/etc/resolv.conf"));
+        assertTrue(argv.contains("/usr/bin/su"));
+        assertTrue(argv.contains("thoth"));
         assertTrue(argv.contains("/bin/bash"));
         assertTrue(argv.contains("--login"));
         assertFalse("must not bind the whole Android /data", argv.contains("--bind=/data"));
@@ -59,8 +61,8 @@ public class UbuntuRuntimeTest {
         Map<String, String> env = runtime().buildEnvironment();
 
         assertEquals("/home/thoth", env.get("HOME"));
-        assertEquals("root", env.get("USER"));
-        assertEquals("root", env.get("LOGNAME"));
+        assertEquals("thoth", env.get("USER"));
+        assertEquals("thoth", env.get("LOGNAME"));
         assertEquals("/bin/bash", env.get("SHELL"));
         assertEquals("/data/app/com.thothterm.ubuntu/lib/arm64/libproot_loader.so",
                 env.get("PROOT_LOADER"));

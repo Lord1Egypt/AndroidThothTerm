@@ -77,7 +77,10 @@ public final class UbuntuRuntime {
         argv.add("--bind=/sys");
         argv.add("--bind=/proc/mounts:/etc/mtab");
         argv.add("--bind=" + resolverFile + ":/etc/resolv.conf");
+        argv.add("/usr/bin/su");
+        argv.add("-s");
         argv.add("/bin/bash");
+        argv.add("thoth");
         argv.add("--login");
         argv.add("-i");
         return argv;
@@ -86,8 +89,8 @@ public final class UbuntuRuntime {
     public Map<String, String> buildEnvironment() {
         Map<String, String> env = new LinkedHashMap<>();
         env.put("HOME", LINUX_HOME);
-        env.put("USER", "root");
-        env.put("LOGNAME", "root");
+        env.put("USER", "thoth");
+        env.put("LOGNAME", "thoth");
         env.put("SHELL", "/bin/bash");
         env.put("TERM", terminalType == null ? "xterm-256color" : terminalType);
         env.put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
