@@ -68,7 +68,7 @@ public class Settings {
     public Settings(Resources r, SharedPreferences preferences) {
         font_source = parseInteger(preferences,
                 r.getString(R.string.key_fontsource_preference),
-                FontSource.SYSTEM);
+                FontSource.EMBED);
         orientation = parseInteger(preferences,
                 r.getString(R.string.key_orientation_preference),
                 r.getInteger(R.integer.pref_orientation_default));

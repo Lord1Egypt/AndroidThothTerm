@@ -138,7 +138,7 @@
     <string name="summary_fontsource_preference">System or built-in font.</string>
     <string name="dialog_title_fontsource_preference">Font</string>
     <string name="fontsource_system_label">System</string>
-    <string name="fontsource_buildin_label">Build-In</string>
+    <string name="fontsource_buildin_label">Built-in</string>
 
     <string name="keyboard_preferences">Keyboard</string>
     <string name="title_extra_keys_enabled">Show extra keys toolbar</string>
