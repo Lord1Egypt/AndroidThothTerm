@@ -90,7 +90,7 @@ dup_jobjectArray(JNIEnv *env, jobjectArray list) {
 static pid_t
 process_create_subprocess(
         JNIEnv *env, jobject clazz,
-        int ptm, char *path, char **argv, char **envp
+        int ptm, char *path, char **argv, char **envp, char *cwd
 ) {
     pid_t pid;
     char devname[64]; /*match bionic, see libc/unistd/ptsname_r.c*/
@@ -129,6 +129,10 @@ process_create_subprocess(
     /* else in child */
     {
         int pts;
+
+        if (cwd != NULL && chdir(cwd) < 0) {
+            _exit(127);
+        }
 
         /* make controlling tty ... */
 
@@ -175,10 +179,12 @@ process_create_subprocess(
 static jint
 jprocess_create_subprocess(
         JNIEnv *env, jobject clazz,
-        jint ptm, jbyteArray path_j, jobjectArray argv_j, jobjectArray envp_j
+        jint ptm, jbyteArray path_j, jobjectArray argv_j, jobjectArray envp_j,
+        jbyteArray cwd_j
 ) {
     int k;
-    char *path = NULL, **argv = NULL, **envp = NULL;
+    jint result;
+    char *path = NULL, **argv = NULL, **envp = NULL, *cwd = NULL;
 
     path = dup_jbyteArray(env, path_j);
     if (path == NULL) goto err;
@@ -189,13 +195,23 @@ jprocess_create_subprocess(
     envp = dup_jobjectArray(env, envp_j);
     if (envp == NULL) goto err;
 
+    cwd = dup_jbyteArray(env, cwd_j);
+
     /* NOTE:
      * - typedef int __kernel_pid_t => __pid_t => pid_t
      * - typedef int __int32_t => int32_t => jint
      */
-    return process_create_subprocess(env, clazz, ptm, path, argv, envp);
+    result = process_create_subprocess(env, clazz, ptm, path, argv, envp, cwd);
+    free(cwd);
+    for (k = 0; envp[k] != NULL; k++) free(envp[k]);
+    free(envp);
+    for (k = 0; argv[k] != NULL; k++) free(argv[k]);
+    free(argv);
+    free(path);
+    return result;
 
     err:
+    free(cwd);
     if (envp != NULL) {
         for (k = 0; envp[k] != NULL; k++)
             free(envp[k]);
@@ -248,7 +264,7 @@ process_finish_childs(
 int
 register_process(JNIEnv *env) {
     static JNINativeMethod methods[] = {
-            {"createSubprocess", "(I[B[[B[[B)I", (void *) jprocess_create_subprocess},
+            {"createSubprocess", "(I[B[[B[[B[B)I", (void *) jprocess_create_subprocess},
             {"waitExit",         "(I)I",         (void *) process_wait_exit},
             {"finishChilds",     "(I)V",         (void *) process_finish_childs}
     };
