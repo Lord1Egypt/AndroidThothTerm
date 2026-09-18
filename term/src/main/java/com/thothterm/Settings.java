@@ -68,7 +68,7 @@ public class Settings {
     public Settings(Resources r, SharedPreferences preferences) {
         font_source = parseInteger(preferences,
                 r.getString(R.string.key_fontsource_preference),
-                FontSource.SYSTEM);
+                FontSource.EMBED);
         orientation = parseInteger(preferences,
                 r.getString(R.string.key_orientation_preference),
                 r.getInteger(R.integer.pref_orientation_default));
@@ -85,8 +85,9 @@ public class Settings {
         Settings settings = new Settings(context);
         String cmd = settings.initial_command;
         if (cmd == null /*just in case*/) cmd = "";
-        if (!TextUtils.isEmpty(extraCommand))
-            cmd += "\r" + extraCommand;
+        if (!TextUtils.isEmpty(extraCommand)) {
+            cmd = TextUtils.isEmpty(cmd) ? extraCommand : cmd + "\r" + extraCommand;
+        }
         return cmd;
     }
 

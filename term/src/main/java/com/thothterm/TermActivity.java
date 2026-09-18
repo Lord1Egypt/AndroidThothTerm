@@ -21,10 +21,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
-import android.view.ContextMenu;
+import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -89,30 +88,20 @@ public class TermActivity extends jackpal.androidterm.Term {
     }
 
     @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-        super.onCreateContextMenu(menu, v, menuInfo);
-
-        menu.setHeaderTitle(R.string.edit_text);
-
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_session, menu);
-        if (!canPaste()) {
-            MenuItem item = menu.findItem(R.id.session_paste);
-            if (item != null) item.setEnabled(false);
-        }
+        return true;
     }
 
     @Override
-    public boolean onContextItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         /* NOTE: Resource IDs will be non-final in Android Gradle Plugin version 5.0,
            avoid using them in switch case statements */
-        if (id == R.id.session_select_text)
-            getCurrentEmulatorView().toggleSelectingText();
-        else if (id == R.id.session_copy_all)
+        if (id == R.id.session_copy_all)
             doCopyAll();
-        else if (id == R.id.session_paste)
-            doPaste();
         else if (id == R.id.session_paste_script)
             doPasteScript();
         else if (id == R.id.session_send_cntr)
@@ -120,7 +109,7 @@ public class TermActivity extends jackpal.androidterm.Term {
         else if (id == R.id.session_send_fn)
             getCurrentEmulatorView().sendFnKey();
         else
-            return super.onContextItemSelected(item);
+            return super.onOptionsItemSelected(item);
         return true;
     }
 

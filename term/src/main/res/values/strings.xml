@@ -16,7 +16,8 @@
  * limitations under the License.
 -->
 
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@string/edit_text,@string/select_text,@string/paste">
     <string name="application_site" translatable="false">https://github.com/Lord1Egypt/AndroidThothTerm</string>
 
     <string name="application_terminal">ThothTerm</string>
@@ -138,7 +139,7 @@
     <string name="summary_fontsource_preference">System or built-in font.</string>
     <string name="dialog_title_fontsource_preference">Font</string>
     <string name="fontsource_system_label">System</string>
-    <string name="fontsource_buildin_label">Build-In</string>
+    <string name="fontsource_buildin_label">Built-in</string>
 
     <string name="keyboard_preferences">Keyboard</string>
     <string name="title_extra_keys_enabled">Show extra keys toolbar</string>

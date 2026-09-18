@@ -29,6 +29,7 @@ android {
     }
     testOptions {
         targetSdk = rootProject.ext.targetSdkVersion
+        unitTests.returnDefaultValues = true
     }
     productFlavors {
     }
@@ -46,6 +47,7 @@ android {
 
 dependencies {
     implementation libs.annotation
+    testImplementation 'junit:junit:4.13.2'
 }
 
 apply from: 'libVersion.gradle'

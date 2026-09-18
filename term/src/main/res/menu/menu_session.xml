@@ -19,21 +19,9 @@
 <menu
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <group>
-
-        <item
-            android:id="@+id/session_select_text"
-            android:title="@string/select_text"/>
-
-        <item
-            android:id="@+id/session_copy_all"
-            android:title="@string/copy_all"/>
-
-        <item
-            android:id="@+id/session_paste"
-            android:title="@string/paste"/>
-
-    </group>
+    <item
+        android:id="@+id/session_copy_all"
+        android:title="@string/copy_all"/>
 
     <item
         android:id="@+id/session_paste_script"

@@ -70,14 +70,32 @@ public class Installer {
         // Friendly prompt: show HOME by its short name instead of the full
         // private application path. Presentation only; $PWD, HOME and the
         // filesystem are unchanged, and ~/.shrc can still override PS1.
+        // Friendly prompt: display HOME by its short name instead of the full
+        // private application path. Everything is derived from the shell's own
+        // $HOME/$PWD; no Android package path is assumed. $HOME may be spelled
+        // with a different alias than the kernel reports for $PWD (for example
+        // through a symlinked prefix), so resolve HOME's physical form once at
+        // startup and accept either spelling. $PWD/HOME and the real `pwd` are
+        // never modified; only the PS1 presentation differs.
+        shell_script.add("__THOTHTERM_HOME=${HOME%/}");
+        shell_script.add("if [ -d \"$__THOTHTERM_HOME\" ]; then");
+        shell_script.add("  __THOTHTERM_HOME_PHYS=$(cd \"$__THOTHTERM_HOME\" && pwd -P)");
+        shell_script.add("fi");
+        shell_script.add(": \"${__THOTHTERM_HOME_PHYS:=$__THOTHTERM_HOME}\"");
         shell_script.add("__thothterm_prompt_path() {");
-        shell_script.add("  case \"$PWD\" in");
-        shell_script.add("    \"$HOME\") printf '%s' \"${HOME##*/}\" ;;");
-        shell_script.add("    \"$HOME\"/*) printf '%s/%s' \"${HOME##*/}\" \"${PWD#\"$HOME\"/}\" ;;");
-        shell_script.add("    *) printf '%s' \"$PWD\" ;;");
-        shell_script.add("  esac");
+        shell_script.add("  __ttp_pwd=${PWD%/}");
+        shell_script.add("  __ttp_base=${__THOTHTERM_HOME##*/}");
+        shell_script.add("  for __ttp_home in \"$__THOTHTERM_HOME\" \"$__THOTHTERM_HOME_PHYS\"; do");
+        shell_script.add("    [ -n \"$__ttp_home\" ] || continue");
+        shell_script.add("    case \"$__ttp_pwd\" in");
+        shell_script.add("      \"$__ttp_home\") printf '%s' \"$__ttp_base\"; return ;;");
+        shell_script.add("      \"$__ttp_home\"/*) printf '%s/%s' \"$__ttp_base\" \"${__ttp_pwd#\"$__ttp_home\"/}\"; return ;;");
+        shell_script.add("    esac");
+        shell_script.add("  done");
+        shell_script.add("  printf '%s' \"$PWD\"");
         shell_script.add("}");
         shell_script.add("PS1='$(__thothterm_prompt_path) $ '");
+        shell_script.add("export PS1");
 
         // Source application startup script
         shell_script.add("test -f ~/.shrc && . ~/.shrc");
