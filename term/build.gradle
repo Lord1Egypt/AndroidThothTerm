@@ -23,8 +23,8 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 10200
-        versionName '1.2.0'
+        versionCode 10201
+        versionName '1.2.1'
 
         manifestPlaceholders.applicationIdSuffix = ""
         buildConfigField("String", "APPLICATION_ID_SUFFIX", "\"\"")
@@ -111,6 +111,8 @@ dependencies {
     implementation libs.activity
     implementation libs.preference
     implementation libs.annotation
+
+    testImplementation 'junit:junit:4.13.2'
 }
 
 tasks.register('elfcleaner', Exec) {
