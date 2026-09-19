@@ -140,6 +140,24 @@ public class GuestConfigTest {
         assertFalse(script.contains("locale-check"));
     }
 
+    @Test
+    public void hostsAddsLoopbackEntriesAndIsIdempotent() {
+        String once = GuestConfig.ensureHosts("");
+        assertTrue(once.contains("127.0.0.1 localhost\n"));
+        assertTrue(once.contains("::1 localhost ip6-localhost ip6-loopback\n"));
+        assertEquals(once, GuestConfig.ensureHosts(once));
+    }
+
+    @Test
+    public void hostsPreservesUserEntriesAndRecognisesExistingLoopback() {
+        String base = "10.0.0.5 myhost\n127.0.0.1 localhost myhost\n";
+        String result = GuestConfig.ensureHosts(base);
+        assertTrue(result.startsWith("10.0.0.5 myhost\n"));
+        assertTrue(result.contains("127.0.0.1 localhost myhost\n"));
+        assertEquals(1, occurrences(result, "127.0.0.1 "));
+        assertTrue(result.contains("::1 localhost ip6-localhost ip6-loopback\n"));
+    }
+
     private static int occurrences(String text, String needle) {
         int count = 0;
         int index = 0;

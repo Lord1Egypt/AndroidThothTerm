@@ -81,6 +81,7 @@ public final class RootfsManager {
     private final File rootfsDir;
     private final File stagingDir;
     private final File stateFile;
+    private final String prootRootfsPath;
     private final File runtimeDir;
     private final File runtimeLibDir;
     private final File prootTmpDir;
@@ -101,6 +102,7 @@ public final class RootfsManager {
         File filesDir = appContext.getFilesDir();
         this.linuxDir = new File(new File(filesDir, LINUX_ROOT), DISTRO_DIR);
         this.rootfsDir = new File(linuxDir, "rootfs");
+        this.prootRootfsPath = canonicalPath(rootfsDir);
         this.stagingDir = new File(linuxDir, "rootfs.staging");
         this.stateFile = new File(linuxDir, "state.properties");
         this.runtimeDir = new File(new File(filesDir, LINUX_ROOT), "runtime");
@@ -132,6 +134,32 @@ public final class RootfsManager {
 
     public File rootfsDir() {
         return rootfsDir;
+    }
+
+    /**
+     * The rootfs path to put on the PRoot command line. Inside an app's mount
+     * namespace Android exposes {@code /data/user/0} as a symlink to
+     * {@code /data/data}, so this is not the representation
+     * {@link android.content.Context#getFilesDir()} reports. PRoot canonicalizes
+     * {@code --rootfs} and then writes that canonical form into every
+     * {@code --link2symlink} target, resolving those targets later by comparing
+     * them against it as a string prefix. Handing PRoot any other representation
+     * of the same directory makes links created in one session unresolvable in
+     * another, so the canonical form is what must be passed.
+     */
+    public String prootRootfsPath() {
+        return prootRootfsPath;
+    }
+
+    private static String canonicalPath(File dir) {
+        try {
+            return dir.getCanonicalPath();
+        } catch (IOException e) {
+            ThothLog.e(LogCategory.PROOT,
+                    "Cannot canonicalize rootfs path; link2symlink targets may not resolve"
+                            + " across sessions path=" + dir.getAbsolutePath(), e);
+            return dir.getAbsolutePath();
+        }
     }
 
     public File runtimeLibDir() {
@@ -421,9 +449,8 @@ public final class RootfsManager {
             writeText(hostname, "thothterm\n");
         }
         File hosts = new File(root, "etc/hosts");
-        if (!hosts.exists()) {
-            writeText(hosts, "127.0.0.1 localhost thothterm\n::1 localhost ip6-localhost\n");
-        }
+        writeTextIfChanged(hosts,
+                GuestConfig.ensureHosts(hosts.isFile() ? readText(hosts) : ""));
         File resolv = new File(root, "etc/resolv.conf");
         if (fileOps.isSymlink(resolv)) {
             if (!resolv.delete()) throw new IOException("Cannot prepare resolver mount point");
@@ -459,6 +486,14 @@ public final class RootfsManager {
         File thothSudoers = new File(sudoersDir, "thoth");
         writeTextIfChanged(thothSudoers, GuestConfig.sudoersEntry());
         fileOps.setMode(thothSudoers, 0440);
+
+        // sudo/visudo require every sudoers.d file to be mode 0440; the package
+        // README is not a conffile and can arrive with a laxer mode, which makes
+        // `visudo -c` report "bad permissions" even though the syntax is valid.
+        File sudoersReadme = new File(sudoersDir, "README");
+        if (sudoersReadme.isFile()) {
+            fileOps.setMode(sudoersReadme, 0440);
+        }
 
         // Real Ubuntu sudo is the only elevation path; drop the v2 passwordless
         // su customization so su returns to its stock policy.

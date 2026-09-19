@@ -69,6 +69,35 @@ final class GuestConfig {
     }
 
     /**
+     * Ensures the loopback entries sudo and local tools require in
+     * {@code /etc/hosts}. Ubuntu Base ships the file empty, and sudo fails with
+     * "unable to resolve host" when its own host name is missing. Only missing
+     * managed lines are appended; user entries are preserved and rerunning the
+     * transform returns the same text.
+     */
+    static String ensureHosts(String text) {
+        StringBuilder result = new StringBuilder(text == null ? "" : text);
+        if (result.length() > 0 && result.charAt(result.length() - 1) != '\n') {
+            result.append('\n');
+        }
+        ensureHostEntry(result, "127.0.0.1", "localhost");
+        ensureHostEntry(result, "::1", "localhost ip6-localhost ip6-loopback");
+        return result.toString();
+    }
+
+    private static void ensureHostEntry(StringBuilder text, String address, String names) {
+        String first = names.split(" ")[0];
+        for (String line : text.toString().split("\n", -1)) {
+            String[] fields = line.trim().split("\\s+");
+            if (fields.length < 2 || !fields[0].equals(address)) continue;
+            for (int i = 1; i < fields.length; i++) {
+                if (fields[i].equals(first)) return;
+            }
+        }
+        text.append(address).append(' ').append(names).append('\n');
+    }
+
+    /**
      * Reverts the runtime-config-v2 {@code su} PAM customization. Real Ubuntu
      * {@code sudo} is now the only elevation path, so {@code su} must go back to
      * its stock policy ({@code auth sufficient pam_rootok.so}) and must not offer

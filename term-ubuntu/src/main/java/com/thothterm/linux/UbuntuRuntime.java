@@ -56,7 +56,7 @@ public final class UbuntuRuntime {
         return new UbuntuRuntime(
                 manager.prootPath(),
                 manager.loaderPath(),
-                manager.rootfsDir().getAbsolutePath(),
+                manager.prootRootfsPath(),
                 manager.runtimeLibDir().getAbsolutePath(),
                 manager.prootTmpDir().getAbsolutePath(),
                 AndroidNetworkResolver.get().resolverFile().getAbsolutePath(),
