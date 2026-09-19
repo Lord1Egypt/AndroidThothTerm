@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (C) 2026 ThothTerm contributors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+-->
+<!--
+  Extra-keys metrics for a window with room to spare, i.e. portrait. Matches the
+  sizing the bar shipped with before the landscape height fix.
+-->
+<resources>
+    <dimen name="extra_keys_view_padding">2dp</dimen>
+    <dimen name="extra_keys_row_height">36dp</dimen>
+    <dimen name="extra_keys_row_padding_horizontal">3dp</dimen>
+    <dimen name="extra_keys_button_height">32dp</dimen>
+    <dimen name="extra_keys_button_margin">2dp</dimen>
+    <integer name="extra_keys_button_text_sp">11</integer>
+</resources>
