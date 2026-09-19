@@ -5,6 +5,8 @@ export LOGNAME="${LOGNAME:-thoth}"
 export SHELL=/bin/bash
 export LANG=C.UTF-8
 export HISTFILE=/home/thoth/.bash_history
+# Keep the resolved terminal width visible to thothfetch (bash does not export it).
+export COLUMNS
 export PS1='\[\e[38;5;39m\]thoth\[\e[0m\]@\[\e[38;5;214m\]thothterm\[\e[0m\]:\[\e[38;5;252m\]\w\[\e[0m\]\$ '
 
 if [ -n "${PS1-}" ] && [ -t 1 ] \

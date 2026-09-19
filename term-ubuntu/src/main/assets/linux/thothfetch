@@ -1,14 +1,31 @@
 #!/bin/bash
-# Lightweight ThothTerm-native welcome; no external commands.
+# Lightweight ThothTerm-native welcome; no external commands required.
+#
+# Geometry contract (regression-tested by ThothfetchTest):
+#  - The mark is a fixed 10-column ASCII block, mirror-symmetric about column 4.5.
+#  - Wide lines place their info text at printable column 14 (0-based).
+#  - ANSI color sequences wrap whole fields and never contribute a column.
+#  - No tabs; alignment never depends on trailing whitespace.
+#  - The layout is chosen from the real PTY width, not bash's unexported COLUMNS.
 amber=$'\033[38;5;214m'; teal=$'\033[38;5;44m'
 white=$'\033[38;5;252m'; muted=$'\033[38;5;246m'; reset=$'\033[0m'
 
-if [ "${COLUMNS:-80}" -lt 58 ]; then
+cols=
+size=$(stty size 2>/dev/null)
+cols=${size##* }
+case "${cols:-}" in
+  ''|*[!0-9]*) cols=${COLUMNS:-80} ;;
+esac
+case "${cols:-}" in
+  ''|*[!0-9]*) cols=80 ;;
+esac
+
+if [ "$cols" -lt 44 ]; then
   printf '%s\n' "${amber}    /\\${reset}"
   printf '%s\n' "${amber} __/  \\__${reset}"
   printf '%s\n' "${teal}/  \\  /  \\${reset}"
   printf '%s\n' "${teal}\\   \\/   /${reset}"
-  printf '%s\n' "${amber}  \\  /\\  /${reset}"
+  printf '%s\n' "${amber} \\  /\\  /${reset}"
   printf '%s\n' "${amber}    \\/${reset}"
   printf '%s\n' "${teal}    >_${reset}"
   printf '\n'
@@ -21,7 +38,7 @@ else
   printf '%s\n' "${amber} __/  \\__${reset}     ${muted}Ubuntu 26.04.1 LTS${reset}"
   printf '%s\n' "${teal}/  \\  /  \\${reset}    ${muted}Architecture  aarch64${reset}"
   printf '%s\n' "${teal}\\   \\/   /${reset}    ${muted}Shell         Bash${reset}"
-  printf '%s\n' "${amber}  \\  /\\  /${reset}    ${muted}Home          /home/thoth${reset}"
+  printf '%s\n' "${amber} \\  /\\  /${reset}     ${muted}Home          /home/thoth${reset}"
   printf '%s\n' "${amber}    \\/${reset}        ${muted}User          thoth${reset}"
   printf '%s\n' "${teal}    >_${reset}"
 fi
