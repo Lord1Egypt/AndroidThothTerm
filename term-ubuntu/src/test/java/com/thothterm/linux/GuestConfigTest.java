@@ -158,6 +158,37 @@ public class GuestConfigTest {
         assertTrue(result.contains("::1 localhost ip6-localhost ip6-loopback\n"));
     }
 
+    @Test
+    public void groupsNamesAndroidSupplementaryGidsAndIsIdempotent() {
+        String once = GuestConfig.ensureGroups("", 10698);
+        assertTrue(once.contains("aid_inet:x:3003:\n"));
+        assertTrue(once.contains("aid_everybody:x:9997:\n"));
+        // uid 10698 -> appId 698 -> cache 20698, shared 50698
+        assertTrue(once.contains("aid_cache:x:20698:\n"));
+        assertTrue(once.contains("aid_all:x:50698:\n"));
+        assertEquals(once, GuestConfig.ensureGroups(once, 10698));
+    }
+
+    @Test
+    public void groupsPreserveExistingEntriesAndNeverDuplicateAGid() {
+        String base = "root:x:0:\nthoth:x:1000:\naid_inet:x:3003:\n";
+        String result = GuestConfig.ensureGroups(base, 10042);
+        assertTrue(result.startsWith("root:x:0:\nthoth:x:1000:\n"));
+        assertEquals(1, occurrences(result, "aid_inet:x:3003:"));
+        assertEquals(1, occurrences(result, ":3003:"));
+        assertTrue(result.contains("aid_cache:x:20042:\n"));
+        assertTrue(result.contains("aid_all:x:50042:\n"));
+    }
+
+    @Test
+    public void groupsSkipDerivedEntriesForNonAppUid() {
+        // A system uid below AID_APP_START has no app-scoped cache/shared gid.
+        String result = GuestConfig.ensureGroups("", 1000);
+        assertTrue(result.contains("aid_inet:x:3003:\n"));
+        assertFalse(result.contains("aid_cache"));
+        assertFalse(result.contains("aid_all"));
+    }
+
     private static int occurrences(String text, String needle) {
         int count = 0;
         int index = 0;

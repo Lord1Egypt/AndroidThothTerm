@@ -451,6 +451,9 @@ public final class RootfsManager {
         File hosts = new File(root, "etc/hosts");
         writeTextIfChanged(hosts,
                 GuestConfig.ensureHosts(hosts.isFile() ? readText(hosts) : ""));
+        File group = new File(root, "etc/group");
+        writeTextIfChanged(group, GuestConfig.ensureGroups(
+                group.isFile() ? readText(group) : "", android.os.Process.myUid()));
         File resolv = new File(root, "etc/resolv.conf");
         if (fileOps.isSymlink(resolv)) {
             if (!resolv.delete()) throw new IOException("Cannot prepare resolver mount point");

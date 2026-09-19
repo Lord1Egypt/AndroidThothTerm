@@ -64,6 +64,11 @@ final class GuestConfig {
         return appendStanza(text, USER + ":!:19000:0:99999:7:::");
     }
 
+    private static final int AID_USER_OFFSET = 100000;
+    private static final int AID_APP_START = 10000;
+    private static final int AID_CACHE_START = 20000;
+    private static final int AID_SHARED_START = 50000;
+
     static String sudoersEntry() {
         return USER + " ALL=(ALL:ALL) NOPASSWD: ALL\n";
     }
@@ -83,6 +88,45 @@ final class GuestConfig {
         ensureHostEntry(result, "127.0.0.1", "localhost");
         ensureHostEntry(result, "::1", "localhost ip6-localhost ip6-loopback");
         return result.toString();
+    }
+
+    /**
+     * Ensures the guest can name the Android supplementary groups its processes
+     * already carry. An app's threads run with the fixed AIDs {@code inet} and
+     * {@code everybody} plus two derived from its own uid, and Ubuntu Base has
+     * no entry for any of them, so {@code id}, {@code ls -l} and {@code ps}
+     * print "cannot find name for group ID" instead of a name.
+     *
+     * <p>This only adds name-to-GID mappings inside the guest. It grants
+     * nothing: the process already holds these groups, membership lists are
+     * left empty, and no Android credential or permission is altered. Only
+     * missing managed lines are appended, user entries are preserved, and
+     * rerunning the transform returns the same text.</p>
+     *
+     * @param androidUid the app's Android uid, e.g. {@code Process.myUid()}
+     */
+    static String ensureGroups(String text, int androidUid) {
+        StringBuilder result = new StringBuilder(text == null ? "" : text);
+        if (result.length() > 0 && result.charAt(result.length() - 1) != '\n') {
+            result.append('\n');
+        }
+        ensureGroupEntry(result, "aid_inet", 3003);
+        ensureGroupEntry(result, "aid_everybody", 9997);
+        int appId = androidUid % AID_USER_OFFSET - AID_APP_START;
+        if (appId >= 0) {
+            ensureGroupEntry(result, "aid_cache", AID_CACHE_START + appId);
+            ensureGroupEntry(result, "aid_all", AID_SHARED_START + appId);
+        }
+        return result.toString();
+    }
+
+    private static void ensureGroupEntry(StringBuilder text, String name, int gid) {
+        for (String line : text.toString().split("\n", -1)) {
+            String[] fields = line.split(":", -1);
+            if (fields.length < 3) continue;
+            if (fields[0].equals(name) || fields[2].trim().equals(Integer.toString(gid))) return;
+        }
+        text.append(name).append(":x:").append(gid).append(":\n");
     }
 
     private static void ensureHostEntry(StringBuilder text, String address, String names) {
