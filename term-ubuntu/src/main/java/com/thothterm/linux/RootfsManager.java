@@ -431,6 +431,10 @@ public final class RootfsManager {
         copyManagedAsset("linux/thothfetch", thothfetch);
         fileOps.setMode(thothfetch, 0755);
 
+        File fastfetchFit = new File(binDir, "fastfetch-fit");
+        copyManagedAsset("linux/fastfetch-fit", fastfetchFit);
+        fileOps.setMode(fastfetchFit, 0755);
+
         File managedDir = new File(root, "etc/thothterm");
         if (!managedDir.exists() && !managedDir.mkdirs()) {
             throw new IOException("Cannot create managed configuration directory");
