@@ -22,8 +22,8 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 101
-        versionName '0.1.1'
+        versionCode 102
+        versionName '0.1.2'
 
         // Drives the real two-finger pinch that only a device can produce.
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'

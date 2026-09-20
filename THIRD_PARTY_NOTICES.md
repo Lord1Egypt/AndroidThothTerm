@@ -69,11 +69,12 @@ tarball: `talloc.c` sha256 `eeefb4b7545b7411d2fd0d7fdce4a2f0c3ebdb2153215dd1494e
 
 #### Local modifications
 
-One patch, kept in `term-ubuntu/patches/` and applied in filename order:
+Two patches, kept in `term-ubuntu/patches/` and applied in filename order:
 
 | Patch | Applies to | What it does |
 |---|---|---|
 | `0001-ashmem_memfd-include-string.h.patch` | `third_party/proot` | Adds `#include <string.h>` to `src/extension/ashmem_memfd/ashmem_memfd.c`. The file calls `strcmp()` and `memset()` without declaring them; clang 21 (NDK r29) rejects the implicit declarations, and an implicitly declared `memset()` would return `int`, truncating the pointer on arm64. No behavioural change. |
+| `0002-loader-info-generate-without-host-binutils-or-gawk.patch` | `third_party/proot` | Generates `loader/loader-info.c` without host binutils or GNU awk. The rule called a bare `readelf` and an awk script using `strtonum()` and `\y`, which are gawk extensions; the F-Droid buildserver image has neither binutils nor gawk. The rule now uses `$(READELF)`, defaulting to `$(CROSS_COMPILE)readelf`, and the awk script is POSIX. Build-time code generation only; the generated value is unchanged. |
 
 No other upstream source is modified. `libandroid-shmem` is built unpatched,
 with `_PATH_TMP` defined at compile time to the app's runtime scratch directory.
@@ -158,7 +159,7 @@ How it is met, per component:
 
 **PRoot and its loader.** The corresponding source is not merely "the upstream
 project": it is `third_party/proot` at commit
-`7266fb3e8516535682f5a9c8f3a7e70f6506eddb`, **plus** the patch in
+`7266fb3e8516535682f5a9c8f3a7e70f6506eddb`, **plus** the patches in
 `term-ubuntu/patches/`, **plus** the build script
 `term-ubuntu/tools/build-proot.sh` which records the exact compiler, flags and
 link contract. All three are in this repository and are carried by every release

@@ -91,8 +91,18 @@ OBJDUMP="$TOOLS/llvm-objdump"
 STRIP="$TOOLS/llvm-strip"
 READELF="$TOOLS/llvm-readelf"
 
+# The F-Droid buildserver image carries no host toolchain, so GNU make can be
+# absent entirely. The NDK ships the one ndk-build uses, which is also pinned
+# by the build recipe, so prefer it and keep the tool the same everywhere.
+MAKE="$NDK/prebuilt/$HOST_TAG/bin/make"
+if [ ! -x "$MAKE" ]; then
+    MAKE="$(command -v make 2>/dev/null)" \
+        || die "no make: neither $NDK/prebuilt/$HOST_TAG/bin/make nor make on PATH"
+fi
+
 log "NDK      : $NDK"
 log "compiler : $(basename "$CC")"
+log "make     : $MAKE"
 
 # ------------------------------------------------------------------ sources
 [ -f "$PROOT_SRC/src/GNUmakefile" ] \
@@ -197,12 +207,13 @@ log "building proot and loader"
 (
     cd "$BUILD_DIR/proot/src"
     CC="$CC" LD="$CC" OBJCOPY="$OBJCOPY" OBJDUMP="$OBJDUMP" STRIP="$STRIP" \
+    READELF="$READELF" \
     CPPFLAGS="-I$TALLOC_SRC -I$BUILD_DIR/include" \
     LDFLAGS="-L$BUILD_DIR/lib -Wl,-z,noexecstack $PAGE_ALIGN_LDFLAGS" \
     LOADER_LDFLAGS="$PAGE_ALIGN_LDFLAGS" \
     PROOT_WITH_LIBANDROID_SHMEM=1 \
     PROOT_UNBUNDLE_LOADER="$RUNTIME_DIR/loader" \
-    make -s
+    "$MAKE" -s
 )
 
 PROOT_BIN="$BUILD_DIR/proot/src/proot"
