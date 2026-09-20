@@ -194,9 +194,10 @@ public class TermService extends SessionsService {
 
                 NotificationChannel channel = new NotificationChannel(
                         Application.NOTIFICATION_CHANNEL_SESSIONS,
-                        "ThothTerm",
+                        context.getString(R.string.application_terminal),
                         NotificationManager.IMPORTANCE_LOW);
-                channel.setDescription("ThothTerm running notification");
+                channel.setDescription(
+                        context.getString(R.string.notification_channel_sessions_description));
                 channel.setShowBadge(false);
 
                 notificationManager.createNotificationChannel(channel);

@@ -89,6 +89,7 @@
         It is essential to deliver reliable, and uninterrupted session that application users rely on, and that ensures a seamless user experience.
         The application request only necessary permissions and this texts provides detailed information on data usage.
     </string>
+    <string name="notification_channel_sessions_description">Shown while an Ubuntu terminal session is running</string>
     <string name="service_notify_text">Terminal session is running</string>
     <string name="service_timeout_text">System terminates long-running terminal sessions</string>
 
