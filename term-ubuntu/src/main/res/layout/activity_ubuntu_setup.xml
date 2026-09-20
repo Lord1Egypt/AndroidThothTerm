@@ -63,6 +63,45 @@
             android:text="@string/ubuntu_prepare_once"
             android:textAppearance="?android:attr/textAppearanceSmall"/>
 
+        <!-- Consent block: shown only by builds that must download the
+             userland, and always before anything is fetched. -->
+        <TextView
+            android:id="@+id/setup_consent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:visibility="gone"
+            tools:ignore="SelectableText"/>
+
+        <LinearLayout
+            android:id="@+id/setup_consent_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            android:weightSum="2">
+
+            <!-- Equal weight: declining is exactly as reachable as accepting. -->
+            <Button
+                android:id="@+id/setup_consent_decline"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/ubuntu_consent_decline"/>
+
+            <Button
+                android:id="@+id/setup_consent_accept"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/ubuntu_consent_accept"/>
+
+        </LinearLayout>
+
         <ProgressBar
             android:id="@+id/setup_progress"
             style="?android:attr/progressBarStyleHorizontal"

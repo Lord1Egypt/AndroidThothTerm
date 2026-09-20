@@ -80,12 +80,18 @@ public final class UbuntuRuntime {
     }
 
     /**
-     * One-shot PRoot command that runs as fake-root in {@code /}. Used to install
-     * the bundled admin packages offline. The resolver bind is omitted because
-     * provisioning is network-free and the resolver file may not exist yet.
+     * One-shot PRoot command that runs as fake-root in {@code /}. Used to
+     * provision the admin packages.
+     *
+     * <p>The resolver is bound whenever the file exists. Installing from the
+     * embedded packages needs no network, but a build without them installs
+     * sudo from Ubuntu's archive, and apt cannot resolve a hostname without
+     * {@code /etc/resolv.conf}. Binding a file that is already there costs
+     * nothing in the offline case.
      */
     public List<String> buildProvisioningArgv(List<String> command) {
-        List<String> argv = baseArgv("/", false);
+        List<String> argv = baseArgv("/", resolverFile != null
+                && new java.io.File(resolverFile).isFile());
         argv.addAll(command);
         return argv;
     }

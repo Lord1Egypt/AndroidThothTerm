@@ -25,6 +25,7 @@ import android.system.OsConstants;
 
 import androidx.preference.PreferenceManager;
 
+import com.thothterm.R;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 
@@ -86,6 +87,8 @@ public final class RootfsManager {
     private final File linuxDir;
     private final File rootfsDir;
     private final File stagingDir;
+    /** Verified archive for builds that do not embed one; unused otherwise. */
+    private final File downloadedImage;
     private final File stateFile;
     private final String prootRootfsPath;
     private final File runtimeDir;
@@ -110,6 +113,7 @@ public final class RootfsManager {
         this.rootfsDir = new File(linuxDir, "rootfs");
         this.prootRootfsPath = canonicalPath(rootfsDir);
         this.stagingDir = new File(linuxDir, "rootfs.staging");
+        this.downloadedImage = new File(linuxDir, "ubuntu-base.tar.gz");
         this.stateFile = new File(linuxDir, "state.properties");
         this.runtimeDir = new File(new File(filesDir, LINUX_ROOT), "runtime");
         this.runtimeLibDir = new File(runtimeDir, "lib");
@@ -212,6 +216,31 @@ public final class RootfsManager {
         if (listener == expected) listener = null;
     }
 
+    /**
+     * True when this build has no embedded userland and no verified archive yet,
+     * so the user must be asked before anything is downloaded.
+     */
+    public boolean needsImageDownload() {
+        if (com.thothterm.BuildConfig.EMBEDDED_ROOTFS) return false;
+        if (isReady()) return false;
+        return image != null && !new RootfsDownloader(downloadedImage, image).isVerified();
+    }
+
+    /** Megabytes to download, for the consent screen. */
+    public int downloadSizeMb() {
+        if (image == null) return 0;
+        return (int) Math.max(1, (image.compressedSize() + 524_288L) / 1_048_576L);
+    }
+
+    /** Where the userland comes from, for the consent screen. */
+    public String imageSourceUrl() {
+        return image == null ? "" : image.sourceUrl();
+    }
+
+    public String imageVersion() {
+        return image == null ? "" : image.ubuntuVersion();
+    }
+
     public void start() {
         if (isReady()) {
             notifyComplete();
@@ -227,6 +256,29 @@ public final class RootfsManager {
         entries = 0;
         message = "";
         new Thread(this::runPrepare, "ThothTerm-ubuntu-rootfs").start();
+    }
+
+    /**
+     * Supplies the image bytes. For a build without an embedded archive this
+     * downloads first; {@link RootfsDownloader} verifies the SHA-256 before the
+     * file is promoted, so nothing unverified ever reaches the extractor.
+     */
+    private InputStream openImageStream() throws IOException {
+        if (com.thothterm.BuildConfig.EMBEDDED_ROOTFS) {
+            return appContext.getAssets().open(ROOTFS_ASSET_DIR + "/" + image.assetName());
+        }
+        RootfsDownloader downloader = new RootfsDownloader(downloadedImage, image);
+        if (!downloader.isVerified()) {
+            publish(appContext.getString(R.string.ubuntu_downloading));
+            final long expected = image.compressedSize();
+            downloader.download((done, total) ->
+                    publishProgress(done, expected > 0 ? expected : total, 0));
+            // Extraction reports its own 0..100; without this the monotonic
+            // guard in publishProgress would swallow all of it.
+            percent = 0;
+            publish(appContext.getString(R.string.ubuntu_preparing));
+        }
+        return new java.io.FileInputStream(downloadedImage);
     }
 
     private void runPrepare() {
@@ -329,9 +381,10 @@ public final class RootfsManager {
         }
 
         final long expectedSize = image.compressedSize();
-        InputStream asset = appContext.getAssets().open(
-                ROOTFS_ASSET_DIR + "/" + image.assetName());
-        CountingInputStream counting = new CountingInputStream(asset);
+        // Both flavours extract the same bytes: "full" streams them out of the
+        // APK, "fdroid" out of the archive it downloaded and verified first.
+        InputStream source = openImageStream();
+        CountingInputStream counting = new CountingInputStream(source);
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         java.security.DigestInputStream digesting =
                 new java.security.DigestInputStream(counting, digest);
@@ -348,8 +401,8 @@ public final class RootfsManager {
 
         String actualSha = toHex(digest.digest());
         if (!actualSha.equalsIgnoreCase(image.upstreamSha256())) {
-            ThothLog.w(LogCategory.SECURITY, "Embedded rootfs checksum mismatch");
-            throw new IOException("Embedded rootfs checksum mismatch");
+            ThothLog.w(LogCategory.SECURITY, "Ubuntu rootfs checksum mismatch");
+            throw new IOException("Ubuntu rootfs checksum mismatch");
         }
         publishProgress(expectedSize, expectedSize, extractor.extractedEntries());
         ThothLog.d(LogCategory.ROOTFS, "Archive entries processed count="
@@ -585,8 +638,16 @@ public final class RootfsManager {
             return;
         }
         try {
-            stageSudoPackages(root);
-            runProvisioning(root, sudoInstallScript());
+            if (com.thothterm.BuildConfig.EMBEDDED_ROOTFS) {
+                stageSudoPackages(root);
+                runProvisioning(root, sudoInstallScript());
+            } else {
+                // No bundled .deb payload in this build: install sudo from
+                // Ubuntu's own archive, so apt verifies it with the
+                // distribution's signing keys rather than us re-implementing
+                // that check.
+                runProvisioning(root, sudoAptInstallScript());
+            }
             boolean setuid = forceSudoSetuid(root);
             String report = runProvisioning(root, sudoVerifyScript());
             ThothLog.i(LogCategory.ROOTFS, "sudo provisioning complete setuid="
@@ -655,6 +716,28 @@ public final class RootfsManager {
                 + "dpkg --force-confold -i " + stage + "/sudo-common_*.deb\n"
                 + "dpkg --force-confold -i " + stage + "/sudo_*.deb\n"
                 + "dpkg --configure -a\n";
+    }
+
+    /**
+     * Installs sudo from the configured Ubuntu archive. apt checks the release
+     * file's signature against the keyring already present in the base image,
+     * which is a stronger guarantee than a checksum we pin ourselves, and it
+     * resolves the dependency closure instead of assuming it.
+     */
+    private String sudoAptInstallScript() {
+        return "set -e\n"
+                + PATH_EXPORT + "\n"
+                + "export DEBIAN_FRONTEND=noninteractive\n"
+                + "cd /\n"
+                + "apt-get update\n"
+                + "apt-get install -y --no-install-recommends sudo\n"
+                + "dpkg --configure -a\n"
+                // sudo refuses to read a drop-in that is not 0440, and under
+                // PRoot's fake root dpkg does not reproduce that mode on the
+                // README that sudo-common ships. visudo -c then reports the
+                // whole directory as bad even though our own file is fine.
+                + "[ -f /etc/sudoers.d/README ] && chmod 0440 /etc/sudoers.d/README\n"
+                + "exit 0\n";
     }
 
     private String sudoVerifyScript() {
@@ -885,7 +968,7 @@ public final class RootfsManager {
         }
     }
 
-    private static String toHex(byte[] bytes) {
+    static String toHex(byte[] bytes) {
         StringBuilder builder = new StringBuilder(bytes.length * 2);
         for (byte b : bytes) {
             builder.append(Character.forDigit((b >> 4) & 0xF, 16));

@@ -31,9 +31,14 @@ import com.thothterm.R;
 import com.thothterm.TermActivity;
 
 /**
- * Launcher screen for the Ubuntu edition. On first run it extracts the
- * embedded rootfs locally; on later runs it continues straight to the
- * terminal with no preparation screen.
+ * Launcher screen for the Ubuntu edition. On first run it prepares the rootfs;
+ * on later runs it continues straight to the terminal with no preparation
+ * screen.
+ *
+ * <p>A build that embeds the userland prepares it immediately. A build that
+ * does not — the F-Droid flavour — first shows what would be downloaded and
+ * waits: {@link RootfsManager#start()} is not called until the user accepts, so
+ * nothing executable is fetched without a deliberate choice.
  */
 public class UbuntuSetupActivity extends AppCompatActivity
         implements RootfsManager.Listener {
@@ -42,8 +47,12 @@ public class UbuntuSetupActivity extends AppCompatActivity
 
     private TextView status;
     private TextView hint;
+    private TextView consent;
     private ProgressBar progress;
     private View actions;
+    private View consentActions;
+    /** True while waiting for an answer; blocks the automatic start in onResume. */
+    private boolean awaitingConsent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +76,11 @@ public class UbuntuSetupActivity extends AppCompatActivity
         Button retry = findViewById(R.id.setup_retry);
         retry.setOnClickListener(view -> {
             actions.setVisibility(View.GONE);
+            if (manager.needsImageDownload()) {
+                askForConsent(manager);
+                return;
+            }
+            progress.setVisibility(View.VISIBLE);
             progress.setIndeterminate(true);
             status.setText(R.string.ubuntu_preparing);
             hint.setText(R.string.ubuntu_prepare_once);
@@ -76,6 +90,52 @@ public class UbuntuSetupActivity extends AppCompatActivity
         Button logs = findViewById(R.id.setup_logs);
         logs.setOnClickListener(view ->
                 startActivity(new Intent(this, LogsActivity.class)));
+
+        consent = findViewById(R.id.setup_consent);
+        consentActions = findViewById(R.id.setup_consent_actions);
+        Button accept = findViewById(R.id.setup_consent_accept);
+        Button decline = findViewById(R.id.setup_consent_decline);
+
+        accept.setOnClickListener(view -> {
+            awaitingConsent = false;
+            hideConsent();
+            status.setText(R.string.ubuntu_preparing);
+            hint.setText(R.string.ubuntu_prepare_once);
+            progress.setVisibility(View.VISIBLE);
+            progress.setIndeterminate(true);
+            RootfsManager.get().start();
+        });
+
+        decline.setOnClickListener(view -> {
+            // Stay on this screen with the download still one tap away; the
+            // app must not look broken because the answer was no.
+            consentActions.setVisibility(View.GONE);
+            progress.setVisibility(View.GONE);
+            status.setText(R.string.ubuntu_consent_declined);
+            hint.setText("");
+            actions.setVisibility(View.VISIBLE);
+        });
+
+        if (manager.needsImageDownload()) askForConsent(manager);
+    }
+
+    private void askForConsent(RootfsManager manager) {
+        awaitingConsent = true;
+        status.setText(R.string.ubuntu_consent_title);
+        hint.setText("");
+        progress.setVisibility(View.GONE);
+        actions.setVisibility(View.GONE);
+        consent.setText(getString(R.string.ubuntu_consent_body,
+                manager.imageVersion(),
+                manager.downloadSizeMb(),
+                manager.imageSourceUrl()));
+        consent.setVisibility(View.VISIBLE);
+        consentActions.setVisibility(View.VISIBLE);
+    }
+
+    private void hideConsent() {
+        if (consent != null) consent.setVisibility(View.GONE);
+        if (consentActions != null) consentActions.setVisibility(View.GONE);
     }
 
     @Override
@@ -83,6 +143,7 @@ public class UbuntuSetupActivity extends AppCompatActivity
         super.onResume();
         RootfsManager manager = RootfsManager.get();
         manager.setListener(this);
+        if (awaitingConsent || manager.needsImageDownload()) return;
         manager.start();
     }
 
@@ -131,6 +192,7 @@ public class UbuntuSetupActivity extends AppCompatActivity
                 progress.setIndeterminate(false);
                 progress.setProgress(0);
             }
+            hideConsent();
             if (actions != null) actions.setVisibility(View.VISIBLE);
         });
     }

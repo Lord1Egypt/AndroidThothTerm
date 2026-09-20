@@ -28,9 +28,16 @@
     <string name="ubuntu_preparing">Preparing your Linux environment\u2026</string>
     <string name="ubuntu_prepare_once">This happens only once.</string>
     <string name="ubuntu_extracting_percent">Extracting Ubuntu\u2026 %1$d%%</string>
+    <string name="ubuntu_downloading">Downloading Ubuntu\u2026</string>
+    <string name="ubuntu_consent_title">Ubuntu needs to be downloaded</string>
+    <string name="ubuntu_consent_body">ThothTerm Ubuntu runs a real Ubuntu %1$s userland. This build does not include it, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n\u2022 This downloads executable software onto your device after installation.\n\u2022 That software is published by Canonical, not by ThothTerm.\n\u2022 It is not part of this app\u2019s package and was not built or verified by F\u2011Droid.\n\u2022 ThothTerm checks the download against a SHA\u2011256 checksum that is fixed in this app\u2019s source, and refuses it if it does not match.\n\nNothing is downloaded unless you choose Download Ubuntu.</string>
+    <string name="ubuntu_consent_accept">Download Ubuntu</string>
+    <string name="ubuntu_consent_decline">Not now</string>
+    <string name="ubuntu_consent_declined">Ubuntu was not downloaded. You can start the download whenever you want.</string>
+    <string name="ubuntu_consent_start">Set up Ubuntu</string>
     <string name="ubuntu_prepare_failed">Linux environment could not be prepared.</string>
     <string name="ubuntu_prepare_failed_hint">Preparation failed. Retry or view diagnostics for details.</string>
-    <string name="ubuntu_retry">Retry</string>
+    <string name="ubuntu_retry">Continue setup</string>
     <string name="ubuntu_view_logs">View logs</string>
     <string name="linux_preferences">Linux</string>
     <string name="title_ubuntu_show_welcome">Show welcome banner</string>
