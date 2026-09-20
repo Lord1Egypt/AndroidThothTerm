@@ -18,6 +18,14 @@ Features
 * Copy and paste, text selection and scrollback
 * Tools you install under your home directory stay on PATH between sessions
 
+First run
+
+The F-Droid build does not include the Ubuntu userland, so the first launch
+offers to download it (about 33 MB) from Canonical's cdimage.ubuntu.com. The
+app explains this before doing anything and downloads nothing unless you
+agree. The archive is checked against a SHA-256 built into the app and is
+refused if it does not match.
+
 Requirements
 
 * A 64-bit ARM device (arm64-v8a). Other ABIs are not supported.
@@ -28,5 +36,6 @@ a correct Ubuntu environment; more features are planned for later updates.
 
 ThothTerm is free software under the Apache License 2.0. It is a fork of
 TermOne Plus, which derives from Terminal Emulator for Android and the Android
-Open Source Project. The bundled Ubuntu userland and the PRoot runtime carry
-their own licenses, recorded in THIRD_PARTY_NOTICES.md.
+Open Source Project. The PRoot runtime is built from source as part of the
+build; it and the Ubuntu userland carry their own licenses, recorded in
+THIRD_PARTY_NOTICES.md.
