@@ -136,6 +136,10 @@
     <string name="title_utf8_by_default_preference">Default to UTF-8</string>
     <string name="summary_utf8_by_default_preference">Start terminals in UTF-8 mode.</string>
 
+    <string name="zoom_in">Zoom in</string>
+    <string name="zoom_out">Zoom out</string>
+    <string name="zoom_reset">Reset font size</string>
+    <string name="zoom_toast">Font size %1$d pt</string>
     <string name="title_fontsize_preference">Font size</string>
     <string name="summary_fontsize_preference">Character height in points.</string>
     <string name="dialog_title_fontsize_preference">Font size</string>

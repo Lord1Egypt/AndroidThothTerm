@@ -26,6 +26,9 @@ android {
         versionCode 100
         versionName '0.1.0'
 
+        // Drives the real two-finger pinch that only a device can produce.
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+
         // ThothTerm Ubuntu V1 is ARM64 only.
         ndk {
             abiFilters 'arm64-v8a'
@@ -93,6 +96,9 @@ dependencies {
     implementation libs.annotation
 
     testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 }
 
 def prepareUbuntu = tasks.register('prepareUbuntuRuntime', Exec) {
