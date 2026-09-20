@@ -1,0 +1,70 @@
+# Candidate F-Droid build recipe for ThothTerm Ubuntu.
+#
+# NOT SUBMITTED. This is a draft for review. Read docs/FDROID_READINESS.md
+# first: blocker B1 (PRoot arrives as a prebuilt binary) and blocker B2 (the
+# Ubuntu rootfs is embedded in the APK) must be resolved before this recipe can
+# be accepted into f-droid.org's main repository. The recipe below describes the
+# app as it is built today so the remaining gap is explicit rather than hidden.
+
+Categories:
+  - Development
+  - System
+License: Apache-2.0
+AuthorName: Lord1Egypt
+SourceCode: https://github.com/Lord1Egypt/AndroidThothTerm
+IssueTracker: https://github.com/Lord1Egypt/AndroidThothTerm/issues
+Changelog: https://github.com/Lord1Egypt/AndroidThothTerm/releases
+
+AutoName: ThothTerm Ubuntu
+
+RepoType: git
+Repo: https://github.com/Lord1Egypt/AndroidThothTerm.git
+
+Builds:
+  - versionName: 0.1.0
+    versionCode: 100
+    commit: v0.1.0-ubuntu
+    subdir: term-ubuntu
+    gradle:
+      - full
+    ndk: r23c
+
+    # The app is arm64 only; see abiFilters in term-ubuntu/build.gradle.
+
+    # term-ubuntu/tools/prepare-assets.sh downloads and SHA-256 verifies the
+    # Ubuntu base rootfs, the Ubuntu sudo packages and the PRoot runtime, then
+    # stages them into src/main/assets and src/main/jniLibs. It fails closed on
+    # any checksum mismatch and reuses a verified cache, so a second build needs
+    # no network. It runs automatically from preBuild.
+    #
+    # This is exactly what blockers B1/B2 are about: these inputs are fetched
+    # rather than compiled here. A compliant recipe would instead build PRoot
+    # from github.com/termux/proot tag v5.1.107.92 in a prebuild step, and would
+    # not embed the rootfs.
+    prebuild:
+      - echo "see docs/FDROID_READINESS.md before enabling this build"
+
+    scanignore:
+      # Staged, SHA-256 pinned binaries. Provenance is recorded in
+      # THIRD_PARTY_NOTICES.md; sources are the pinned upstreams listed there.
+      - term-ubuntu/src/main/jniLibs/arm64-v8a/libproot.so
+      - term-ubuntu/src/main/jniLibs/arm64-v8a/libproot_loader.so
+      - term-ubuntu/src/main/assets/runtime/arm64-v8a
+      - term-ubuntu/src/main/assets/ubuntu
+      - term-ubuntu/src/main/assets/sudo
+
+MaintainerNotes: |-
+  arm64-v8a only. minSdk 26, targetSdk 36.
+
+  The APK embeds an Ubuntu Base 26.04.1 root filesystem (~35 MB) and the PRoot
+  runtime. Both are pinned by SHA-256 in term-ubuntu/tools/prepare-assets.sh and
+  inventoried in THIRD_PARTY_NOTICES.md, including the GPL-2.0 PRoot upstream
+  (termux/proot v5.1.107.92) and GPL-3.0 talloc 2.4.3.
+
+  Two clean builds from the same commit produced byte-identical APKs on the
+  development host.
+
+AutoUpdateMode: None
+UpdateCheckMode: Tags ^v[0-9.]+-ubuntu$
+CurrentVersion: 0.1.0
+CurrentVersionCode: 100

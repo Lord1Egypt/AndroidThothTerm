@@ -223,7 +223,7 @@
     <string name="script_access_error">Cannot access selected script</string>
     <string name="script_source_content_error">No activity found to handle action \"Get Content\"</string>
 
-    <string name="help_url" translatable="false">https://github.com/Lord1Egypt/AndroidThothTerm/blob/master/README.adoc</string>
+    <string name="help_url" translatable="false">https://github.com/Lord1Egypt/AndroidThothTerm</string>
     <!-- Diagnostics / logging -->
     <string name="diagnostics_preferences">Diagnostics</string>
     <string name="diagnostics_logs">Logs</string>
@@ -251,7 +251,7 @@
     <string name="diagnostics_auto_scroll">Auto-scroll</string>
 
     <string name="about">About</string>
-    <string name="about_title">About ThothTerm</string>
+    <string name="about_title">About ThothTerm Ubuntu</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_site">Project site</string>
     <string name="activity_term_here_title">Term here</string>

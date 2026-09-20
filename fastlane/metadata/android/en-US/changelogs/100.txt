@@ -1,0 +1,8 @@
+First public release.
+
+* Ubuntu 26.04 LTS ARM64 environment, embedded and prepared on first launch
+* Genuine Ubuntu sudo, apt and dpkg
+* Persistent home directory and root filesystem across upgrades
+* Pinch-to-zoom and font size menu actions
+* Ongoing notification while a terminal session is running
+* Tools installed under your home directory stay on PATH between sessions
