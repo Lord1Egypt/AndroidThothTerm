@@ -49,9 +49,13 @@ terminal access, and additional distro variants (Kali, Arch, AlmaLinux).
 
 ## 3. Tagging
 
-Ubuntu-edition tags are `v<versionName>-ubuntu`, for example `v0.1.0-ubuntu`.
-The suffix keeps them clearly apart from the terminal edition's `terminal-v*`
-tags, and the F-Droid recipe's `UpdateCheckMode` matches on it.
+Ubuntu-edition tags are `ubuntu-v<versionName>`, for example `ubuntu-v0.1.0`.
+The prefix keeps them clearly apart from the terminal edition's `terminal-v*`
+tags, and the F-Droid recipe's `UpdateCheckMode` matches
+`Tags ^ubuntu-v[0-9.]+$`. Tags are annotated and are never moved once pushed:
+an F-Droid build entry pins to the commit a tag resolves to, and the GPL
+corresponding source for a distributed binary is identified by that same
+commit.
 
 ---
 
@@ -68,10 +72,12 @@ tags, and the F-Droid recipe's `UpdateCheckMode` matches on it.
 8. `THIRD_PARTY_NOTICES.md` matches the actual bundled artifacts, hashes
    included.
 9. Changelog written to `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`.
-10. Record the release APK's size and SHA-256.
-11. Tag, then publish.
+10. Both flavours build clean, and every arm64 ELF reports 16 KB alignment
+    (`llvm-readelf -l`, `check_elf_alignment.sh`, `zipalign -c -P 16 -v 4`).
+11. Record the release APK's size and SHA-256.
+12. Tag, then publish.
 
-Steps 10 and 11 require explicit authorisation; nothing is tagged or published
+Steps 11 and 12 require explicit authorisation; nothing is tagged or published
 as part of ordinary engineering work.
 
 ---

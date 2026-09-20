@@ -1,10 +1,25 @@
-# Candidate F-Droid build recipe for ThothTerm Ubuntu.
+# Candidate fdroiddata metadata for ThothTerm Ubuntu.
 #
-# NOT SUBMITTED. This is a draft for review. Read docs/FDROID_READINESS.md
-# first: blocker B1 (PRoot arrives as a prebuilt binary) and blocker B2 (the
-# Ubuntu rootfs is embedded in the APK) must be resolved before this recipe can
-# be accepted into f-droid.org's main repository. The recipe below describes the
-# app as it is built today so the remaining gap is explicit rather than hidden.
+# This is the repository's reference copy. The file that is actually submitted
+# lives in fdroiddata as metadata/com.thothterm.ubuntu.yml; the only difference
+# is that the submitted copy pins `commit:` to the full commit hash that the
+# tag below resolves to, rather than to the tag name.
+#
+# Reviewer note: the fdroid flavour ships no distribution binaries. The Ubuntu
+# userland is downloaded on first run, only after an explicit opt-in, from a URL
+# and SHA-256 that are fixed in this app's source. See docs/FDROID_READINESS.md.
+
+# AntiFeatures: none declared, deliberately.
+#
+# NonFreeNet means the app depends on a non-free network service. Canonical's
+# Ubuntu archive is not one: what is downloaded is free software, served from
+# the distribution's own mirror, pinned to one release and checksum-verified
+# before use. The closest precedents on F-Droid -- UserLAnd and Termux, which
+# both fetch distribution payloads after installation -- declare no
+# AntiFeatures either.
+#
+# If a reviewer would still prefer one, we are happy to add it; the consented
+# download is described under MaintainerNotes and in docs/FDROID_READINESS.md.
 
 Categories:
   - Development
@@ -15,7 +30,44 @@ SourceCode: https://github.com/Lord1Egypt/AndroidThothTerm
 IssueTracker: https://github.com/Lord1Egypt/AndroidThothTerm/issues
 Changelog: https://github.com/Lord1Egypt/AndroidThothTerm/releases
 
-AutoName: ThothTerm Ubuntu
+Name: ThothTerm Ubuntu
+Summary: A real Ubuntu terminal, no root required
+
+Description: |-
+    ThothTerm Ubuntu runs a genuine Ubuntu 26.04 LTS (ARM64) userland on your
+    phone and gives you a proper terminal into it. No root, no virtual machine,
+    no remote server.
+
+    It is a terminal first. The Ubuntu side is real Ubuntu: apt works, dpkg
+    works, sudo is the distribution's own sudo rather than a wrapper, and
+    anything you install stays installed. Your home directory survives app
+    updates.
+
+    '''First run needs a download.''' This build does not include the Ubuntu
+    userland, so the first launch offers to fetch it (about 33 MB) from
+    Canonical's cdimage.ubuntu.com. The app explains this before doing anything
+    and will not download without your agreement. The archive is checked against
+    a SHA-256 built into the app and is refused if it does not match.
+
+    Features:
+
+    * Ubuntu 26.04 LTS ARM64, prepared on first launch
+    * Real sudo, apt and dpkg
+    * Persistent home directory and root filesystem across app upgrades
+    * Multiple terminal sessions with a window list
+    * Pinch-to-zoom, plus Zoom in / Zoom out / Reset font size
+    * An extra keys row for Esc, Ctrl, Alt, Tab and arrows
+    * Portrait and landscape layouts
+    * Copy and paste, text selection and scrollback
+    * Tools installed under your home directory stay on PATH between sessions
+
+    Requirements: a 64-bit ARM device (arm64-v8a) and roughly 400 MB of free
+    space. Other ABIs are not supported.
+
+    ThothTerm is a fork of TermOne Plus, which derives from Terminal Emulator
+    for Android and the Android Open Source Project. The PRoot runtime is built
+    from source as part of the F-Droid build; see THIRD_PARTY_NOTICES.md for the
+    full inventory, pinned revisions and licenses.
 
 RepoType: git
 Repo: https://github.com/Lord1Egypt/AndroidThothTerm.git
@@ -23,48 +75,36 @@ Repo: https://github.com/Lord1Egypt/AndroidThothTerm.git
 Builds:
   - versionName: 0.1.0
     versionCode: 100
-    commit: v0.1.0-ubuntu
+    commit: ubuntu-v0.1.0
     subdir: term-ubuntu
+    submodules: true
     gradle:
-      - full
+      - fdroid
     ndk: r23c
 
-    # The app is arm64 only; see abiFilters in term-ubuntu/build.gradle.
-
-    # term-ubuntu/tools/prepare-assets.sh downloads and SHA-256 verifies the
-    # Ubuntu base rootfs, the Ubuntu sudo packages and the PRoot runtime, then
-    # stages them into src/main/assets and src/main/jniLibs. It fails closed on
-    # any checksum mismatch and reuses a verified cache, so a second build needs
-    # no network. It runs automatically from preBuild.
-    #
-    # This is exactly what blockers B1/B2 are about: these inputs are fetched
-    # rather than compiled here. A compliant recipe would instead build PRoot
-    # from github.com/termux/proot tag v5.1.107.92 in a prebuild step, and would
-    # not embed the rootfs.
-    prebuild:
-      - echo "see docs/FDROID_READINESS.md before enabling this build"
-
-    scanignore:
-      # Staged, SHA-256 pinned binaries. Provenance is recorded in
-      # THIRD_PARTY_NOTICES.md; sources are the pinned upstreams listed there.
-      - term-ubuntu/src/main/jniLibs/arm64-v8a/libproot.so
-      - term-ubuntu/src/main/jniLibs/arm64-v8a/libproot_loader.so
-      - term-ubuntu/src/main/assets/runtime/arm64-v8a
-      - term-ubuntu/src/main/assets/ubuntu
-      - term-ubuntu/src/main/assets/sudo
-
 MaintainerNotes: |-
-  arm64-v8a only. minSdk 26, targetSdk 36.
+    arm64-v8a only. minSdk 26, targetSdk 36.
 
-  The APK embeds an Ubuntu Base 26.04.1 root filesystem (~35 MB) and the PRoot
-  runtime. Both are pinned by SHA-256 in term-ubuntu/tools/prepare-assets.sh and
-  inventoried in THIRD_PARTY_NOTICES.md, including the GPL-2.0 PRoot upstream
-  (termux/proot v5.1.107.92) and GPL-3.0 talloc 2.4.3.
+    The fdroid flavour packages no distribution binaries: no rootfs archive and
+    no .deb payload. tools/prepare-assets.sh, which stages those for the full
+    flavour, is wired to preFull*Build only and does not run for this flavour,
+    so this build makes no network requests of its own.
 
-  Two clean builds from the same commit produced byte-identical APKs on the
-  development host.
+    The PRoot runtime is compiled during the build by
+    term-ubuntu/tools/build-proot.sh from sources in the repository:
+    third_party/proot (termux/proot, tag v5.1.107.92) and
+    third_party/libandroid-shmem (termux/libandroid-shmem, tag v0.7) as
+    submodules, plus talloc 2.4.3's talloc.c and talloc.h vendored verbatim
+    because talloc has no git upstream. The script verifies both submodule
+    commits, downloads nothing, applies one documented patch from
+    term-ubuntu/patches, and asserts the link contract and 16 KB page alignment
+    of everything it produces. submodules: true is therefore required.
+
+    PRoot is GPL-2.0 and talloc is LGPL-3.0; the corresponding source for the
+    distributed binaries is the pinned submodule, the patch and the build
+    script, all carried by the tag.
 
 AutoUpdateMode: None
-UpdateCheckMode: Tags ^v[0-9.]+-ubuntu$
+UpdateCheckMode: Tags ^ubuntu-v[0-9.]+$
 CurrentVersion: 0.1.0
 CurrentVersionCode: 100
