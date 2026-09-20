@@ -80,7 +80,7 @@ Builds:
     submodules: true
     gradle:
       - fdroid
-    ndk: r23c
+    ndk: 23.2.8568313
 
 MaintainerNotes: |-
     arm64-v8a only. minSdk 26, targetSdk 36.
