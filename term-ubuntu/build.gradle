@@ -4,7 +4,6 @@ plugins {
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
-        vendor = JvmVendorSpec.JETBRAINS
     }
 }
 
@@ -23,8 +22,8 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 100
-        versionName '0.1.0'
+        versionCode 101
+        versionName '0.1.1'
 
         // Drives the real two-finger pinch that only a device can produce.
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
