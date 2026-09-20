@@ -2,11 +2,12 @@ plugins {
     id 'com.android.library'
     id 'maven-publish'
 }
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
+// No Java toolchain is requested on purpose. Each module already fixes the
+// Java level it compiles to through compileOptions, so the toolchain only
+// chose which JDK ran javac -- and pinning it to 17 made the build
+// unsatisfiable on build servers that ship a newer JDK and cannot provision
+// an older one. Debian trixie, which F-Droid builds on, carries no JDK 17 at
+// all. The build now runs on whatever JDK the environment provides.
 
 android {
     namespace = "jackpal.androidterm.emulatorview"
