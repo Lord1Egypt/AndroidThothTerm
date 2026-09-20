@@ -28,82 +28,71 @@ not from memory.
 
 ---
 
-## 2. Blockers
+## 2. Former blockers — all resolved
 
-F-Droid's Inclusion Policy requires that *"all binary dependencies including JAR
-files must originate either from source compilation or Debian repository
-downloads"*, and permits prebuilt FLOSS binaries only from a short list of
-trusted sources (Debian main, trusted Maven repositories, the official Android
-and Flutter SDKs, and a few language toolchains). It also rules out downloading
-additional executable binaries without explicit user consent.
+F-Droid's Inclusion Policy requires that binaries come from source compilation
+or a small set of trusted sources, and that an app not download executable
+binaries without explicit user consent. Three things failed that test. All three
+are now closed.
 
-ThothTerm Ubuntu ships three classes of binary that do not meet that bar.
+### B1 — prebuilt PRoot from a GitHub release — RESOLVED
 
-### B1 — PRoot runtime is a prebuilt binary from a GitHub release
+The runtime is now **compiled during the build** from sources in this
+repository. `third_party/proot` and `third_party/libandroid-shmem` are git
+submodules pinned to audited commits; talloc has no git upstream, so the two
+files PRoot needs are vendored verbatim from the release tarball with its sha256
+recorded. `term-ubuntu/tools/build-proot.sh` verifies both submodule commits,
+downloads nothing, applies one documented patch, and asserts the link contract
+and 16 KB alignment of what it produced.
 
-`libproot.so`, `libproot_loader.so`, `libtalloc.so.2`, `libandroid-shmem.so` and
-`libandroid-selinux.so` are fetched at build time from
-`github.com/Lord1Egypt/ProotX-Assets-Support` release `v1.2.0` and embedded.
+The old `ProotX-Assets-Support` download is gone from the build entirely, and
+`libandroid-selinux.so` — which the binary we build does not reference — is no
+longer shipped.
 
-Mitigating facts: the bundle is SHA-256 pinned, and its `THIRD_PARTY_NOTICES.md`
-records that the "modern" lane is **source-built** from pinned upstreams —
-`termux/proot` tag `v5.1.107.92` (GPL-2.0), talloc 2.4.3, `termux/libandroid-shmem`
-v0.7, termux-packages `libandroid-selinux` 14.0.0.11-1 — by a builder that pins
-the image digest and produces deterministic archives.
+Verified on the device against the already-proven rootfs: bash/dash/sh, sudo,
+apt, dpkg over 728 packages, DNS, TLS, user PATH, and the semantic
+`link2symlink` test (create, link, `nlink` = 2, execute, unlink the original,
+execute again).
 
-That is good provenance, but it is still a prebuilt binary from a GitHub release
-rather than something F-Droid compiled.
+### B2 — Ubuntu rootfs embedded in the APK — RESOLVED for the F-Droid flavour
 
-**Remediation:** have the F-Droid recipe build PRoot and its loader from the
-pinned upstream source as part of the build, instead of downloading the bundle.
-PRoot is C and buildable with the NDK, so this is tractable; it is the single
-highest-value change for F-Droid eligibility.
+The build now has two flavours. `full` keeps the embedded userland for offline
+installation and is unchanged in behaviour. `fdroid` ships **no distribution
+payload at all** and is 6.8 MB against 42 MB.
 
-### B2 — The Ubuntu base rootfs is embedded in the APK
+Instead it asks. Before anything is fetched, the first-run screen states that
+executable software will be downloaded after installation, that it comes from
+Canonical rather than ThothTerm, that it is not part of the app package and was
+not built or verified by F-Droid, and that ThothTerm checks it against a SHA-256
+fixed in this app's source. "Not now" and "Download Ubuntu" are equal-width
+buttons; declining leaves a working screen with the download still one tap away.
 
-`ubuntu-base-26.04.1-base-arm64.tgz` is 35 MB of prebuilt Ubuntu executables,
-downloaded from `cdimage.ubuntu.com` at build time and packaged verbatim. It is
-the bulk of the 43 MB APK.
+The URL, size and digest come from the same pinned `image.properties` the full
+flavour is built against, so both flavours install byte-identical userlands. The
+archive is written to a `.part` file and promoted only once the digest matches,
+a cached archive that stops verifying is deleted, and redirects are followed by
+hand so a downgrade to plain HTTP is refused.
 
-Ubuntu's archive is not Debian's main archive, and in any case F-Droid does not
-contemplate shipping an entire distribution inside an APK.
+### B3 — embedded sudo `.deb` payloads — RESOLVED for the F-Droid flavour
 
-**Remediation options:**
-
-1. **Download at runtime with explicit consent** and SHA-256 verification — the
-   pattern comparable projects use to remain listable. This also cuts the APK to
-   roughly 8 MB. F-Droid may still apply an anti-feature label for fetching
-   binaries it did not build; that needs confirming with F-Droid rather than
-   assuming.
-2. **Ship outside f-droid.org main** — a self-hosted F-Droid repository, or
-   IzzyOnDroid, both of which accept this shape of app.
-3. Keep bundling and accept that f-droid.org main is not the distribution
-   channel.
-
-Option 1 is a product decision with real UX consequences (first run needs
-network), which is why it is **not** being made unilaterally in this pass.
-
-### B3 — Ubuntu `.deb` admin packages are embedded
-
-`sudo`, `sudo-common` and `libapparmor1` are fetched from `ports.ubuntu.com` and
-embedded for offline first-run provisioning. Same category as B2, much smaller
-(≈1 MB total). If B2 moves to runtime download, these travel with it.
-
----
+The fdroid flavour installs sudo from Ubuntu's own archive during the consented
+bootstrap, so apt verifies it with the distribution's signing keys and resolves
+the dependency closure itself — a stronger guarantee than a checksum we pin
+ourselves. The full flavour keeps its offline packages.
 
 ## 3. Secondary review points
 
 These are not blockers but a reviewer will raise them.
 
-- **Build-time network access.** `prepare-assets.sh` downloads from
-  cdimage.ubuntu.com, ports.ubuntu.com and GitHub. An F-Droid recipe must either
-  perform these in a `prebuild`/`sudo` step or vendor the inputs. Every download
-  is SHA-256 pinned and fails closed, which is the right shape, but the network
-  access itself still has to be declared.
-- **Copyleft source offer.** PRoot is GPL-2.0 and talloc is GPL-3.0, and the
-  rootfs contains GPL/LGPL packages. Upstream tags are recorded in
-  `THIRD_PARTY_NOTICES.md`, but the release should also carry a written offer or
-  a source mirror. Currently **open**.
+- **Build-time network access.** The `fdroid` flavour's build downloads
+  **nothing**: `prepare-assets.sh` runs only for `full` variants, and the PRoot
+  build works purely from in-repo sources. A reviewer can confirm this by
+  building `assembleFdroidRelease` with no network.
+- **Copyleft source offer.** Closed. The corresponding source for the GPL-2.0
+  PRoot binary is the pinned submodule, the patch in `term-ubuntu/patches/` and
+  the build script, all carried by the release tag, so any distributed binary
+  maps to an exact, immutable source state. See §4 of
+  `THIRD_PARTY_NOTICES.md`.
 - **arm64 only.** `abiFilters 'arm64-v8a'`. Legitimate, but should be stated in
   the description so users on other ABIs are not surprised.
 - **APK size.** 43 MB, dominated by the rootfs. Not a policy violation.
@@ -114,10 +103,10 @@ These are not blockers but a reviewer will raise them.
 
 ## 4. Verdict
 
-- **Ready for initial public release (e.g. a GitHub release): yes**, subject to
-  the copyleft source offer above.
-- **Ready for f-droid.org main repository: no**, until B1 is resolved and a
-  decision is taken on B2/B3.
+- **Ready for a public release: yes.**
+- **Ready for an fdroiddata merge request: yes**, for the `fdroid` flavour built
+  from the release tag.
 
-The prepared metadata under `fastlane/` and `docs/fdroid/` is complete and
-correct, so once B1/B2 are settled the submission itself is mechanical.
+Remaining reviewer-facing points are in §3; none of them is a policy violation.
+The consented download is the one item a reviewer will want to look at directly,
+and `docs/fdroid/com.thothterm.ubuntu.yml` carries a note pointing at it.

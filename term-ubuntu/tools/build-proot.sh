@@ -23,6 +23,11 @@ set -eu
 
 ABI="arm64-v8a"
 API=26
+# Android 15 introduced 16 KB page devices; every arm64 ELF we ship must have
+# LOAD segments aligned to 16 KB or the system reports the app as incompatible.
+# Stating it here keeps the result the same whichever NDK the build runs with,
+# rather than relying on a default (NDK r28+ does this, r23 does not).
+PAGE_ALIGN_LDFLAGS="-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
 TALLOC_VERSION_MAJOR=2
 TALLOC_VERSION_MINOR=4
 TALLOC_VERSION_RELEASE=3
@@ -60,7 +65,12 @@ ndk_root() {
     fi
     _sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
     [ -n "$_sdk" ] || return 1
-    # Highest installed NDK; PRoot needs clang, any r23+ works.
+    # Prefer the version the Gradle build is pinned to, so the PRoot runtime and
+    # the CMake targets come from one toolchain.
+    if [ -n "${THOTHTERM_NDK_VERSION:-}" ] \
+        && [ -d "$_sdk/ndk/$THOTHTERM_NDK_VERSION" ]; then
+        echo "$_sdk/ndk/$THOTHTERM_NDK_VERSION"; return 0
+    fi
     _found="$(ls -1d "$_sdk"/ndk/* 2>/dev/null | sort -V | tail -1)"
     [ -n "$_found" ] || return 1
     echo "$_found"
@@ -169,7 +179,7 @@ log "building libtalloc.so.2"
     -DTALLOC_BUILD_VERSION_MINOR=$TALLOC_VERSION_MINOR \
     -DTALLOC_BUILD_VERSION_RELEASE=$TALLOC_VERSION_RELEASE
 "$CC" -shared -o "$BUILD_DIR/lib/libtalloc.so.2" "$BUILD_DIR/talloc.o" \
-    -Wl,-soname,libtalloc.so.2 -Wl,-z,noexecstack
+    -Wl,-soname,libtalloc.so.2 -Wl,-z,noexecstack $PAGE_ALIGN_LDFLAGS
 # ld.lld resolves -ltalloc through libtalloc.so; the SONAME above is what the
 # runtime actually loads.
 cp "$BUILD_DIR/lib/libtalloc.so.2" "$BUILD_DIR/lib/libtalloc.so"
@@ -181,14 +191,15 @@ log "building libandroid-shmem.so"
 "$CC" -shared -o "$BUILD_DIR/lib/libandroid-shmem.so" "$BUILD_DIR/shmem.o" \
     -llog -landroid \
     -Wl,--version-script="$SHMEM_SRC/exports.txt" \
-    -Wl,-soname,libandroid-shmem.so -Wl,-z,noexecstack
+    -Wl,-soname,libandroid-shmem.so -Wl,-z,noexecstack $PAGE_ALIGN_LDFLAGS
 
 log "building proot and loader"
 (
     cd "$BUILD_DIR/proot/src"
     CC="$CC" LD="$CC" OBJCOPY="$OBJCOPY" OBJDUMP="$OBJDUMP" STRIP="$STRIP" \
     CPPFLAGS="-I$TALLOC_SRC -I$BUILD_DIR/include" \
-    LDFLAGS="-L$BUILD_DIR/lib -Wl,-z,noexecstack" \
+    LDFLAGS="-L$BUILD_DIR/lib -Wl,-z,noexecstack $PAGE_ALIGN_LDFLAGS" \
+    LOADER_LDFLAGS="$PAGE_ALIGN_LDFLAGS" \
     PROOT_WITH_LIBANDROID_SHMEM=1 \
     PROOT_UNBUNDLE_LOADER="$RUNTIME_DIR/loader" \
     make -s
@@ -205,6 +216,22 @@ for _need in libtalloc.so.2 libandroid-shmem.so; do
     "$READELF" -d "$PROOT_BIN" 2>/dev/null | grep -q "\[$_need\]" \
         || die "proot is not linked against $_need"
 done
+
+# 16 KB alignment is a device-compatibility requirement, not a nicety: verify
+# every artifact we ship rather than assume a flag took effect. The loader is
+# linked through the makefile's own LOADER_LDFLAGS, so it needs its own check --
+# it was the one binary that slipped through when only proot was verified.
+check_alignment() {
+    _file="$1"
+    _align="$("$READELF" -l "$_file" 2>/dev/null | awk '/LOAD/ {print $NF; exit}')"
+    [ "$_align" = "0x4000" ] \
+        || die "$(basename "$_file") LOAD alignment is $_align, expected 0x4000 (16 KB)"
+    log "alignment      : $(basename "$_file") $_align"
+}
+check_alignment "$PROOT_BIN"
+check_alignment "$LOADER_BIN"
+check_alignment "$BUILD_DIR/lib/libtalloc.so.2"
+check_alignment "$BUILD_DIR/lib/libandroid-shmem.so"
 
 # ------------------------------------------------------------------ install
 mkdir -p "$JNI_DIR" "$RUNTIME_ASSETS"

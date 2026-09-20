@@ -119,6 +119,10 @@ def buildProot = tasks.register('buildProotRuntime', Exec) {
     group = 'build'
     workingDir projectDir
     commandLine 'sh', 'tools/build-proot.sh'
+    // Use the NDK this module is already pinned to, so the PRoot runtime and
+    // the CMake targets are produced by one toolchain locally and on a build
+    // server alike.
+    environment 'THOTHTERM_NDK_VERSION', rootProject.ext.ndkVersion
     inputs.dir rootProject.file('third_party/proot')
     inputs.dir rootProject.file('third_party/talloc')
     inputs.dir rootProject.file('third_party/libandroid-shmem')
