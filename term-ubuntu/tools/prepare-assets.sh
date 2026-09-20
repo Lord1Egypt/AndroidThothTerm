@@ -1,8 +1,15 @@
 #!/bin/sh
 #
-# Fetch, verify, and stage the pinned Ubuntu rootfs and PRoot runtime for the
+# Fetch, verify, and stage the pinned Ubuntu payload for the FULL flavour of the
 # ThothTerm Ubuntu edition. Fails closed on any checksum mismatch and reuses a
 # verified local cache so subsequent builds need no network access.
+#
+# The payload lands in src/full/, so only the full flavour packages it. The
+# fdroid flavour ships no distribution binaries and downloads the same pinned
+# archive on first run after explicit consent.
+#
+# The PRoot runtime is NOT handled here: tools/build-proot.sh builds it from the
+# sources in third_party/, for every flavour.
 #
 # Cache: ${THOTHTERM_CACHE_DIR:-$HOME/.cache/thothterm}
 #
@@ -10,9 +17,11 @@ set -eu
 
 CACHE_DIR="${THOTHTERM_CACHE_DIR:-$HOME/.cache/thothterm}"
 
-ASSETS_DIR="src/main/assets/ubuntu"
-RUNTIME_ASSETS_DIR="src/main/assets/runtime/arm64-v8a"
-JNI_DIR="src/main/jniLibs/arm64-v8a"
+# Shared, binary-free metadata: both flavours need to know which image is
+# pinned, so it stays in main.
+META_DIR="src/main/assets/ubuntu"
+# The archive itself is full-flavour only.
+ASSETS_DIR="src/full/assets/ubuntu"
 
 # Official Ubuntu base root filesystem (cdimage.ubuntu.com).
 UBUNTU_URL="https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04.1-base-arm64.tar.gz"
@@ -24,19 +33,13 @@ UBUNTU_FILE="ubuntu-base-26.04.1-base-arm64.tar.gz"
 # expands *.gz assets, which would break the runtime asset lookup.
 UBUNTU_ASSET="ubuntu-base-26.04.1-base-arm64.tgz"
 
-# ProotX support bundle (PRoot + loader + host libraries), owner-maintained and
-# already audited for modern Android (NDK 29, 16 KB aligned).
-PROOT_URL="https://github.com/Lord1Egypt/ProotX-Assets-Support/releases/download/v1.2.0/arm64-v8a-assets.zip"
-PROOT_SHA="42fd0042b18d8145ebb72aece000404bed8a0911c83505c1acf31e2da5033fe7"
-PROOT_FILE="prootx-arm64-v8a-v1.2.0-assets.zip"
-
 # Genuine Ubuntu sudo admin stack, provisioned offline on first run. The
 # dependency closure was resolved against the pinned Ubuntu Base image: only
 # libapparmor1, sudo-common and sudo are missing (libc6, libpam0g,
 # libpam-modules, libselinux1, libssl3t64, zlib1g and libaudit1 are present).
 # Fields: filename|pool path|sha256|size.
 SUDO_PORTS_BASE="http://ports.ubuntu.com/ubuntu-ports"
-SUDO_ASSETS_DIR="src/main/assets/sudo"
+SUDO_ASSETS_DIR="src/full/assets/sudo"
 SUDO_PACKAGES="\
 libapparmor1_5.0.0~beta1-0ubuntu7_arm64.deb|pool/main/a/apparmor/libapparmor1_5.0.0~beta1-0ubuntu7_arm64.deb|97bc3adba874fdda34afba6a206d3fcd5b531bb8681ba27c4442ee1379834cfa|50608
 sudo-common_1.2ubuntu_all.deb|pool/main/s/sudo-common/sudo-common_1.2ubuntu_all.deb|ba909e8e796115f442d0915ed3baa1b752e8809ec4d8e723d2bbd0d177750d2c|4034
@@ -94,31 +97,10 @@ _actual_size="$(wc -c < "$UBUNTU_CACHE" | tr -d ' ')"
 [ "$_actual_size" = "$UBUNTU_SIZE" ] \
     || die "unexpected rootfs size (expected $UBUNTU_SIZE, got $_actual_size)"
 
-PROOT_CACHE="$CACHE_DIR/$PROOT_FILE"
-fetch_verified "$PROOT_URL" "$PROOT_SHA" "$PROOT_CACHE"
-
-mkdir -p "$ASSETS_DIR" "$RUNTIME_ASSETS_DIR" "$JNI_DIR"
+mkdir -p "$META_DIR" "$ASSETS_DIR"
 
 # Embed the rootfs exactly as downloaded from Ubuntu (packaged == upstream).
 cp "$UBUNTU_CACHE" "$ASSETS_DIR/$UBUNTU_ASSET"
-
-# Stage the PRoot runtime. Executables are shipped as fake native libraries so
-# Android extracts them to nativeLibraryDir with the executable bit.
-_tmpdir="$(mktemp -d)"
-trap 'rm -rf "$_tmpdir"' EXIT INT TERM
-unzip -oq "$PROOT_CACHE" \
-    'modern/proot' 'modern/loader' \
-    'modern/libtalloc.so.2' 'modern/libandroid-shmem.so' 'modern/libandroid-selinux.so' \
-    -d "$_tmpdir" || die "failed to unpack PRoot assets"
-
-cp "$_tmpdir/modern/proot" "$JNI_DIR/libproot.so"
-cp "$_tmpdir/modern/loader" "$JNI_DIR/libproot_loader.so"
-chmod 755 "$JNI_DIR/libproot.so" "$JNI_DIR/libproot_loader.so"
-
-cp "$_tmpdir/modern/libtalloc.so.2" "$RUNTIME_ASSETS_DIR/libtalloc.so.2"
-cp "$_tmpdir/modern/libandroid-shmem.so" "$RUNTIME_ASSETS_DIR/libandroid-shmem.so"
-cp "$_tmpdir/modern/libandroid-selinux.so" "$RUNTIME_ASSETS_DIR/libandroid-selinux.so"
-chmod 644 "$RUNTIME_ASSETS_DIR"/*
 
 # Stage the verified Ubuntu admin packages for offline first-run provisioning.
 mkdir -p "$SUDO_ASSETS_DIR"
@@ -136,7 +118,7 @@ $SUDO_PACKAGES
 EOF
 
 # Runtime metadata used to validate the embedded image at first-run extraction.
-cat > "$ASSETS_DIR/image.properties" <<EOF
+cat > "$META_DIR/image.properties" <<EOF
 imageId=ubuntu-26.04.1-base-arm64
 ubuntuVersion=26.04.1
 architecture=aarch64
@@ -147,13 +129,9 @@ upstreamSha256=$UBUNTU_SHA
 compressedSize=$UBUNTU_SIZE
 uncompressedSize=$UBUNTU_UNCOMPRESSED_SIZE
 schemaVersion=1
-prootSource=$PROOT_URL
-prootVersion=ProotX-v1.2.0-modern
-prootSha256=$PROOT_SHA
 EOF
 
-log "ready"
+log "ready (full flavour payload)"
 log "  rootfs : $ASSETS_DIR/$UBUNTU_ASSET"
-log "  proot  : $JNI_DIR/libproot.so"
-log "  loader : $JNI_DIR/libproot_loader.so"
+log "  meta   : $META_DIR/image.properties"
 log "  sudo   : $SUDO_ASSETS_DIR (offline admin packages)"

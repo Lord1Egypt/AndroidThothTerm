@@ -3,9 +3,11 @@
 /.externalNativeBuild
 # Android Studio >= 3.5
 /.cxx
-# Fetched, verified build inputs (source of truth is tools/prepare-assets.sh).
-src/main/assets/ubuntu/*.tgz
-src/main/assets/ubuntu/*.tar.gz
+# Fetched, verified Ubuntu payload (source of truth: tools/prepare-assets.sh).
+# Full flavour only; the fdroid flavour ships no distribution binaries.
+src/full/assets/ubuntu/*.tgz
+src/full/assets/ubuntu/*.tar.gz
+src/full/assets/sudo/
+# PRoot runtime built from third_party/ (source of truth: tools/build-proot.sh).
 src/main/assets/runtime/
-src/main/assets/sudo/
 src/main/jniLibs/

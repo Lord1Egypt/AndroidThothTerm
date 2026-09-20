@@ -58,8 +58,19 @@ android {
     }
     flavorDimensions = ["catalog"]
     productFlavors {
+        // Embeds the Ubuntu userland, so first run needs no network.
         full {
             dimension 'catalog'
+            buildConfigField("boolean", "EMBEDDED_ROOTFS", "true")
+        }
+        // Ships no distribution payload: F-Droid's inclusion policy only allows
+        // binaries it built itself, and an Ubuntu rootfs is thousands of
+        // executables it did not. The userland is fetched on first run, after
+        // explicit consent, from the same pinned URL and checksum the full
+        // flavour embeds. Everything after extraction is the shared code path.
+        fdroid {
+            dimension 'catalog'
+            buildConfigField("boolean", "EMBEDDED_ROOTFS", "false")
         }
     }
     buildTypes {
@@ -101,8 +112,27 @@ dependencies {
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 }
 
+// Builds the PRoot runtime from the pinned sources in third_party/. Needed by
+// every flavour, and it downloads nothing.
+def buildProot = tasks.register('buildProotRuntime', Exec) {
+    description = 'Build PRoot, its loader, talloc and libandroid-shmem from source.'
+    group = 'build'
+    workingDir projectDir
+    commandLine 'sh', 'tools/build-proot.sh'
+    inputs.dir rootProject.file('third_party/proot')
+    inputs.dir rootProject.file('third_party/talloc')
+    inputs.dir rootProject.file('third_party/libandroid-shmem')
+    inputs.dir file('patches')
+    inputs.file file('tools/build-proot.sh')
+    outputs.file file('src/main/jniLibs/arm64-v8a/libproot.so')
+    outputs.file file('src/main/jniLibs/arm64-v8a/libproot_loader.so')
+    outputs.file file('src/main/assets/runtime/arm64-v8a/libtalloc.so.2')
+    outputs.file file('src/main/assets/runtime/arm64-v8a/libandroid-shmem.so')
+}
+
+// Stages the embedded Ubuntu payload. Only the full flavour packages it.
 def prepareUbuntu = tasks.register('prepareUbuntuRuntime', Exec) {
-    description = 'Fetch, verify, and stage the pinned Ubuntu rootfs and PRoot runtime.'
+    description = 'Fetch, verify, and stage the pinned Ubuntu rootfs and admin packages.'
     group = 'build'
     workingDir projectDir
     commandLine 'sh', 'tools/prepare-assets.sh'
@@ -110,5 +140,7 @@ def prepareUbuntu = tasks.register('prepareUbuntuRuntime', Exec) {
 }
 
 tasks.configureEach { task ->
-    if (task.name == 'preBuild') task.dependsOn prepareUbuntu
+    if (task.name == 'preBuild') task.dependsOn buildProot
+    // Flavour-specific: only "full" variants stage the Ubuntu payload.
+    if (task.name ==~ /^pre[Ff]ull.*Build$/) task.dependsOn prepareUbuntu
 }

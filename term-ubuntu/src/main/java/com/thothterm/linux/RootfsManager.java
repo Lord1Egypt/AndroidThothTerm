@@ -68,10 +68,16 @@ public final class RootfsManager {
     /** PRoot's fake_id0 elevates only on the setuid bit; force it on the real binary. */
     private static final int SUDO_SETUID_MODE = 04755;
 
+    /**
+     * Shared objects PRoot links against, staged next to it so the dynamic
+     * loader finds them. This list must match what {@code tools/build-proot.sh}
+     * produces and what {@code readelf -d libproot.so} reports as NEEDED;
+     * libandroid-selinux was carried over from the old prebuilt bundle and is
+     * not referenced by the binary we build.
+     */
     private static final String[] RUNTIME_LIBS = {
             "libtalloc.so.2",
-            "libandroid-shmem.so",
-            "libandroid-selinux.so"
+            "libandroid-shmem.so"
     };
 
     private static volatile RootfsManager sInstance;
