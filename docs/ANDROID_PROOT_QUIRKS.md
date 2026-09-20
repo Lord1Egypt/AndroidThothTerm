@@ -267,6 +267,46 @@ to the renderer, the PTY or the terminal's geometry.
 
 ---
 
+### 30. Every shipped arm64 ELF needs 16 KB page alignment — ENGINE
+
+Android 15 introduced 16 KB page devices. A LOAD segment aligned to 4 KB makes
+the system report the whole app as incompatible, and on such a device the binary
+cannot be mapped at all.
+
+Measured here: five of six arm64 ELFs were already at `0x4000` because the
+CMakeLists set `-Wl,-z,max-page-size=16384`. The sixth,
+`libproot_loader.so`, shipped at `0x1000`, and a physical device named exactly
+that file.
+
+**The trap:** PRoot's makefile links the loader through its own variable —
+
+```
+LOADER_LDFLAGS += -static -nostdlib -Wl,-Ttext=...,-z,noexecstack
+```
+
+— so alignment flags placed in `LDFLAGS` never reach it. The build's own
+verification checked `proot` only, so the single binary linked by a different
+rule was also the single binary not checked.
+
+**Rules:**
+
+- Set `max-page-size` and `common-page-size` together; padding to one value and
+  aligning to another is a real failure mode.
+- Verify **every** artifact after linking, not a representative one. A build
+  that checks n-1 of n artifacts is how this shipped.
+- Never use `android:pageSizeCompat` to silence the warning. It hides the
+  message without making the binary loadable.
+- A debuggable build shows the system dialog; a release build does not. The
+  absence of the dialog in a release build is not evidence of alignment.
+- The warning can appear on a **4 KB** device: this hardware reports
+  `getconf PAGE_SIZE` = 4096 and still warned. So the dialog is a
+  forward-compatibility check, and passing it on 4 KB hardware does not by
+  itself prove correct behaviour on 16 KB hardware.
+- Audit with objective tools: `llvm-readelf -l`, Android's
+  `check_elf_alignment.sh`, and `zipalign -c -P 16 -v 4`.
+- Separately, check the C sources: use `sysconf(_SC_PAGE_SIZE)` rather than a
+  literal 4096 wherever page maths matters. PRoot already does.
+
 ## Process and release discipline
 
 ### 27. Clean build, from the committed state — ENGINE
