@@ -1,0 +1,17 @@
+Clipboard fix, plus a full regression pass over the 0.1.3 fixes.
+
+Text copied in other apps can now be pasted into the terminal. Paste only
+accepted clips the system described as exactly text/plain, but apps that copy
+styled text publish it as text/html -- measured on device, text copied from
+Telegram arrives as text/html even when it carries no formatting, so Paste was
+greyed out and did nothing. Any textual clip is accepted now, and the plain
+form is pasted rather than the markup. Clips that hold only a URI or an Intent
+are still refused: Paste is for text, and the terminal will not follow a link
+to find some.
+
+Copying from the terminal is unchanged, and the floating selection toolbar and
+the paste shortcut use the same path.
+
+Re-verified on a physical device with no regressions: text selection at the
+start of a line, modifier state after backgrounding, Clear scrollback and
+CSI 3 J, Exit, and multiple sessions.
