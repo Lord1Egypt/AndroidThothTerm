@@ -14,7 +14,7 @@ Terminal edition has its own branding, which is unrelated and untouched.
 | File | Produces | Runtime resource |
 |---|---|---|
 | `thothterm-ubuntu-launcher-cup-master-1254.png` | **Launcher icon** — the terminal/cup mark | `mipmap-*/ic_launcher*`, `mipmap-anydpi-v26/ic_launcher*.xml` |
-| `thothterm-ubuntu-splash-eight-petal-master-1254.png` | **Startup splash mark** — the round eight-petal emblem | `drawable-nodpi/ic_splash_mark.webp` via `drawable/ic_splash_emblem.xml` |
+| `thothterm-ubuntu-splash-eight-petal-master-1254.png` | **In-app identity mark** — the round eight-petal emblem | `drawable-nodpi/ic_splash_mark.webp`, wrapped by `drawable/ic_splash_emblem.xml` for the splash |
 
 Both are **1254 × 1254** px, RGB, on a pure black backdrop.
 
@@ -85,8 +85,15 @@ The splash mark is lossy on purpose: it carries smooth petal gradients that a
 
 ## Notes
 
-- `drawable/ic_brand_mark.xml` is a different, hand-drawn vector used by the
-  navigation drawer header and the Ubuntu setup screen. It is unrelated to these
-  masters and is still in use.
+- The split is **outside vs inside the app**: the launcher and every shortcut
+  icon carry the cup mark, and everything drawn inside the app — the Android
+  cold-start splash, the first-run setup screen and the navigation drawer header
+  — carries the round eight-petal emblem. The drawer and setup screens reference
+  `drawable-nodpi/ic_splash_mark` directly, at their own `ImageView` size; only
+  the splash goes through `ic_splash_emblem`, whose one-sixth inset exists purely
+  to satisfy Android's 288 dp splash box and would shrink the mark anywhere else.
+- The Terminal edition's hand-drawn `drawable/ic_brand_mark.xml` is a different
+  mark with no relation to these masters. The Ubuntu edition no longer carries a
+  copy of it.
 - On a **warm** start Android draws the splash background without the icon. That
   is platform behaviour, not a packaging fault; the icon appears on cold start.

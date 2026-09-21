@@ -35,7 +35,7 @@
             android:layout_width="96dp"
             android:layout_height="96dp"
             android:contentDescription="@string/application_terminal"
-            android:src="@drawable/ic_brand_mark"/>
+            android:src="@drawable/ic_splash_mark"/>
 
         <TextView
             android:layout_width="wrap_content"
