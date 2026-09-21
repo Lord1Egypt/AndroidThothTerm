@@ -23,8 +23,8 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 106
-        versionName '0.1.6'
+        versionCode 107
+        versionName '0.1.7'
 
         // Drives the real two-finger pinch that only a device can produce.
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
@@ -77,7 +77,15 @@ android {
         debug {
         }
         release {
-            minifyEnabled = false
+            // R8 shrinking, optimization and obfuscation, as F-Droid asked for.
+            // proguard-android-optimize.txt is the platform's own configuration;
+            // proguard-rules.pro adds only what R8 cannot infer.
+            minifyEnabled = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Resource shrinking stays off. Nothing in this app resolves a
+            // resource by name, so it would be safe, but it buys nothing worth
+            // the risk: the APK is dominated by the Ubuntu payload and the
+            // native runtime, not by resources.
         }
     }
     buildFeatures {
