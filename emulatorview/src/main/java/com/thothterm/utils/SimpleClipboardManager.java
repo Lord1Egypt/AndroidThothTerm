@@ -21,9 +21,12 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.util.Log;
 
 
 public class SimpleClipboardManager {
+    private static final String TAG = "SimpleClipboardManager";
+
     private final ClipboardManager clip;
 
     public SimpleClipboardManager(Context context) {
@@ -31,13 +34,27 @@ public class SimpleClipboardManager {
                 .getSystemService(Context.CLIPBOARD_SERVICE);
     }
 
+    /**
+     * The clipboard's plain-text form, or "" when it has none.
+     * <p>
+     * Styled clips carry their plain form alongside the markup -- ClipData's
+     * own text coercion returns exactly this and only falls back to reading a
+     * content URI or serialising an Intent, neither of which belongs in a
+     * terminal, so those are refused here instead.
+     */
     public CharSequence getText() {
         try {
             ClipData data = clip.getPrimaryClip();
-            if (data == null) return "";
+            if (data == null || data.getItemCount() == 0) return "";
             ClipData.Item item = data.getItemAt(0);
-            return item.getText();
-        } catch (RuntimeException ignore) {
+            CharSequence text = item.getText();
+            if (text != null) return text;
+            // Nothing textual of its own: this is a URI or Intent clip, and
+            // Paste is for text the user can see, not for what a URI points at.
+            return "";
+        } catch (RuntimeException e) {
+            // Never log the clip itself, but do not hide that a read failed.
+            Log.w(TAG, "clipboard read failed: " + e.getClass().getName());
         }
         return "";
     }
@@ -47,10 +64,22 @@ public class SimpleClipboardManager {
         clip.setPrimaryClip(clipData);
     }
 
+    /**
+     * Whether the clipboard holds something the terminal can paste as text.
+     * <p>
+     * Any "text/*" clip qualifies, not just text/plain: apps that copy styled
+     * text publish it as text/html, and restricting this to text/plain left
+     * Paste disabled for most of Android -- text copied from Telegram, for
+     * instance, arrives as text/html even when it carries no formatting.
+     * <p>
+     * Deliberately asks only for the description, never for the clip itself,
+     * so that merely long-pressing the terminal does not count as reading the
+     * user's clipboard.
+     */
     public boolean hasText() {
         if (!clip.hasPrimaryClip()) return false;
         ClipDescription descr = clip.getPrimaryClipDescription();
         if (descr == null) return false;
-        return descr.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN);
+        return descr.hasMimeType("text/*");
     }
 }
