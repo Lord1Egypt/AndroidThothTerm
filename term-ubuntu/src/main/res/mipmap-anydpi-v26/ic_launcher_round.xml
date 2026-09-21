@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
- * Copyright (c) 2019-2023 Roumen Petrov.  All rights reserved.
+ * Copyright (c) 2026 Mohamed Mounir.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,14 @@
  * limitations under the License.
 -->
 
+<!-- Foreground and background are separate layers; the artwork carries no baked
+     mask, and sits inside the 66dp safe zone so circle, squircle and every other
+     launcher mask crop only padding. -->
 <adaptive-icon
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <background android:drawable="@color/ic_launcher_background"/>
-    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
-    <monochrome android:drawable="@drawable/ic_launcher_monochrome"/>
+    <background android:drawable="@drawable/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
 
 </adaptive-icon>

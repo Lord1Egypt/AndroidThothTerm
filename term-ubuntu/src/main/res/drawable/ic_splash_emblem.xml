@@ -15,14 +15,12 @@
  * limitations under the License.
 -->
 
-<!-- Foreground and background are separate layers; the artwork carries no baked
-     mask, and sits inside the 66dp safe zone so circle, squircle and every other
-     launcher mask crop only padding. -->
-<adaptive-icon
-    xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <background android:drawable="@drawable/ic_launcher_background"/>
-    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-    <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
-
-</adaptive-icon>
+<!-- Android 12+ draws windowSplashScreenAnimatedIcon into a 288dp box and expects
+     the artwork to fit a 192dp circle. 192/288 leaves one sixth of padding a side,
+     so the emblem is centred at its own aspect ratio and never scaled to fill. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_splash_mark"
+    android:insetLeft="16.667%"
+    android:insetTop="16.667%"
+    android:insetRight="16.667%"
+    android:insetBottom="16.667%"/>

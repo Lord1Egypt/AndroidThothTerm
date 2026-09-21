@@ -7,7 +7,7 @@
         <item name="windowActionModeOverlay">true</item>
         <item name="actionModeBackground">?attr/colorPrimary</item>
         <item name="android:windowSplashScreenBackground">@color/brand_midnight</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_brand_mark</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_emblem</item>
         <item name="android:windowSplashScreenAnimationDuration">200</item>
     </style>
 
@@ -17,7 +17,7 @@
         <item name="windowActionModeOverlay">true</item>
         <item name="actionModeBackground">?attr/colorPrimary</item>
         <item name="android:windowSplashScreenBackground">@color/brand_midnight</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_brand_mark</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_emblem</item>
         <item name="android:windowSplashScreenAnimationDuration">200</item>
     </style>
 
@@ -27,7 +27,7 @@
         <item name="windowActionModeOverlay">true</item>
         <item name="actionModeBackground">?attr/colorPrimary</item>
         <item name="android:windowSplashScreenBackground">@color/brand_midnight</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_brand_mark</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_emblem</item>
         <item name="android:windowSplashScreenAnimationDuration">200</item>
     </style>
 
@@ -37,7 +37,7 @@
         <item name="windowActionModeOverlay">true</item>
         <item name="actionModeBackground">?attr/colorPrimary</item>
         <item name="android:windowSplashScreenBackground">@android:color/black</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_brand_mark</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_emblem</item>
         <item name="android:windowSplashScreenAnimationDuration">200</item>
     </style>
 </resources>

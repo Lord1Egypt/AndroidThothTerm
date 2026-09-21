@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
- * Copyright (c) 2019-2023 Roumen Petrov.  All rights reserved.
+ * Copyright (c) 2026 Mohamed Mounir.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,5 +16,7 @@
 -->
 
 <resources>
-    <color name="ic_launcher_background">#08111F</color>
+    <!-- Sampled from the approved artwork's backdrop. -->
+    <color name="ic_launcher_background">#100B0A</color>
+    <color name="ic_launcher_background_glow">#2B1C19</color>
 </resources>
