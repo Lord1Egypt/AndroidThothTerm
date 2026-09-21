@@ -634,6 +634,12 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         if (mCursorBlink != 0) {
             getHandler().removeCallbacks(mBlinkCursor);
         }
+        // A one-shot Ctrl/Fn armed from the menu, and an armed or locked
+        // toolbar modifier, are both view state with no key release to end
+        // them. Drop them here so they cannot outlive the view.
+        mIsControlKeySent = false;
+        mIsFnKeySent = false;
+        clearExtraModifiers();
         if (mKeyListener != null) {
             mKeyListener.onPause();
         }

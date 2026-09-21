@@ -236,6 +236,14 @@ class TermKeyListener {
             mState = UNPRESSED;
         }
 
+        /**
+         * Drop any latched state. A LOCKED modifier is never ended by a key
+         * release, so without this it outlives the view that armed it.
+         */
+        public void reset() {
+            mState = UNPRESSED;
+        }
+
         public void onPress() {
             switch (mState) {
             case PRESSED:
@@ -350,11 +358,33 @@ class TermKeyListener {
     public void onPause() {
         // Ensure we don't have any left-over modifier state when switching
         // views.
-        mHardwareControlKey = false;
+        resetTransientState();
     }
 
     public void onResume() {
-        // Nothing special.
+        // The view flipper only pauses the session it is currently showing, so
+        // a background modifier can still be latched on any other session when
+        // it is brought forward. Start every visible session from a clean slate.
+        resetTransientState();
+    }
+
+    /**
+     * Forget every transient modifier and dead-key state.
+     * <p>
+     * Alt, Shift, Ctrl and Fn latch into a locked state on a second press, and
+     * this listener belongs to the session rather than to the view, so a locked
+     * modifier used to survive backgrounding, view recreation and
+     * {@link TerminalEmulator#reset()} alike -- leaving every subsequent
+     * keystroke translated through the modifier tables until the process died.
+     */
+    public void resetTransientState() {
+        mHardwareControlKey = false;
+        mAltKey.reset();
+        mCapKey.reset();
+        mControlKey.reset();
+        mFnKey.reset();
+        mCombiningAccent = 0;
+        updateCursorMode();
     }
 
     public void handleControlKey(boolean down) {

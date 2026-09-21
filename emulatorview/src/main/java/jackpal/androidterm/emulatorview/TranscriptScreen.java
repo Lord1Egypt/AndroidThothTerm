@@ -307,6 +307,13 @@ class TranscriptScreen implements Screen {
      *
      * @return the count of active transcript rows.
      */
+    /**
+     * Discard the scrollback, keeping the visible screen. Backs CSI 3 J.
+     */
+    public void clearTranscript() {
+        mData.clearTranscript();
+    }
+
     public int getActiveTranscriptRows() {
         return mData.getActiveTranscriptRows();
     }

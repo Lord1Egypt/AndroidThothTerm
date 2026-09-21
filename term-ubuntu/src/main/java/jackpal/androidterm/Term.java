@@ -560,6 +560,10 @@ public class Term extends AppCompatActivity
             zoomOut();
         } else if (id == R.id.menu_zoom_reset) {
             zoomReset();
+        } else if (id == R.id.menu_clear_scrollback) {
+            doClearScrollback();
+            ScreenMessage.show(getApplicationContext(),
+                    R.string.clear_scrollback_toast_notification);
         } else if (id == R.id.menu_reset) {
             doResetTerminal();
             ScreenMessage.show(getApplicationContext(),
@@ -809,6 +813,14 @@ public class Term extends AppCompatActivity
         if (session == null) return;
 
         session.reset();
+    }
+
+    /** Drop the current window's scrollback without disturbing its shell. */
+    private void doClearScrollback() {
+        TermSession session = getCurrentTermSession();
+        if (session == null) return;
+
+        session.clearScrollback();
     }
 
     private void doShowAbout() {
