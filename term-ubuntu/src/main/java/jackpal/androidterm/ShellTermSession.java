@@ -203,6 +203,20 @@ public class ShellTermSession extends GenericTermSession {
         super.finish();
     }
 
+    /** The shell pid, which is also its process group id. */
+    public int getProcessId() {
+        return mProcId;
+    }
+
+    /**
+     * SIGKILL whatever is left of this session's process group. Only for the
+     * Exit action, after {@link #finish()} has been given its chance -- a
+     * PRoot tree that is wedged in a syscall will not act on SIGHUP.
+     */
+    public void kill() {
+        Process.killChilds(mProcId);
+    }
+
     private static class ProcessHandler extends Handler {
         private final WeakReference<ShellTermSession> reference;
 

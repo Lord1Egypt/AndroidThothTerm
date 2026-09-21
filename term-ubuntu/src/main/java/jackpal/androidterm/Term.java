@@ -17,6 +17,7 @@
 
 package jackpal.androidterm;
 
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -568,6 +569,8 @@ public class Term extends AppCompatActivity
             doResetTerminal();
             ScreenMessage.show(getApplicationContext(),
                     R.string.reset_toast_notification);
+        } else if (id == R.id.menu_exit) {
+            doExit();
         } else if (id == R.id.menu_toggle_soft_keyboard) {
             doToggleSoftKeyboard();
         } else if (id == R.id.menu_toggle_wakelock) {
@@ -813,6 +816,66 @@ public class Term extends AppCompatActivity
         if (session == null) return;
 
         session.reset();
+    }
+
+    /** How long the shells get to honour SIGHUP before Exit stops waiting. */
+    private static final long EXIT_GRACE_MS = 400;
+
+    private void doExit() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.exit_title)
+                .setMessage(R.string.exit_message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.exit, (dialog, which) -> performExit())
+                .show();
+    }
+
+    /**
+     * Shut the application down as far as an ordinary app is allowed to.
+     * <p>
+     * Android reserves Settings' "Force stop" for the system, so this does the
+     * strongest correct equivalent: hang up every session, let the PRoot trees
+     * unwind, then kill whatever is left of the process groups we started --
+     * by the pids the service tracks, never by matching process names. The
+     * activity task goes with it, and we end our own process last so that the
+     * service, its notification and its threads go down with us.
+     * <p>
+     * Nothing on disk is touched: the rootfs, /home/thoth and the preferences
+     * are all still there for the next launch.
+     */
+    private void performExit() {
+        ThothLog.i(LogCategory.APP, "Exit requested; shutting down all sessions");
+
+        WifiLock.release();
+        WakeLock.release();
+
+        final int[] pids;
+        if (mTermService != null) {
+            pids = mTermService.sessionProcessIds();
+            mTermService.shutdownAll();
+        } else {
+            pids = new int[0];
+        }
+
+        // Let onStop()/onDestroy() unbind and stop the service on the way out.
+        mStopServiceOnFinish = true;
+        finishAffinity();
+        // finishAndRemoveTask() only drops the task when it is called on the
+        // task root, and ours is the setup activity, so ask for the app's
+        // tasks by hand instead -- otherwise a dead card is left in Recents.
+        ActivityManager activityManager = getSystemService(ActivityManager.class);
+        if (activityManager != null) {
+            for (ActivityManager.AppTask task : activityManager.getAppTasks()) {
+                task.finishAndRemoveTask();
+            }
+        }
+
+        mHandler.postDelayed(() -> {
+            for (int pid : pids) {
+                com.thothterm.Process.killChilds(pid);
+            }
+            android.os.Process.killProcess(android.os.Process.myPid());
+        }, EXIT_GRACE_MS);
     }
 
     /** Drop the current window's scrollback without disturbing its shell. */

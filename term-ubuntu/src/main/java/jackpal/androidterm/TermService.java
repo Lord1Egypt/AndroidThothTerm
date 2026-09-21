@@ -55,6 +55,8 @@ import com.thothterm.logging.ThothLog;
 import com.thothterm.services.CommandService;
 import com.thothterm.services.SessionsService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import jackpal.androidterm.emulatorview.TermSession;
@@ -143,11 +145,65 @@ public class TermService extends SessionsService {
         stopSelf();
     }
 
+    /**
+     * The pids of the shell process groups this service owns, captured before
+     * the sessions are torn down so Exit can check afterwards that nothing of
+     * ours outlived the hangup.
+     */
+    public int[] sessionProcessIds() {
+        List<Integer> pids = new ArrayList<>();
+        for (TermSession session : getSessions()) {
+            if (session instanceof ShellTermSession) {
+                pids.add(((ShellTermSession) session).getProcessId());
+            }
+        }
+        int[] result = new int[pids.size()];
+        for (int i = 0; i < result.length; ++i) result[i] = pids.get(i);
+        return result;
+    }
+
+    /**
+     * Stop taking new work, hang up every session, and drop the ongoing
+     * notification. Used by the Exit action; ordinary teardown still goes
+     * through {@link #onDestroy()}.
+     */
+    public void shutdownAll() {
+        if (command_service != null) command_service.stop();
+        clearSessions();
+        removeRunningNotification();
+    }
+
+    /**
+     * Take the ongoing notification down with the service.
+     * <p>
+     * {@link StopForeground} only detaches it, which is right while the app
+     * keeps running, but leaves "Terminal session is running" on screen after
+     * a full shutdown. Cancelling it separately races the detach, so ask for
+     * removal through the same call that ends the foreground state.
+     */
+    private void removeRunningNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N /*API level 24*/)
+            RemoveForegroundCompat24.stop(this);
+        else
+            stopForeground(true);
+
+        NotificationManager manager = getApplicationContext()
+                .getSystemService(NotificationManager.class);
+        if (manager != null) manager.cancel(RUNNING_NOTIFICATION);
+    }
+
+    @RequiresApi(24)
+    private static class RemoveForegroundCompat24 {
+        private static void stop(Service service) {
+            service.stopForeground(STOP_FOREGROUND_REMOVE);
+        }
+    }
+
     @Override
     public void onDestroy() {
         if (command_service != null) command_service.stop();
         clearSessions();
-        StopForeground.stop(this);
+        removeRunningNotification();
         super.onDestroy();
 
         ThothLog.i(LogCategory.APP, "Terminal service stopped");

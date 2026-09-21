@@ -81,6 +81,11 @@ public class Process {
         Native.finishChilds(pid);
     }
 
+    /** SIGKILL the process group, for shutdowns that must not be refused. */
+    public static void killChilds(int pid) {
+        Native.killChilds(pid);
+    }
+
 
     private static class Native {
         private static native int createSubprocess(
@@ -89,5 +94,6 @@ public class Process {
         ) throws IOException;
         private static native int waitExit(int pid);
         private static native void finishChilds(int pid);
+        private static native void killChilds(int pid);
     }
 }
