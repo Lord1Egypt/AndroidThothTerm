@@ -1,0 +1,19 @@
+Three terminal fixes.
+
+Text selection now starts anywhere on a line. The navigation drawer claimed the
+left edge of the window, and touching there peeked the drawer open and
+cancelled the touch, so a long press on the first few columns never became a
+selection. The drawer is opened from the toolbar button instead.
+
+The keyboard no longer gets stuck. Volume Up and Volume Down act as the Fn and
+Ctrl modifiers, and pressing one twice latched it on. That state lived with the
+session rather than the view, so it survived backgrounding the app and even
+"Restart terminal" -- ordinary letters kept coming out as escape sequences until
+the process was force stopped. Modifiers are now cleared whenever a session is
+paused or resumed, and by "Restart terminal".
+
+Scrollback can be cleared without restarting the session. The terminal now
+implements CSI 3 J (erase saved lines), and a new "Clear scrollback" menu item
+runs it directly. Whether the shell's own "clear" command also erases scrollback
+depends on the terminfo entry for the selected TERM; the default, screen, does
+not ask for it.
