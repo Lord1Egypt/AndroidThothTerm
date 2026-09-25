@@ -180,6 +180,7 @@ public class Term extends AppCompatActivity
             ThothLog.d(LogCategory.SESSION, "Activity connected to terminal service");
             mTermService = service;
             populateSessions();
+            mTermService.refreshRunningNotification();
         } else {
             ThothLog.d(LogCategory.SESSION, "Activity disconnected from terminal service");
             mTermService = null;
@@ -490,6 +491,9 @@ public class Term extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         ThothLog.d(LogCategory.UI, "Term activity resumed");
+        // Covers returning from the notification-permission prompt, which
+        // is answered after the service already tried to post.
+        if (mTermService != null) mTermService.refreshRunningNotification();
     }
 
     @Override
