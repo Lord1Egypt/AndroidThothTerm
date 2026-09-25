@@ -37,6 +37,7 @@ public class ExtraKeysView extends LinearLayout
     private AppCompatButton symbolsButton;
     private AppCompatButton controlButton;
     private AppCompatButton altButton;
+    private int appliedRowHeight = -1;
     private int controlState = EmulatorView.EXTRA_MODIFIER_INACTIVE;
     private int altState = EmulatorView.EXTRA_MODIFIER_INACTIVE;
 
@@ -49,8 +50,8 @@ public class ExtraKeysView extends LinearLayout
         setOrientation(VERTICAL);
         setFocusable(false);
         setBackgroundColor(ContextCompat.getColor(context, R.color.brand_midnight));
-        setPadding(0, dp(2), 0, dp(2));
         buildRows();
+        applyMetrics();
     }
 
     public void setTerminalProvider(TerminalProvider provider) {
@@ -127,9 +128,9 @@ public class ExtraKeysView extends LinearLayout
     private LinearLayout addFixedRow(LinearLayout page) {
         LinearLayout row = new LinearLayout(getContext());
         row.setOrientation(HORIZONTAL);
-        row.setPadding(dp(3), 0, dp(3), 0);
         row.setFocusable(false);
-        page.addView(row, new LayoutParams(LayoutParams.MATCH_PARENT, dp(36)));
+        page.addView(row, new LayoutParams(LayoutParams.MATCH_PARENT,
+                res(R.dimen.extra_keys_row_height)));
         return row;
     }
 
@@ -178,7 +179,7 @@ public class ExtraKeysView extends LinearLayout
     private AppCompatButton makeButton(String text) {
         AppCompatButton button = new AppCompatButton(getContext());
         button.setText(text);
-        button.setTextSize(11);
+        button.setTextSize(getResources().getInteger(R.integer.extra_keys_button_text_sp));
         button.setAllCaps(false);
         button.setMinWidth(0);
         button.setMinimumWidth(0);
@@ -193,8 +194,9 @@ public class ExtraKeysView extends LinearLayout
     }
 
     private LayoutParams buttonLayout() {
-        LayoutParams params = new LayoutParams(0, dp(32), 1);
-        params.setMargins(dp(2), dp(2), dp(2), dp(2));
+        int margin = res(R.dimen.extra_keys_button_margin);
+        LayoutParams params = new LayoutParams(0, res(R.dimen.extra_keys_button_height), 1);
+        params.setMargins(margin, margin, margin, margin);
         return params;
     }
 
@@ -271,6 +273,79 @@ public class ExtraKeysView extends LinearLayout
         surface.setStroke(dp(state == EmulatorView.EXTRA_MODIFIER_LOCKED ? 2 : 1), stroke);
         button.setBackground(surface);
         button.setTextColor(text);
+    }
+
+    /**
+     * Applies the current configuration's extra-keys metrics to the bar and to
+     * every row and button already built.
+     *
+     * <p>This bar is a fixed-height sibling of the terminal viewport, so its
+     * height comes straight out of the terminal's. A short window -- landscape
+     * on a phone, or a split-screen pane -- uses the compact set in
+     * {@code values/}, while {@code values-h500dp/} keeps the roomier sizing.
+     * {@code TermActivity} declares {@code configChanges} for orientation and
+     * screenSize, so it is never recreated on rotation and the views would
+     * otherwise keep whatever metrics they were built with.</p>
+     */
+    private void applyMetrics() {
+        int viewPadding = res(R.dimen.extra_keys_view_padding);
+        int rowPadding = res(R.dimen.extra_keys_row_padding_horizontal);
+        int rowHeight = res(R.dimen.extra_keys_row_height);
+        int buttonHeight = res(R.dimen.extra_keys_button_height);
+        int buttonMargin = res(R.dimen.extra_keys_button_margin);
+        float textSize = getResources().getInteger(R.integer.extra_keys_button_text_sp);
+
+        setPadding(0, viewPadding, 0, viewPadding);
+        for (int p = 0; p < getChildCount(); p++) {
+            View pageView = getChildAt(p);
+            if (!(pageView instanceof LinearLayout)) continue;
+            LinearLayout page = (LinearLayout) pageView;
+            for (int r = 0; r < page.getChildCount(); r++) {
+                View rowView = page.getChildAt(r);
+                if (!(rowView instanceof LinearLayout)) continue;
+                LinearLayout row = (LinearLayout) rowView;
+                row.setPadding(rowPadding, 0, rowPadding, 0);
+                LayoutParams rowParams = (LayoutParams) row.getLayoutParams();
+                rowParams.height = rowHeight;
+                row.setLayoutParams(rowParams);
+                for (int b = 0; b < row.getChildCount(); b++) {
+                    View button = row.getChildAt(b);
+                    LayoutParams params = (LayoutParams) button.getLayoutParams();
+                    params.height = buttonHeight;
+                    params.setMargins(buttonMargin, buttonMargin, buttonMargin, buttonMargin);
+                    button.setLayoutParams(params);
+                    if (button instanceof AppCompatButton) {
+                        ((AppCompatButton) button).setTextSize(textSize);
+                    }
+                }
+            }
+        }
+        appliedRowHeight = rowHeight;
+        requestLayout();
+    }
+
+    @Override
+    protected void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        applyMetrics();
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        // The constructor runs during inflation, while the activity's resources
+        // can still carry the previous configuration -- TermActivity declares
+        // configChanges for orientation and screenSize, so a rotation neither
+        // recreates it nor necessarily reaches onConfigurationChanged. By the
+        // time we are measured the configuration is correct, so re-resolve here
+        // whenever the qualifier has selected a different set.
+        if (res(R.dimen.extra_keys_row_height) != appliedRowHeight) {
+            applyMetrics();
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+
+    private int res(int dimenId) {
+        return getResources().getDimensionPixelSize(dimenId);
     }
 
     private int dp(int value) {
