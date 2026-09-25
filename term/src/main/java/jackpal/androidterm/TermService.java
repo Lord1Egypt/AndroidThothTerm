@@ -89,6 +89,9 @@ public class TermService extends SessionsService {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setWhen(System.currentTimeMillis())
                 .setOngoing(true)
+                // Android 12+ otherwise holds a new foreground-service
+                // notification back for up to ten seconds.
+                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
                 .setContentIntent(pendingIntent);
         callback.set(context, builder);
         return builder.build();
