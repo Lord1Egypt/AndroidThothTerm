@@ -29,6 +29,10 @@
     <string name="prev_window">Prev window</string>
     <string name="next_window">Next window</string>
     <string name="clear_scrollback">Clear scrollback</string>
+    <string name="zoom_in">Zoom in</string>
+    <string name="zoom_out">Zoom out</string>
+    <string name="zoom_reset">Reset font size</string>
+    <string name="zoom_toast">Font size %1$d pt</string>
     <string name="reset">Restart terminal</string>
     <string name="toggle_soft_keyboard">Show keyboard</string>
 

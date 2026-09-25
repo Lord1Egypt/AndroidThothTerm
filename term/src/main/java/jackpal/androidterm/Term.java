@@ -52,6 +52,7 @@ import com.thothterm.Permissions;
 import com.thothterm.R;
 import com.thothterm.Settings;
 import com.thothterm.TermActionBar;
+import com.thothterm.TerminalZoom;
 import com.thothterm.TermPreferencesActivity;
 import com.thothterm.WindowListActivity;
 import com.thothterm.compat.SoftInputCompat;
@@ -340,11 +341,78 @@ public class Term extends AppCompatActivity
         return createTermSession(this, null);
     }
 
+    /** Font size captured when the current pinch began; -1 while not pinching. */
+    private int zoom_base_size = -1;
+
+    private void onTerminalZoom(float scaleFactor) {
+        if (zoom_base_size < 0) zoom_base_size = mSettings.getFontSize();
+        applyFontSize(TerminalZoom.scaled(zoom_base_size, scaleFactor));
+    }
+
+    /** Ends the pinch so the next one measures from the size now on screen. */
+    private void endTerminalZoom() {
+        zoom_base_size = -1;
+    }
+
+    protected void zoomIn() {
+        applyFontSize(TerminalZoom.zoomIn(mSettings.getFontSize()));
+        announceFontSize();
+    }
+
+    protected void zoomOut() {
+        applyFontSize(TerminalZoom.zoomOut(mSettings.getFontSize()));
+        announceFontSize();
+    }
+
+    protected void zoomReset() {
+        applyFontSize(TerminalZoom.DEFAULT_SIZE);
+        announceFontSize();
+    }
+
+    /**
+     * Confirms the resulting size for the menu actions. The pinch gesture does
+     * not announce, as it would post a message per motion event.
+     */
+    private void announceFontSize() {
+        ScreenMessage.show(getApplicationContext(),
+                getString(R.string.zoom_toast, mSettings.getFontSize()));
+    }
+
+    /**
+     * Stores the new size in the existing global font-size preference and pushes
+     * it through {@link #updatePrefs()}, which re-lays out every session and so
+     * resizes each PTY. Writing a string keeps the value readable both by
+     * TermSettings and by the Settings list that shares this key.
+     */
+    private void applyFontSize(int size) {
+        int wanted = TerminalZoom.clamp(size);
+        if (wanted == mSettings.getFontSize()) return;
+
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .edit()
+                .putString("fontsize", Integer.toString(wanted))
+                .apply();
+        mSettings.readPrefs(this,
+                PreferenceManager.getDefaultSharedPreferences(this));
+        updatePrefs();
+    }
+
     private TermView createEmulatorView(TermSession session) {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         TermView emulatorView = new TermView(this, session, metrics);
 
         emulatorView.setExtGestureListener(new EmulatorViewGestureListener(emulatorView));
+        emulatorView.setZoomListener(new EmulatorView.ZoomListener() {
+            @Override
+            public void onZoom(float scaleFactor) {
+                onTerminalZoom(scaleFactor);
+            }
+
+            @Override
+            public void onZoomEnd() {
+                endTerminalZoom();
+            }
+        });
         emulatorView.setOnKeyListener(mKeyListener);
         emulatorView.setOnToggleSelectingTextListener(
                 () -> mActionBar.lockDrawer(emulatorView.getSelectingText()));
@@ -488,6 +556,12 @@ public class Term extends AppCompatActivity
             doCreateNewWindow();
         } else if (id == R.id.menu_close_window) {
             confirmCloseWindow();
+        } else if (id == R.id.menu_zoom_in) {
+            zoomIn();
+        } else if (id == R.id.menu_zoom_out) {
+            zoomOut();
+        } else if (id == R.id.menu_zoom_reset) {
+            zoomReset();
         } else if (id == R.id.menu_clear_scrollback) {
             doClearScrollback();
             ScreenMessage.show(getApplicationContext(),

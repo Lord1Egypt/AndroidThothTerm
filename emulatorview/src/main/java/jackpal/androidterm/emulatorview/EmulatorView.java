@@ -37,6 +37,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.ActionMode;
 import android.view.GestureDetector;
+import android.view.ScaleGestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -270,6 +271,10 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
 
     private GestureDetector mGestureDetector;
     private GestureDetector.OnGestureListener mExtGestureListener;
+    private ScaleGestureDetector mScaleDetector;
+    private ZoomListener mZoomListener;
+    /** True from the moment a pinch is recognised until the gesture ends. */
+    private boolean mScaling;
     private Scroller mScroller;
     private final Runnable mFlingRunner = new Runnable() {
         public void run() {
@@ -582,6 +587,7 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         mLeftColumn = 0;
         mGestureDetector = new GestureDetector(context, this);
         // mGestureDetector.setIsLongpressEnabled(false);
+        mScaleDetector = new ScaleGestureDetector(context, new ZoomGestureListener());
         setVerticalScrollBarEnabled(true);
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -1350,13 +1356,65 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
 
     // End GestureDetector.OnGestureListener methods
 
+    /**
+     * Receives pinch gestures performed on the terminal. The view reports the
+     * gesture and leaves the choice of font size to the application, which owns
+     * the font-size preference.
+     */
+    public interface ZoomListener {
+        /**
+         * @param scaleFactor cumulative scale since this pinch began; greater
+         *                    than one means the fingers moved apart.
+         */
+        void onZoom(float scaleFactor);
+
+        /** The pinch finished; the next one starts from the size now in use. */
+        void onZoomEnd();
+    }
+
+    public void setZoomListener(ZoomListener listener) {
+        mZoomListener = listener;
+    }
+
+    private class ZoomGestureListener
+            extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+        private float span;
+
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            if (mZoomListener == null) return false;
+            span = 1f;
+            mScaling = true;
+            return true;
+        }
+
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            if (mZoomListener == null) return false;
+            span *= detector.getScaleFactor();
+            mZoomListener.onZoom(span);
+            return true;
+        }
+
+        @Override
+        public void onScaleEnd(ScaleGestureDetector detector) {
+            mScaling = false;
+            if (mZoomListener != null) mZoomListener.onZoomEnd();
+        }
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         if (mIsSelectingText) {
             return onTouchEventWhileSelectingText(ev);
-        } else {
-            return mGestureDetector.onTouchEvent(ev);
         }
+        // The scale detector must see every event to track the second pointer,
+        // but only a recognised pinch may swallow one: otherwise ordinary taps,
+        // scrolling and long-press selection would stop reaching the terminal.
+        boolean wasScaling = mScaling;
+        mScaleDetector.onTouchEvent(ev);
+        if (mScaling || wasScaling) return true;
+        return mGestureDetector.onTouchEvent(ev);
     }
 
     private boolean onTouchEventWhileSelectingText(MotionEvent ev) {
