@@ -60,11 +60,22 @@ public class TermActionBar {
             @Override
             public void onDrawerOpened(View drawerView) {
                 hideSoftInput(drawerView);
+                syncDrawerLockMode();
                 super.onDrawerOpened(drawerView);
+            }
+
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                syncDrawerLockMode();
+                super.onDrawerClosed(drawerView);
             }
         };
         drawer.addDrawerListener(toggle);
         toggle.syncState();
+        // The toggle refuses to open a drawer that is locked closed, and the
+        // closed drawer is locked below, so drive it from the toolbar directly.
+        toolbar.setNavigationOnClickListener(v -> drawer.openDrawer(GravityCompat.START));
+        syncDrawerLockMode();
 
         nav_view = context.findViewById(R.id.nav_view);
         NavigationBackground.presetColors(context, nav_view);
@@ -144,7 +155,22 @@ public class TermActionBar {
         if (flag)
             drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
         else
-            drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+            syncDrawerLockMode();
+    }
+
+    /**
+     * Keep the edge-drag gesture off while the drawer is closed.
+     * <p>
+     * A closed DrawerLayout claims the first 20dp of the window: touching there
+     * peeks the drawer, and peeking cancels the touch on every child, so a
+     * long-press on the first few columns of terminal text never became a text
+     * selection. The drawer is opened from the toolbar instead, and unlocked
+     * again once open so it can still be swiped shut.
+     */
+    private void syncDrawerLockMode() {
+        drawer.setDrawerLockMode(drawer.isDrawerOpen(GravityCompat.START)
+                ? DrawerLayout.LOCK_MODE_UNLOCKED
+                : DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
     }
 
     private void hideSoftInput(final View view) {

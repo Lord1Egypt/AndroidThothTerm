@@ -201,6 +201,23 @@ class UnicodeTranscript {
     }
 
     /**
+     * Discard the saved lines above the screen, leaving the screen itself
+     * untouched. Backs CSI 3 J (xterm's "erase saved lines").
+     * <p>
+     * The rows are released as well as unlinked, so the memory they hold is
+     * reclaimed rather than kept alive until the ring wraps over them again.
+     */
+    public void clearTranscript() {
+        for (int i = 1; i <= mActiveTranscriptRows; ++i) {
+            int index = (mScreenFirstRow - i + mTotalRows) % mTotalRows;
+            mLines[index] = null;
+            mColor[index] = null;
+            mLineWrap[index] = false;
+        }
+        mActiveTranscriptRows = 0;
+    }
+
+    /**
      * Convert a row value from the public external coordinate system to our
      * internal private coordinate system.
      * External coordinate system:

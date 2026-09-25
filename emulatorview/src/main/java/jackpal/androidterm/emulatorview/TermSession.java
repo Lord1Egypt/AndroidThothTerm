@@ -480,6 +480,18 @@ public class TermSession {
     }
 
     /**
+     * Discard this session's scrollback, keeping the visible screen and the
+     * process on the other end of the pty. The update notification is what
+     * pulls the view back down to the live screen, which it must do because
+     * the rows it was scrolled into no longer exist.
+     */
+    public void clearScrollback() {
+        if (mEmulator != null)
+            mEmulator.clearScrollback();
+        notifyUpdate();
+    }
+
+    /**
      * Set a {@link FinishCallback} to be invoked once this terminal session is
      * finished.
      *
