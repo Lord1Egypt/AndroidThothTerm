@@ -19,8 +19,6 @@ tasks.named('wrapper') {
     //distributionUrl = "https://services.gradle.org/distributions/gradle-${gradleVersion}-bin.zip"
 }
 
-tasks.named("updateDaemonJvm") {
-    // requires foojay plugin >= 1.0.0, see settings.gradle
-    languageVersion = JavaLanguageVersion.of(17)
-    vendor = JvmVendorSpec.JETBRAINS
-}
+// The Gradle daemon runs on whatever JDK the build environment supplies; the
+// toolchain requirement (Java 17) is declared per module. There is deliberately
+// no auto-provisioning, so no build downloads a JDK.
