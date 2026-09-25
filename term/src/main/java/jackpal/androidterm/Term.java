@@ -17,6 +17,7 @@
 
 package jackpal.androidterm;
 
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -42,6 +43,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.preference.PreferenceManager;
 
@@ -570,6 +572,8 @@ public class Term extends AppCompatActivity
             doResetTerminal();
             ScreenMessage.show(getApplicationContext(),
                     R.string.reset_toast_notification);
+        } else if (id == R.id.menu_exit) {
+            doExit();
         } else if (id == R.id.menu_toggle_soft_keyboard) {
             doToggleSoftKeyboard();
         } else if (id == R.id.menu_toggle_wakelock) {
@@ -846,6 +850,76 @@ public class Term extends AppCompatActivity
         if (session == null) return;
 
         session.reset();
+    }
+
+    /** How long the shells get to honour SIGHUP before Exit stops waiting. */
+    private static final long EXIT_GRACE_MS = 400;
+
+    private void doExit() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.exit_title)
+                .setMessage(R.string.exit_message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.exit, (dialog, which) -> performExit())
+                .show();
+    }
+
+    /**
+     * Shut the application down as far as an ordinary app is allowed to.
+     * <p>
+     * Android reserves Settings' "Force stop" for the system, so this does the
+     * strongest correct equivalent: hang up every session, give the shells a
+     * moment to exit, then kill whatever is left of the process groups we
+     * started -- by the pids the service tracks, never by matching process
+     * names. The app's tasks go with it, and we end our own process last so
+     * that the service, its notification and its threads go down with us.
+     * <p>
+     * Nothing on disk is touched: HOME and the preferences are still there
+     * for the next launch.
+     */
+    private void performExit() {
+        ThothLog.i(LogCategory.APP, "Exit requested; shutting down all sessions");
+
+        WifiLock.release();
+        WakeLock.release();
+
+        final int[] pids;
+        if (mTermService != null) {
+            pids = mTermService.sessionProcessIds();
+            mTermService.shutdownAll();
+        } else {
+            pids = new int[0];
+        }
+
+        // Let onStop()/onDestroy() unbind and stop the service on the way out.
+        mStopServiceOnFinish = true;
+        finishAffinity();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP /*API level 21*/)
+            RemoveTasksCompat21.removeAll(this);
+
+        mHandler.postDelayed(() -> {
+            for (int pid : pids) {
+                com.thothterm.Process.killChilds(pid);
+            }
+            android.os.Process.killProcess(android.os.Process.myPid());
+        }, EXIT_GRACE_MS);
+    }
+
+    @RequiresApi(21)
+    private static class RemoveTasksCompat21 {
+        /**
+         * finishAffinity() leaves the task card in Recents, and an activity's
+         * own finishAndRemoveTask() only drops the task it roots, so remove
+         * every task the app owns through ActivityManager instead.
+         */
+        private static void removeAll(Context context) {
+            ActivityManager activityManager =
+                    (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (activityManager == null) return;
+            for (ActivityManager.AppTask task : activityManager.getAppTasks()) {
+                task.finishAndRemoveTask();
+            }
+        }
     }
 
     /** Drop the current window's scrollback without disturbing its shell. */

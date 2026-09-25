@@ -39,6 +39,10 @@
     <string name="reset_toast_notification">This window\'s terminal state has been restarted.</string>
     <string name="clear_scrollback_toast_notification">This window\'s scrollback has been cleared.</string>
 
+    <string name="exit">Exit</string>
+    <string name="exit_title">Exit ThothTerm?</string>
+    <string name="exit_message">This will close all terminal sessions and stop running commands.</string>
+
     <string name="enable_wakelock">Keep screen awake</string>
     <string name="disable_wakelock">Allow screen to sleep</string>
     <string name="ignore_battery_optimizations">Allow \"%1$s\" to ignore battery optimizations?</string>

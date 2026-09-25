@@ -196,6 +196,11 @@ public class ShellTermSession extends GenericTermSession {
         super.finish();
     }
 
+    /** The shell pid, which is also its process group id. */
+    public int getProcessId() {
+        return mProcId;
+    }
+
     private static class ProcessHandler extends Handler {
         private final WeakReference<ShellTermSession> reference;
 

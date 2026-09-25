@@ -261,12 +261,27 @@ process_finish_childs(
 }
 
 
+static void
+process_kill_childs(
+        JNIEnv *env, jobject clazz,
+        jint pid
+) {
+    (void) env;
+    (void) clazz;
+
+    /* Follow-up to the SIGHUP above, for the user-facing Exit: a process that
+       chose to ignore the hangup does not get to ignore this one. */
+    (void) kill(-(pid_t) pid, SIGKILL);
+}
+
+
 int
 register_process(JNIEnv *env) {
     static JNINativeMethod methods[] = {
             {"createSubprocess", "(I[B[[B[[B[B)I", (void *) jprocess_create_subprocess},
             {"waitExit",         "(I)I",         (void *) process_wait_exit},
-            {"finishChilds",     "(I)V",         (void *) process_finish_childs}
+            {"finishChilds",     "(I)V",         (void *) process_finish_childs},
+            {"killChilds",       "(I)V",         (void *) process_kill_childs}
     };
     return register_native(
             env,

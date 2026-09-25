@@ -55,6 +55,8 @@ import com.thothterm.logging.ThothLog;
 import com.thothterm.services.CommandService;
 import com.thothterm.services.SessionsService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import jackpal.androidterm.emulatorview.TermSession;
@@ -141,6 +143,34 @@ public class TermService extends SessionsService {
         StopForeground.stop(this);
         super.onTimeout(startId, fgsType);
         stopSelf();
+    }
+
+    /**
+     * The pids of the shell process groups this service owns, captured before
+     * the sessions are torn down so Exit can make sure nothing of ours
+     * outlives the hangup.
+     */
+    public int[] sessionProcessIds() {
+        List<Integer> pids = new ArrayList<>();
+        for (TermSession session : getSessions()) {
+            if (session instanceof ShellTermSession) {
+                pids.add(((ShellTermSession) session).getProcessId());
+            }
+        }
+        int[] result = new int[pids.size()];
+        for (int i = 0; i < result.length; ++i) result[i] = pids.get(i);
+        return result;
+    }
+
+    /**
+     * Stop taking new work, hang up every session, and drop the ongoing
+     * notification. Used by the Exit action; ordinary teardown still goes
+     * through {@link #onDestroy()}.
+     */
+    public void shutdownAll() {
+        if (command_service != null) command_service.stop();
+        clearSessions();
+        removeRunningNotification();
     }
 
     /**
