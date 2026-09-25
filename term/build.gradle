@@ -86,9 +86,11 @@ android {
             }
         }
         release {
-            minifyEnabled = false
-            // use default file with automatically generated optimization rules/R8 optimizer
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.txt'
+            // R8 shrinking, optimization and obfuscation.
+            // proguard-android-optimize.txt is the platform's own configuration;
+            // proguard-rules.pro adds only what R8 cannot infer.
+            minifyEnabled = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     buildFeatures {
