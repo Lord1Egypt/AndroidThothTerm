@@ -21,6 +21,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.os.Build;
+import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -29,6 +31,8 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 
+import com.thothterm.logging.LogCategory;
+import com.thothterm.logging.ThothLog;
 import com.thothterm.utils.ScriptImporter;
 import com.thothterm.utils.ThemeManager;
 import com.thothterm.widget.ScreenMessage;
@@ -43,6 +47,39 @@ public class TermActivity extends jackpal.androidterm.Term {
                     new ActivityResultContracts.StartActivityForResult(),
                     result -> onRequestPasteScript(result.getResultCode(), result.getData())
             );
+
+    private final ActivityResultLauncher<String> request_post_notifications =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    granted -> ThothLog.i(LogCategory.APP,
+                            "Notification permission " + (granted ? "granted" : "denied"))
+            );
+
+    @Override
+    public void onCreate(@Nullable Bundle icicle) {
+        super.onCreate(icicle);
+        requestNotificationPermission();
+    }
+
+    /**
+     * The terminal service posts an ongoing notification while a session runs.
+     * On API 33+ that notification stays invisible until the user consents, so
+     * ask once here. A refusal is not an error: the service keeps running.
+     */
+    private void requestNotificationPermission() {
+        if (!NotificationPermission.shouldRequest(
+                Build.VERSION.SDK_INT,
+                NotificationPermission.isGranted(this),
+                NotificationPermission.wasAsked(this))) {
+            return;
+        }
+        NotificationPermission.recordAsked(this);
+        try {
+            request_post_notifications.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+        } catch (RuntimeException e) {
+            ThothLog.w(LogCategory.APP, "Cannot request notification permission: " + e);
+        }
+    }
 
     private static Intent getTermActivityIntent(Context context) {
         return new Intent(context, TermActivity.class)

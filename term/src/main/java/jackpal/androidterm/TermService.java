@@ -143,11 +143,37 @@ public class TermService extends SessionsService {
         stopSelf();
     }
 
+    /**
+     * Take the ongoing notification down with the service.
+     * <p>
+     * {@link StopForeground} only detaches it, which is right while the app
+     * keeps running, but leaves "Terminal session is running" on screen after
+     * the service is gone. Cancelling it separately races the detach, so ask
+     * for removal through the same call that ends the foreground state.
+     */
+    private void removeRunningNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N /*API level 24*/)
+            RemoveForegroundCompat24.stop(this);
+        else
+            StopForeground.stop(this);
+
+        NotificationManager manager = (NotificationManager) getApplicationContext()
+                .getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) manager.cancel(RUNNING_NOTIFICATION);
+    }
+
+    @RequiresApi(24)
+    private static class RemoveForegroundCompat24 {
+        private static void stop(Service service) {
+            service.stopForeground(STOP_FOREGROUND_REMOVE);
+        }
+    }
+
     @Override
     public void onDestroy() {
         if (command_service != null) command_service.stop();
         clearSessions();
-        StopForeground.stop(this);
+        removeRunningNotification();
         super.onDestroy();
 
         ThothLog.i(LogCategory.APP, "Terminal service stopped");
