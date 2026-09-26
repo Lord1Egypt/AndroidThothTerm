@@ -22,7 +22,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 
-import com.thothterm.Application;
 import com.thothterm.Process;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
@@ -32,7 +31,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -45,7 +43,7 @@ import jackpal.androidterm.util.TermSettings;
  * a shell). It keeps track of process PID and destroys it's process group
  * upon stopping.
  */
-public class ShellTermSession extends GenericTermSession {
+public abstract class ShellTermSession extends GenericTermSession {
     private static final int PROCESS_EXITED = 1;
 
     private final String mInitialCommand;
@@ -95,95 +93,34 @@ public class ShellTermSession extends GenericTermSession {
     }
 
     private int createShellProcess(TermSettings settings) throws IOException {
-        String shell = settings.getShell();
-
-        ArrayList<String> argList = parse(shell);
-        String arg0;
-        String[] args;
-
-        try {
-            arg0 = argList.get(0);
-            File file = new File(arg0);
-            if (!file.exists()) {
-                ThothLog.e(LogCategory.SHELL,
-                        "Shell executable not found: " + new File(arg0).getName());
-                throw new FileNotFoundException(arg0);
-            } else if (!file.canExecute()) {
-                ThothLog.e(LogCategory.SHELL,
-                        "Shell executable not executable: " + new File(arg0).getName());
-                throw new FileNotFoundException(arg0);
-            }
-            args = argList.toArray(new String[0]);
-        } catch (Exception e) {
-            argList = parse(settings.getFailsafeShell());
-            arg0 = argList.get(0);
-            args = argList.toArray(new String[0]);
+        ArrayList<String> argList = buildArgv(settings);
+        String arg0 = argList.get(0);
+        File file = new File(arg0);
+        if (!file.canExecute()) {
+            ThothLog.e(LogCategory.SHELL,
+                    "Session executable missing or not executable: " + file.getName());
+            throw new FileNotFoundException(arg0);
         }
-        ThothLog.d(LogCategory.SHELL, "Shell executable name=" + new File(arg0).getName());
+        String[] args = argList.toArray(new String[0]);
+        ThothLog.d(LogCategory.SHELL, "Session executable name=" + file.getName());
 
-        Map<String, String> map = new HashMap<>(System.getenv());
-        map.put("TERM", settings.getTermType());
-        map.put("PATH", Application.buildPATH());
-        map.put("HOME", settings.getHomePath());
-        map.put("TMPDIR", Application.getTmpPath());
-        map.put("ENV", Application.getScriptFilePath());
-
+        Map<String, String> map = buildEnvironment(settings);
         String[] env = new String[map.size()];
         int k = 0;
         for (Map.Entry<String, String> entry : map.entrySet())
             env[k++] = entry.getKey() + "=" + entry.getValue();
 
-        return Process.createSubprocess(mTermFd, arg0, args, env,
-                settings.getHomePath());
+        return Process.createSubprocess(mTermFd, arg0, args, env, workingDirectory());
     }
 
-    private ArrayList<String> parse(String cmd) {
-        final int PLAIN = 0;
-        final int WHITESPACE = 1;
-        final int INQUOTE = 2;
-        int state = WHITESPACE;
-        ArrayList<String> result = new ArrayList<>();
-        int cmdLen = cmd.length();
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < cmdLen; i++) {
-            char c = cmd.charAt(i);
-            if (state == PLAIN) {
-                if (Character.isWhitespace(c)) {
-                    result.add(builder.toString());
-                    builder.delete(0, builder.length());
-                    state = WHITESPACE;
-                } else if (c == '"') {
-                    state = INQUOTE;
-                } else {
-                    builder.append(c);
-                }
-            } else if (state == WHITESPACE) {
-                if (Character.isWhitespace(c)) {
-                    // do nothing
-                } else if (c == '"') {
-                    state = INQUOTE;
-                } else {
-                    state = PLAIN;
-                    builder.append(c);
-                }
-            } else if (state == INQUOTE) {
-                if (c == '\\') {
-                    if (i + 1 < cmdLen) {
-                        i += 1;
-                        builder.append(cmd.charAt(i));
-                    }
-                } else if (c == '"') {
-                    state = PLAIN;
-                } else {
-                    builder.append(c);
-                }
-            }
-        }
-        if (builder.length() > 0) {
-            result.add(builder.toString());
-        }
-        return result;
-    }
+    /** The session's argv; element 0 is the executable. */
+    protected abstract ArrayList<String> buildArgv(TermSettings settings);
+
+    /** The complete environment of the session process. */
+    protected abstract Map<String, String> buildEnvironment(TermSettings settings);
+
+    /** Host-side working directory the session process starts in. */
+    protected abstract String workingDirectory();
 
     private void onProcessExit(int result) {
         if (result == 0)

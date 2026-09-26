@@ -25,44 +25,30 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentSender;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.ParcelFileDescriptor;
-import android.os.ResultReceiver;
 import android.service.notification.StatusBarNotification;
-import android.text.TextUtils;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
 import com.thothterm.Application;
-import com.thothterm.BuildConfig;
 import com.thothterm.NotificationPermission;
 import com.thothterm.R;
-import com.thothterm.RemoteSession;
 import com.thothterm.TermActivity;
-import com.thothterm.compat.PackageManagerCompat;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
-import com.thothterm.services.CommandService;
 import com.thothterm.services.SessionsService;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import jackpal.androidterm.emulatorview.TermSession;
-import jackpal.androidterm.libtermexec.v1.ITerminal;
 import jackpal.androidterm.util.TermSettings;
 
 
@@ -70,7 +56,6 @@ public class TermService extends SessionsService {
     private static final int RUNNING_NOTIFICATION = 1;
 
     private final IBinder mTSBinder = new TSBinder();
-    private CommandService command_service;
     /** True while this service holds its foreground state and notification. */
     private boolean mForeground;
 
@@ -108,15 +93,9 @@ public class TermService extends SessionsService {
 
     @Override
     public IBinder onBind(Intent intent) {
-        if (TermExec.SERVICE_ACTION_V1.equals(intent.getAction())) {
-            ThothLog.d(LogCategory.SESSION, "Service bound by external process");
-
-            return new RBinder();
-        } else {
-            ThothLog.d(LogCategory.SESSION, "Service bound by activity");
-
-            return mTSBinder;
-        }
+        // Not exported: only this app's activities bind.
+        ThothLog.d(LogCategory.SESSION, "Service bound by activity");
+        return mTSBinder;
     }
 
     @Override
@@ -125,9 +104,6 @@ public class TermService extends SessionsService {
         Notification notification = buildNotification();
         if (!StartForeground.start(this, notification)) return;
         mForeground = true;
-
-        command_service = new CommandService(this);
-        command_service.start();
 
         ThothLog.i(LogCategory.APP, "Terminal service started");
     }
@@ -146,7 +122,6 @@ public class TermService extends SessionsService {
                     ));
         }
 
-        command_service.stop();
         clearSessions();
         StopForeground.stop(this);
         super.onTimeout(startId, fgsType);
@@ -171,12 +146,11 @@ public class TermService extends SessionsService {
     }
 
     /**
-     * Stop taking new work, hang up every session, and drop the ongoing
+     * Hang up every session and drop the ongoing
      * notification. Used by the Exit action; ordinary teardown still goes
      * through {@link #onDestroy()}.
      */
     public void shutdownAll() {
-        if (command_service != null) command_service.stop();
         clearSessions();
         removeRunningNotification();
     }
@@ -242,7 +216,6 @@ public class TermService extends SessionsService {
 
     @Override
     public void onDestroy() {
-        if (command_service != null) command_service.stop();
         clearSessions();
         removeRunningNotification();
         super.onDestroy();
@@ -259,7 +232,8 @@ public class TermService extends SessionsService {
     private Notification buildNotification() {
         return buildNotification(this.getApplicationContext(),
                 (context, builder) -> {
-                    CharSequence msg = context.getText(R.string.service_notify_text);
+                    CharSequence msg = context.getString(R.string.garden_notify_text,
+                            context.getString(R.string.application_terminal));
                     builder.setContentText(msg).setTicker(msg);
                 }
         );
@@ -419,96 +393,6 @@ public class TermService extends SessionsService {
         public TermService getService() {
             ThothLog.d(LogCategory.SESSION, "Activity binding to service");
             return TermService.this;
-        }
-    }
-
-    private final class RBinder extends ITerminal.Stub {
-        @Override
-        public IntentSender startSession(final ParcelFileDescriptor pseudoTerminalMultiplexerFd,
-                                         final ResultReceiver callback) {
-            final String sessionHandle = UUID.randomUUID().toString();
-
-            final PendingIntent result = createResultIntent(sessionHandle);
-
-            final String niceName = getNiceName();
-            if (niceName == null) return null;
-
-            createBoundSession(pseudoTerminalMultiplexerFd, sessionHandle, niceName,
-                    new RBinderCleanupCallback(result, callback));
-            return result.getIntentSender();
-        }
-
-        private String getNiceName() {
-            final PackageManager pm = getPackageManager();
-            final String[] pkgs = pm.getPackagesForUid(getCallingUid());
-            if (pkgs == null)
-                return null;
-
-            for (String packageName : pkgs) {
-                try {
-                    final PackageInfo pkgInfo = PackageManagerCompat.getPackageInfo(pm, packageName);
-                    if (BuildConfig.APPLICATION_ID.equals(pkgInfo.packageName))
-                        continue;
-
-                    final ApplicationInfo appInfo = pkgInfo.applicationInfo;
-                    if (appInfo == null)
-                        continue;
-
-                    final CharSequence label = pm.getApplicationLabel(appInfo);
-
-                    if (!TextUtils.isEmpty(label))
-                        return label.toString();
-                } catch (PackageManager.NameNotFoundException ignore) {
-                }
-            }
-
-            return null;
-        }
-
-        private PendingIntent createResultIntent(final String sessionHandle) {
-            // distinct Intent Uri and PendingIntent requestCode must be sufficient to avoid collisions
-            final Intent switchIntent = new Intent(getApplicationContext(), RemoteSession.class)
-                    .setAction(Application.ACTION_OPEN_NEW_WINDOW)
-                    .setData(Uri.parse(sessionHandle))
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    .putExtra(Application.ARGUMENT_TARGET_WINDOW, sessionHandle);
-
-            int flags = PendingIntent.FLAG_ONE_SHOT;
-            return ActivityPendingIntent.get(getApplicationContext(),
-                    sessionHandle.hashCode(), switchIntent, flags);
-        }
-
-        private void createBoundSession(final ParcelFileDescriptor fd, String handle, String issuerTitle,
-                                        final TermSession.FinishCallback callback) {
-            new Handler(Looper.getMainLooper()).post(() -> {
-                final TermSettings settings = new TermSettings(getApplicationContext());
-
-                GenericTermSession session = new BoundSession(fd, settings, issuerTitle);
-                session.setHandle(handle);
-                session.setTitle("");
-                session.initializeEmulator(80, 24);
-
-                addSession(session, callback);
-            });
-        }
-    }
-
-    private final class RBinderCleanupCallback implements TermSession.FinishCallback {
-        private final PendingIntent result;
-        private final ResultReceiver callback;
-
-        public RBinderCleanupCallback(PendingIntent result, ResultReceiver callback) {
-            this.result = result;
-            this.callback = callback;
-        }
-
-        @Override
-        public void onSessionFinish(TermSession session) {
-            result.cancel();
-
-            callback.send(0, new Bundle());
-
-            removeSession(session);
         }
     }
 }

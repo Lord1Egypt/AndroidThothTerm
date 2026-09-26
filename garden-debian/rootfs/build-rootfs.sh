@@ -14,7 +14,8 @@
 # (qemu-user) on the host, because the second debootstrap stage runs arm64
 # maintainer scripts.
 #
-# Output: $OUT_DIR/debian-13.7-trixie-arm64-rootfs.tar.gz (+ .sha256)
+# Output: $OUT_DIR (default garden-debian/rootfs/out, not tracked) holds
+#   debian-13.7-trixie-arm64-rootfs.tar.gz, its .sha256 and the package list.
 set -eu
 
 # ---- pins -------------------------------------------------------------------
@@ -31,7 +32,7 @@ BUILDER="debian:trixie-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e436354
 # ------------------------------------------------------------------------------
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-OUT_DIR="${OUT_DIR:-$HERE/../build/rootfs}"
+OUT_DIR="${OUT_DIR:-$HERE/out}"
 NAME="debian-${DEBIAN_VERSION}-${SUITE}-${ARCH}-rootfs"
 PACKAGES="$(grep -v '^#' "$HERE/packages.txt" | grep -v '^[[:space:]]*$' | tr '\n' ' ')"
 

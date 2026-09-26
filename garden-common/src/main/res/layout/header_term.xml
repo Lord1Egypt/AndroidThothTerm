@@ -44,7 +44,7 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:contentDescription="@string/application_site"
-            app:srcCompat="@drawable/ic_brand_mark"/>
+            app:srcCompat="@drawable/garden_emblem"/>
 
         <LinearLayout
             android:layout_width="0dp"

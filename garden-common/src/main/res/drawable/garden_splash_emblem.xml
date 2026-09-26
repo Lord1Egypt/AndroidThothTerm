@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ draws windowSplashScreenAnimatedIcon into a 288dp box and expects
+  the artwork inside a 192dp circle: 192/288 leaves one sixth of padding on each
+  side. The emblem is square, so scaling it into the square box cannot distort.
+  Only the splash uses this wrapper; other screens use @drawable/garden_emblem.
+-->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/garden_emblem"
+    android:insetLeft="16.667%"
+    android:insetTop="16.667%"
+    android:insetRight="16.667%"
+    android:insetBottom="16.667%"/>

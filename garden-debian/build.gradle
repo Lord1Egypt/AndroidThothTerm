@@ -1,0 +1,155 @@
+plugins {
+    id 'com.android.application'
+}
+
+// ThothTerm Debian: a thin Garden edition. Everything distro-specific is data
+// (src/main/assets/garden/distro.properties), branding resources, the pinned
+// rootfs and the PRoot runtime built for this application id.
+android {
+    namespace = "com.thothterm.debian"
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    ndkVersion = rootProject.ext.ndkVersion
+    defaultConfig {
+        applicationId "com.thothterm.debian"
+        minSdkVersion 26
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        versionCode 100
+        versionName '0.1.0'
+
+        // Garden v1 is arm64 only.
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+    // Two tracks from one source tree (docs/garden/ARCHITECTURE.md):
+    //  full   - embeds the pinned rootfs; the GitHub Golden artifact.
+    //  fdroid - embeds no rootfs; downloads the same pinned archive over HTTPS
+    //           after explicit consent and verifies its SHA-256 and size.
+    flavorDimensions = ["track"]
+    productFlavors {
+        full {
+            dimension 'track'
+        }
+        fdroid {
+            dimension 'track'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures {
+        buildConfig = true
+    }
+    sourceSets {
+        main {
+            jniLibs.srcDirs += "$buildDir/garden/jniLibs"
+            assets.srcDirs += "$buildDir/garden/assets"
+        }
+        full {
+            assets.srcDirs += "$buildDir/garden/rootfs-assets"
+        }
+    }
+    androidResources {
+        // The rootfs is already gzip-compressed; storing it keeps it streamable.
+        noCompress += 'tgz'
+    }
+    packaging {
+        jniLibs {
+            // The PRoot runtime must land in nativeLibraryDir with the executable bit.
+            useLegacyPackaging = true
+            keepDebugSymbols += ["**/libproot.so", "**/libproot_loader.so"]
+        }
+    }
+}
+
+dependencies {
+    implementation project(':garden-common')
+    testImplementation 'junit:junit:4.13.2'
+}
+
+def distro = new Properties()
+file('src/main/assets/garden/distro.properties').withInputStream { distro.load(it) }
+
+// PRoot, its loader, talloc and libandroid-shmem, from the pinned sources in
+// third_party/. Downloads nothing.
+def buildProot = tasks.register('buildProotRuntime', Exec) {
+    description = 'Build the PRoot runtime from pinned source for this application id.'
+    group = 'build'
+    def jniOut = file("$buildDir/garden/jniLibs/arm64-v8a")
+    def assetsOut = file("$buildDir/garden/assets/runtime/arm64-v8a")
+    commandLine 'sh', rootProject.file('garden-common/tools/build-proot.sh')
+    environment 'GARDEN_APPLICATION_ID', android.defaultConfig.applicationId
+    environment 'GARDEN_JNI_DIR', jniOut
+    environment 'GARDEN_RUNTIME_ASSETS', assetsOut
+    environment 'GARDEN_PROOT_BUILD_DIR', file("$buildDir/garden/proot-src")
+    environment 'GARDEN_NDK_VERSION', rootProject.ext.ndkVersion
+    // The NDK AGP resolved for ndkVersion, so PRoot and the CMake targets share a toolchain.
+    environment 'ANDROID_NDK_HOME', androidComponents.sdkComponents.ndkDirectory.get().asFile
+    inputs.dir rootProject.file('third_party/proot')
+    inputs.dir rootProject.file('third_party/talloc')
+    inputs.dir rootProject.file('third_party/libandroid-shmem')
+    inputs.dir rootProject.file('garden-common/patches')
+    inputs.file rootProject.file('garden-common/tools/build-proot.sh')
+    outputs.file new File(jniOut, 'libproot.so')
+    outputs.file new File(jniOut, 'libproot_loader.so')
+    outputs.file new File(assetsOut, 'libtalloc.so.2')
+    outputs.file new File(assetsOut, 'libandroid-shmem.so')
+}
+
+// Stages the pinned Debian rootfs built by rootfs/build-rootfs.sh, refusing
+// anything whose SHA-256 differs from distro.properties.
+def stageRootfs = tasks.register('stageDebianRootfs') {
+    description = 'Verify and stage the pinned Debian rootfs.'
+    group = 'build'
+    def source = file("rootfs/out/${distro.getProperty('rootfs.build.file')}")
+    def target = file("$buildDir/garden/rootfs-assets/${distro.getProperty('rootfs.asset')}")
+    inputs.file file('src/main/assets/garden/distro.properties')
+    outputs.file target
+    doLast {
+        if (!source.isFile()) {
+            throw new GradleException("Missing ${source}. Build it with garden-debian/rootfs/build-rootfs.sh "
+                    + "(reproducible; see docs/garden/debian/ROOTFS_PROVENANCE.md).")
+        }
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        source.withInputStream { stream ->
+            byte[] buffer = new byte[1 << 16]
+            int n
+            while ((n = stream.read(buffer)) > 0) digest.update(buffer, 0, n)
+        }
+        def actual = digest.digest().encodeHex().toString()
+        def expected = distro.getProperty('rootfs.sha256')
+        if (actual != expected) {
+            throw new GradleException("Rootfs SHA-256 mismatch: expected ${expected}, got ${actual}")
+        }
+        if (source.length() != Long.parseLong(distro.getProperty('rootfs.compressedSize'))) {
+            throw new GradleException("Rootfs size differs from distro.properties")
+        }
+        target.parentFile.mkdirs()
+        java.nio.file.Files.copy(source.toPath(), target.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    }
+}
+
+tasks.named('preBuild') { dependsOn buildProot }
+// Only the full track embeds the rootfs; fdroid builds never read rootfs/out.
+tasks.configureEach { task ->
+    if (task.name ==~ /(merge|package)Full\w*Assets/) task.dependsOn stageRootfs
+}

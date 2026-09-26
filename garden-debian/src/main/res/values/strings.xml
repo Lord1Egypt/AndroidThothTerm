@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Overrides garden-common's placeholder: the name on the launcher and in the app. -->
+    <string name="application_terminal" translatable="false">ThothTerm Debian</string>
+</resources>

@@ -1,0 +1,24 @@
+Subject: ashmem_memfd: include <string.h> for strcmp and memset
+
+The file calls strcmp() and memset() without including <string.h>.
+Older compilers accepted the implicit declarations with a warning; clang 21,
+which ships with Android NDK r29, rejects them as an error under the C99+
+rules ("ISO C99 and later do not support implicit function declarations").
+
+This matters beyond the build failure: an implicitly declared function is
+assumed to return int, so the pointer returned by memset() would be truncated
+to 32 bits on arm64.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92)
+Scope: adds one include; no behavioural change.
+
+--- a/src/extension/ashmem_memfd/ashmem_memfd.c
++++ b/src/extension/ashmem_memfd/ashmem_memfd.c
+@@ -3,6 +3,7 @@
+ #include <stdlib.h>
+ #include <signal.h>
+ #include <unistd.h>
++#include <string.h>       /* strcmp, memset  */
+ #include <sys/syscall.h>  /* __NR_memfd_create,  */
+ #include <linux/ashmem.h> /* ASHMEM_GET_SIZE,  */
+ #include <linux/memfd.h>  /* MFD_CLOEXEC  */

@@ -30,6 +30,8 @@ dependencyResolutionManagement {
 include ':term'
 include ':libtermexec'
 include ':emulatorview'
+include ':garden-common'
+include ':garden-debian'
 //include ':samples:addon'
 //include ':samples:intents'
 //include ':samples:pathbroadcasts'

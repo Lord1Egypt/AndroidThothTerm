@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Garden identity resources. garden-common references them; every edition
+  overrides both with its own approved branding (see docs/branding/<distro>/).
+  These defaults exist only so the library resolves on its own.
+-->
+<resources>
+    <!-- The round eight-petal in-app emblem: splash, setup screen, drawer header. -->
+    <drawable name="garden_emblem">@android:color/transparent</drawable>
+    <!-- Backdrop of the Android 12+ splash screen. -->
+    <color name="garden_splash_background">#000000</color>
+</resources>

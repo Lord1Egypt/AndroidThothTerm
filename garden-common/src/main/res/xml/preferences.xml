@@ -68,38 +68,6 @@
             android:summary="@string/summary_termtype_preference"
             android:title="@string/title_termtype_preference"/>
 
-        <EditTextPreference
-            android:key="@string/key_home_path_preference"
-            android:summary="@string/summary_home_path_preference"
-            android:title="@string/title_home_path_preference"/>
-
-        <EditTextPreference
-            android:defaultValue="@string/pref_shell_default"
-            android:dialogTitle="@string/dialog_title_shell_preference"
-            android:key="shell"
-            android:summary="@string/summary_shell_preference"
-            android:title="@string/title_shell_preference"/>
-
-        <EditTextPreference
-            android:defaultValue="@string/pref_initialcommand_default"
-            android:dialogTitle="@string/dialog_title_initialcommand_preference"
-            android:key="@string/key_initialcommand_preference"
-            android:summary="@string/summary_initialcommand_preference"
-            android:title="@string/title_initialcommand_preference"/>
-
-        <EditTextPreference
-            android:dialogLayout="@layout/pref_shell_script"
-            android:dialogTitle="@string/dialog_title_shellrc_preference"
-            android:key="@string/key_shellrc_preference"
-            android:summary="@string/summary_shellrc_preference"
-            android:title="@string/title_shellrc_preference"/>
-
-        <CheckBoxPreference
-            android:defaultValue="@bool/pref_source_sys_shrc_default"
-            android:key="@string/key_source_sys_shrc_preference"
-            android:summary="@string/summary_source_sys_shrc_preference"
-            android:title="@string/title_source_sys_shrc_preference"/>
-
         <CheckBoxPreference
             android:defaultValue="@bool/pref_close_window_on_process_exit_default"
             android:key="close_window_on_process_exit"

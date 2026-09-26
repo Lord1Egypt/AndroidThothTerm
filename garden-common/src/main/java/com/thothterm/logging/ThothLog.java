@@ -221,7 +221,6 @@ public final class ThothLog {
     }
 
     private static void writeHeader(Writer writer, Manager manager) throws Exception {
-        String flavor = BuildConfig.FLAVOR + "-" + BuildConfig.BUILD_TYPE;
         String abi;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             String[] abis = Build.SUPPORTED_ABIS;
@@ -232,12 +231,13 @@ public final class ThothLog {
 
         writer.write("ThothTerm diagnostics log\n");
         writer.write("----------------------------------------\n");
-        writer.write("App version: " + BuildConfig.VERSION_NAME
-                + " (" + BuildConfig.VERSION_CODE + ")\n");
+        writer.write("App: " + com.thothterm.Application.ID + " "
+                + com.thothterm.Application.VER
+                + " (" + com.thothterm.Application.VERSION_CODE + ")\n");
         writer.write("Android: " + Build.VERSION.RELEASE
                 + " (API " + Build.VERSION.SDK_INT + ")\n");
         writer.write("Device architecture: " + abi + "\n");
-        writer.write("App flavor: " + flavor + "\n");
+        writer.write("Build type: " + BuildConfig.BUILD_TYPE + "\n");
         writer.write("Log level: " + getLevelName()
                 + " (developer logging: " + (isDeveloperLoggingEnabled() ? "on" : "off") + ")\n");
         writer.write("Exported: " + Formats.full(System.currentTimeMillis()) + "\n");

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Garden (distribution edition) strings. %s arguments are distro names from
+     the edition's distro.properties, e.g. "Debian GNU/Linux". -->
+<resources>
+    <string name="garden_welcome">Welcome to %1$s</string>
+    <string name="garden_preparing">Preparing %1$s…</string>
+    <string name="garden_preparing_generic">Preparing your Linux environment…</string>
+    <string name="garden_prepare_once">This happens only once.</string>
+    <string name="garden_extracting_percent">Preparing %1$s… %2$d%%</string>
+    <string name="garden_downloading">Downloading %1$s…</string>
+    <string name="garden_requires_arm64">%1$s requires an ARM64 device.</string>
+    <string name="garden_no_space">There is not enough free storage to install %1$s.</string>
+    <string name="garden_failed">%1$s could not be prepared.</string>
+    <string name="garden_prepare_failed_hint">Nothing was left half-installed. Retry, or view the logs for details.</string>
+    <string name="garden_retry">Try again</string>
+    <string name="garden_view_logs">View logs</string>
+    <string name="garden_consent_title">%1$s needs to be downloaded</string>
+    <string name="garden_consent_body">%1$s runs a real %2$s userland. This build does not include it, so it has to be downloaded before the terminal can start.\n\nDownload size: about %3$d MB\nFrom: %4$s\n\nWhat you are agreeing to:\n• This downloads executable software onto your device after installation.\n• The archive is built by the ThothTerm project from the official %2$s package archive, reproducibly, and published with this app’s source. It is not part of this app’s package and was not built or verified by F‑Droid.\n• ThothTerm checks the download against a SHA‑256 checksum that is fixed in this app’s source, and refuses it if it does not match.\n\nNothing is downloaded unless you choose Download.</string>
+    <!-- Foreground-service notification; %1$s is the edition name. -->
+    <string name="garden_notify_text">%1$s is running</string>
+    <string name="garden_about">%1$s on Android\n\nVersion %2$s</string>
+    <string name="garden_consent_accept">Download</string>
+    <string name="garden_consent_decline">Not now</string>
+    <string name="garden_consent_declined">Nothing was downloaded. You can start the download whenever you want.</string>
+</resources>

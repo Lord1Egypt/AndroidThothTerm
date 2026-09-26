@@ -47,22 +47,20 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.preference.PreferenceManager;
 
-import com.google.android.material.snackbar.Snackbar;
 import com.thothterm.AppCompatActivity;
 import com.thothterm.Application;
-import com.thothterm.Permissions;
 import com.thothterm.R;
-import com.thothterm.Settings;
 import com.thothterm.TermActionBar;
 import com.thothterm.TerminalZoom;
 import com.thothterm.TermPreferencesActivity;
 import com.thothterm.WindowListActivity;
 import com.thothterm.compat.SoftInputCompat;
+import com.thothterm.garden.GardenSetupActivity;
+import com.thothterm.garden.GardenTermSession;
+import com.thothterm.garden.RootfsManager;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
-import com.thothterm.remote.CommandCollector;
 import com.thothterm.services.ServiceManager;
-import com.thothterm.utils.ConsoleStartupScript;
 import com.thothterm.utils.SimpleClipboardManager;
 import com.thothterm.utils.WakeLock;
 import com.thothterm.utils.WifiLock;
@@ -106,7 +104,6 @@ public class Term extends AppCompatActivity
     private boolean mAlreadyStarted = false;
     private boolean mStopServiceOnFinish = false;
     private int onResumeSelectWindow = -1;
-    private boolean command_collected;
     private TermService mTermService;
     private TermActionBar mActionBar;
     private ExtraKeysView mExtraKeys;
@@ -189,12 +186,10 @@ public class Term extends AppCompatActivity
 
     private Handler mHandler;
 
-    protected static TermSession createTermSession(Context context, String extraCommand) throws IOException {
+    protected static TermSession createTermSession(Context context) throws IOException {
         TermSettings settings = new TermSettings(context);
 
-        String initialCommand = Settings.prepareInitialCommand(context, extraCommand);
-
-        GenericTermSession session = new ShellTermSession(settings, initialCommand);
+        GenericTermSession session = new GardenTermSession(settings);
         // XXX We should really be able to fetch this from within TermSession
         session.setProcessExitMessage(context.getString(R.string.process_exit_message));
 
@@ -204,20 +199,6 @@ public class Term extends AppCompatActivity
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Application.settings.parsePreference(this, sharedPreferences, key);
-
-        if (key.equals(getString(R.string.key_shellrc_preference))) {
-            String value = sharedPreferences.getString(key, null);
-            ConsoleStartupScript.write(mSettings.getHomePath(), value);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.remove(key);
-            editor.apply();
-        }
-
-        if (key.equals(getString(R.string.key_home_path_preference))) {
-            String value = sharedPreferences.getString(key, null);
-            ConsoleStartupScript.rename(mSettings.getHomePath(), value);
-            mSettings.setHomePath(value);
-        }
 
         mSettings.readPrefs(this, sharedPreferences);
         if (mExtraKeys != null) {
@@ -230,7 +211,6 @@ public class Term extends AppCompatActivity
         super.onCreate(icicle);
 
         ThothLog.d(LogCategory.UI, "Term activity created");
-        command_collected = false;
         mHandler = new Handler(getMainLooper());
 
         if (icicle == null)
@@ -255,13 +235,6 @@ public class Term extends AppCompatActivity
         mExtraKeys.applyPreferences(
                 PreferenceManager.getDefaultSharedPreferences(this));
 
-        if (!command_collected) {
-            CommandCollector.collect(this, () -> {
-                command_collected = true;
-                populateSessions();
-            });
-        }
-
         service_manager.onCreate(this);
 
         WakeLock.create(this);
@@ -270,7 +243,6 @@ public class Term extends AppCompatActivity
         mHaveFullHwKeyboard = checkHaveFullHwKeyboard(getResources().getConfiguration());
 
         updatePrefs();
-        requestStoragePermission();
         mAlreadyStarted = true;
     }
 
@@ -284,14 +256,15 @@ public class Term extends AppCompatActivity
 
     private synchronized void populateSessions() {
         if (mTermService == null) return;
-        if (!command_collected) return;
 
         if (mTermService.getSessionCount() == 0) {
             try {
                 mTermService.addSession(createTermSession());
             } catch (IOException e) {
-                ScreenMessage.show(getApplicationContext(),
-                        "Failed to start terminal session");
+                // The distro is not (or no longer) installed: setup owns that.
+                ThothLog.w(LogCategory.SESSION, "Session start failed type="
+                        + e.getClass().getSimpleName());
+                startActivity(new Intent(this, GardenSetupActivity.class));
                 finish();
                 return;
             }
@@ -341,7 +314,7 @@ public class Term extends AppCompatActivity
     }
 
     private TermSession createTermSession() throws IOException {
-        return createTermSession(this, null);
+        return createTermSession(this);
     }
 
     /** Font size captured when the current pinch began; -1 while not pinching. */
@@ -806,36 +779,7 @@ public class Term extends AppCompatActivity
         synchronizeActionBar();
     }
 
-    private void requestStoragePermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M /*API Level 23*/) return;
 
-        if (Permissions.permissionExternalStorage(this))
-            return;
-
-        Permissions.requestExternalStorage(this, mViewFlipper, Permissions.REQUEST_EXTERNAL_STORAGE);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        System.err.println("TRACE Term.onRequestPermissionsResult()  requestCode: " + requestCode);
-        switch (requestCode) {
-            case Permissions.REQUEST_EXTERNAL_STORAGE: {
-                if (Permissions.isPermissionGranted(grantResults)) {
-                    Snackbar.make(mViewFlipper,
-                            R.string.message_external_storage_granted,
-                            Snackbar.LENGTH_SHORT)
-                            .show();
-                } else {
-                    Snackbar.make(mViewFlipper,
-                            R.string.message_external_storage_not_granted,
-                            Snackbar.LENGTH_SHORT)
-                            .show();
-                }
-                return;
-            }
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
 
     protected boolean canPaste() {
         return canPaste(new SimpleClipboardManager(this));
@@ -937,8 +881,8 @@ public class Term extends AppCompatActivity
     private void doShowAbout() {
         AlertDialog.Builder b = new AlertDialog.Builder(this);
         b.setTitle(R.string.about_title);
-        b.setMessage(getString(R.string.application_positioning)
-                + "\n\n" + getString(R.string.about_version, Application.VER));
+        b.setMessage(getString(R.string.garden_about,
+                RootfsManager.get().distro().releaseLine(), Application.VER));
         b.setPositiveButton(R.string.about_site,
                 (dialog, id) -> WrapOpenURL.launch(Term.this, R.string.help_url));
         b.setNegativeButton(android.R.string.cancel, null);
