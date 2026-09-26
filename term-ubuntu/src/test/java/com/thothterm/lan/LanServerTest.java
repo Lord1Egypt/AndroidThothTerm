@@ -64,6 +64,7 @@ public class LanServerTest {
         switch (name) {
             case "index.html": return "<!doctype html><title>LAN</title>".getBytes(StandardCharsets.UTF_8);
             case "xterm.js": return "var x;".getBytes(StandardCharsets.UTF_8);
+            case "fonts/cascadia-mono-arabic-400-normal.woff2": return new byte[]{'w', 'O', 'F', '2'};
             default: return null;
         }
     };
@@ -418,6 +419,19 @@ public class LanServerTest {
             assertEquals(path, 404, http(port, "GET", path, null, null, null, null, host(port)).status);
         }
         assertEquals(405, http(port, "DELETE", "/", null, null, null, null, host(port)).status);
+    }
+
+    @Test
+    public void servesOnlyWellFormedFontNames() throws IOException {
+        int port = start();
+        Response font = http(port, "GET", "/fonts/cascadia-mono-arabic-400-normal.woff2", null, null, null, null, host(port));
+        assertEquals(200, font.status);
+        assertEquals("font/woff2", font.headers.get("content-type"));
+        assertTrue(font.headers.get("content-security-policy").contains("font-src 'self'"));
+        for (String path : new String[]{"/fonts/missing.woff2", "/fonts/../index.html", "/fonts/..%2Findex.html",
+                "/fonts/a/b.woff2", "/fonts/UPPER.woff2", "/fonts/x.ttf", "/fonts/.woff2", "/fonts/"}) {
+            assertEquals(path, 404, http(port, "GET", path, null, null, null, null, host(port)).status);
+        }
     }
 
     @Test

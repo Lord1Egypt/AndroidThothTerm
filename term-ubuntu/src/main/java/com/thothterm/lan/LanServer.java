@@ -79,15 +79,24 @@ final class LanServer {
         byte[] read(String name) throws IOException;
     }
 
-    /** Route -> (asset, content type). Nothing outside this table is served. */
+    /**
+     * Route -> (asset, content type). Nothing outside this table is served,
+     * except font files whose names match {@link #FONT_FILE}.
+     */
     private static final String[][] STATIC = {
             {"/", "index.html", "text/html; charset=utf-8"},
             {"/app.js", "app.js", "text/javascript; charset=utf-8"},
             {"/app.css", "app.css", "text/css; charset=utf-8"},
             {"/xterm.js", "xterm.js", "text/javascript; charset=utf-8"},
             {"/xterm.css", "xterm.css", "text/css; charset=utf-8"},
+            {"/rtl.js", "rtl.js", "text/javascript; charset=utf-8"},
+            {"/fonts.css", "fonts.css", "text/css; charset=utf-8"},
             {"/licenses.txt", "licenses.txt", "text/plain; charset=utf-8"},
     };
+
+    /** /fonts/NAME.woff2: lower-case letters, digits and dashes only, so no path can be formed. */
+    private static final java.util.regex.Pattern FONT_FILE =
+            java.util.regex.Pattern.compile("/fonts/([a-z0-9-]{1,64}\\.woff2)");
 
     private final LanAuth auth;
     private final RemoteTerminals terminals;
@@ -315,6 +324,14 @@ final class LanServer {
                     respond(out, 200, entry[2], "HEAD".equals(request.method) ? null : body,
                             body.length);
                 }
+                return;
+            }
+        }
+        java.util.regex.Matcher font = FONT_FILE.matcher(path);
+        if (font.matches() && "GET".equals(request.method)) {
+            byte[] body = assets.read("fonts/" + font.group(1));
+            if (body != null) {
+                respond(out, 200, "font/woff2", body);
                 return;
             }
         }
@@ -587,7 +604,7 @@ final class LanServer {
                 .append("Cross-Origin-Resource-Policy: same-origin\r\n")
                 .append("Content-Security-Policy: default-src 'none'; script-src 'self'; ")
                 .append("style-src 'self' 'unsafe-inline'; connect-src 'self' ws://").append(hostHeader)
-                .append("; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'\r\n");
+                .append("; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'\r\n");
         if (type != null) head.append("Content-Type: ").append(type).append("\r\n");
         head.append("\r\n");
         out.write(head.toString().getBytes(StandardCharsets.ISO_8859_1));

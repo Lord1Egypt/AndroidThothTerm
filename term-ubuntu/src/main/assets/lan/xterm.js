@@ -1,10 +1,11 @@
 /*!
  * xterm.js 6.0.0 and @xterm/addon-fit 0.11.0
- * (https://github.com/xtermjs/xterm.js, tag 6.0.0),
- * bundled unminified from their TypeScript sources by
- * term-ubuntu/lan-web/build.mjs with esbuild 0.28.2.
- * MIT licensed: the xterm.js authors, SourceLair, Christopher Jeffrey and,
- * for src/vs, Microsoft Corporation. Full notices in licenses.txt.
+ * (https://github.com/xtermjs/xterm.js, tag 6.0.0) and
+ * bidi-js 1.0.3 (https://github.com/lojjic/bidi-js),
+ * bundled unminified from their sources by term-ubuntu/lan-web/build.mjs
+ * with esbuild 0.28.2. MIT licensed: the xterm.js authors,
+ * SourceLair, Christopher Jeffrey, Microsoft Corporation (src/vs) and
+ * Jason Johnston (bidi-js). Full notices in licenses.txt.
  */
 var ThothXterm = (() => {
   var __defProp = Object.defineProperty;
@@ -37,6 +38,7 @@ var ThothXterm = (() => {
   // entry.ts
   var entry_exports = {};
   __export(entry_exports, {
+    Bidi: () => src_exports,
     FitAddon: () => FitAddon,
     Terminal: () => Terminal
   });
@@ -1256,13 +1258,13 @@ WARNING: This link could potentially be dangerous`);
       }
     }
     Iterable2.filter = filter;
-    function* map(iterable, fn) {
+    function* map2(iterable, fn) {
       let index = 0;
       for (const element of iterable) {
         yield fn(element, index++);
       }
     }
-    Iterable2.map = map;
+    Iterable2.map = map2;
     function* flatMap(iterable, fn) {
       let index = 0;
       for (const element of iterable) {
@@ -1887,10 +1889,10 @@ ${stackTraceFormattedLines.join("\n")}
       };
     }
     Event4.once = once;
-    function map(event, map2, disposable) {
-      return snapshot((listener, thisArgs = null, disposables) => event((i2) => listener.call(thisArgs, map2(i2)), null, disposables), disposable);
+    function map2(event, map3, disposable) {
+      return snapshot((listener, thisArgs = null, disposables) => event((i2) => listener.call(thisArgs, map3(i2)), null, disposables), disposable);
     }
-    Event4.map = map;
+    Event4.map = map2;
     function forEach(event, each, disposable) {
       return snapshot((listener, thisArgs = null, disposables) => event((i2) => {
         each(i2);
@@ -1915,7 +1917,7 @@ ${stackTraceFormattedLines.join("\n")}
     Event4.any = any;
     function reduce(event, merge, initial, disposable) {
       let output = initial;
-      return map(event, (e) => {
+      return map2(event, (e) => {
         output = merge(output, e);
         return output;
       }, disposable);
@@ -2137,16 +2139,16 @@ ${stackTraceFormattedLines.join("\n")}
         return value;
       }
     }
-    function fromNodeEventEmitter(emitter, eventName, map2 = (id2) => id2) {
-      const fn = (...args) => result.fire(map2(...args));
+    function fromNodeEventEmitter(emitter, eventName, map3 = (id2) => id2) {
+      const fn = (...args) => result.fire(map3(...args));
       const onFirstListenerAdd = () => emitter.on(eventName, fn);
       const onLastListenerRemove = () => emitter.removeListener(eventName, fn);
       const result = new Emitter({ onWillAddFirstListener: onFirstListenerAdd, onDidRemoveLastListener: onLastListenerRemove });
       return result.event;
     }
     Event4.fromNodeEventEmitter = fromNodeEventEmitter;
-    function fromDOMEventEmitter(emitter, eventName, map2 = (id2) => id2) {
-      const fn = (...args) => result.fire(map2(...args));
+    function fromDOMEventEmitter(emitter, eventName, map3 = (id2) => id2) {
+      const fn = (...args) => result.fire(map3(...args));
       const onFirstListenerAdd = () => emitter.addEventListener(eventName, fn);
       const onLastListenerRemove = () => emitter.removeEventListener(eventName, fn);
       const result = new Emitter({ onWillAddFirstListener: onFirstListenerAdd, onDidRemoveLastListener: onLastListenerRemove });
@@ -20556,5 +20558,770 @@ ${stackTraceFormattedLines.join("\n")}
       return geometry;
     }
   };
+
+  // node_modules/bidi-js/src/index.js
+  var src_exports = {};
+  __export(src_exports, {
+    closingToOpeningBracket: () => closingToOpeningBracket,
+    getBidiCharType: () => getBidiCharType,
+    getBidiCharTypeName: () => getBidiCharTypeName,
+    getCanonicalBracket: () => getCanonicalBracket,
+    getEmbeddingLevels: () => getEmbeddingLevels,
+    getMirroredCharacter: () => getMirroredCharacter,
+    getMirroredCharactersMap: () => getMirroredCharactersMap,
+    getReorderSegments: () => getReorderSegments,
+    getReorderedIndices: () => getReorderedIndices,
+    getReorderedString: () => getReorderedString,
+    openingToClosingBracket: () => openingToClosingBracket
+  });
+
+  // node_modules/bidi-js/src/data/bidiCharTypes.data.js
+  var bidiCharTypes_data_default = {
+    "R": "13k,1a,2,3,3,2+1j,ch+16,a+1,5+2,2+n,5,a,4,6+16,4+3,h+1b,4mo,179q,2+9,2+11,2i9+7y,2+68,4,3+4,5+13,4+3,2+4k,3+29,8+cf,1t+7z,w+17,3+3m,1t+3z,16o1+5r,8+30,8+mc,29+1r,29+4v,75+73",
+    "EN": "1c+9,3d+1,6,187+9,513,4+5,7+9,sf+j,175h+9,qw+q,161f+1d,4xt+a,25i+9",
+    "ES": "17,2,6dp+1,f+1,av,16vr,mx+1,4o,2",
+    "ET": "z+2,3h+3,b+1,ym,3e+1,2o,p4+1,8,6u,7c,g6,1wc,1n9+4,30+1b,2n,6d,qhx+1,h0m,a+1,49+2,63+1,4+1,6bb+3,12jj",
+    "AN": "16o+5,2j+9,2+1,35,ed,1ff2+9,87+u",
+    "CS": "18,2+1,b,2u,12k,55v,l,17v0,2,3,53,2+1,b",
+    "B": "a,3,f+2,2v,690",
+    "S": "9,2,k",
+    "WS": "c,k,4f4,1vk+a,u,1j,335",
+    "ON": "x+1,4+4,h+5,r+5,r+3,z,5+3,2+1,2+1,5,2+2,3+4,o,w,ci+1,8+d,3+d,6+8,2+g,39+1,9,6+1,2,33,b8,3+1,3c+1,7+1,5r,b,7h+3,sa+5,2,3i+6,jg+3,ur+9,2v,ij+1,9g+9,7+a,8m,4+1,49+x,14u,2+2,c+2,e+2,e+2,e+1,i+n,e+e,2+p,u+2,e+2,36+1,2+3,2+1,b,2+2,6+5,2,2,2,h+1,5+4,6+3,3+f,16+2,5+3l,3+81,1y+p,2+40,q+a,m+13,2r+ch,2+9e,75+hf,3+v,2+2w,6e+5,f+6,75+2a,1a+p,2+2g,d+5x,r+b,6+3,4+o,g,6+1,6+2,2k+1,4,2j,5h+z,1m+1,1e+f,t+2,1f+e,d+3,4o+3,2s+1,w,535+1r,h3l+1i,93+2,2s,b+1,3l+x,2v,4g+3,21+3,kz+1,g5v+1,5a,j+9,n+v,2,3,2+8,2+1,3+2,2,3,46+1,4+4,h+5,r+5,r+a,3h+2,4+6,b+4,78,1r+24,4+c,4,1hb,ey+6,103+j,16j+c,1ux+7,5+g,fsh,jdq+1t,4,57+2e,p1,1m,1m,1m,1m,4kt+1,7j+17,5+2r,d+e,3+e,2+e,2+10,m+4,w,1n+5,1q,4z+5,4b+rb,9+c,4+c,4+37,d+2g,8+b,l+b,5+1j,9+9,7+13,9+t,3+1,27+3c,2+29,2+3q,d+d,3+4,4+2,6+6,a+o,8+6,a+2,e+6,16+42,2+1i",
+    "BN": "0+8,6+d,2s+5,2+p,e,4m9,1kt+2,2b+5,5+5,17q9+v,7k,6p+8,6+1,119d+3,440+7,96s+1,1ekf+1,1ekf+1,1ekf+1,1ekf+1,1ekf+1,1ekf+1,1ekf+1,1ekf+1,1ekf+1,1ekf+1,1ekf+1,1ekf+75,6p+2rz,1ben+1,1ekf+1,1ekf+1",
+    "NSM": "lc+33,7o+6,7c+18,2,2+1,2+1,2,21+a,1d+k,h,2u+6,3+5,3+1,2+3,10,v+q,2k+a,1n+8,a,p+3,2+8,2+2,2+4,18+2,3c+e,2+v,1k,2,5+7,5,4+6,b+1,u,1n,5+3,9,l+1,r,3+1,1m,5+1,5+1,3+2,4,v+1,4,c+1,1m,5+4,2+1,5,l+1,n+5,2,1n,3,2+3,9,8+1,c+1,v,1q,d,1f,4,1m+2,6+2,2+3,8+1,c+1,u,1n,g+1,l+1,t+1,1m+1,5+3,9,l+1,u,21,8+2,2,2j,3+6,d+7,2r,3+8,c+5,23+1,s,2,2,1k+d,2+4,2+1,6+a,2+z,a,2v+3,2+5,2+1,3+1,q+1,5+2,h+3,e,3+1,7,g,jk+2,qb+2,u+2,u+1,v+1,1t+1,2+6,9,3+a,a,1a+2,3c+1,z,3b+2,5+1,a,7+2,64+1,3,1n,2+6,2,2,3+7,7+9,3,1d+g,1s+3,1d,2+4,2,6,15+8,d+1,x+3,3+1,2+2,1l,2+1,4,2+2,1n+7,3+1,49+2,2+c,2+6,5,7,4+1,5j+1l,2+4,k1+w,2db+2,3y,2p+v,ff+3,30+1,n9x+3,2+9,x+1,29+1,7l,4,5,q+1,6,48+1,r+h,e,13+7,q+a,1b+2,1d,3+3,3+1,14,1w+5,3+1,3+1,d,9,1c,1g,2+2,3+1,6+1,2,17+1,9,6n,3,5,fn5,ki+f,h+f,r2,6b,46+4,1af+2,2+1,6+3,15+2,5,4m+1,fy+3,as+1,4a+a,4x,1j+e,1l+2,1e+3,3+1,1y+2,11+4,2+7,1r,d+1,1h+8,b+3,3,2o+2,3,2+1,7,4h,4+7,m+1,1m+1,4,12+6,4+4,5g+7,3+2,2,o,2d+5,2,5+1,2+1,6n+3,7+1,2+1,s+1,2e+7,3,2+1,2z,2,3+5,2,2u+2,3+3,2+4,78+8,2+1,75+1,2,5,41+3,3+1,5,x+5,3+1,15+5,3+3,9,a+5,3+2,1b+c,2+1,bb+6,2+5,2d+l,3+6,2+1,2+1,3f+5,4,2+1,2+6,2,21+1,4,2,9o+1,f0c+4,1o+6,t5,1s+3,2a,f5l+1,43t+2,i+7,3+6,v+3,45+2,1j0+1i,5+1d,9,f,n+4,2+e,11t+6,2+g,3+6,2+1,2+4,7a+6,c6+3,15t+6,32+6,gzhy+6n",
+    "AL": "16w,3,2,e+1b,z+2,2+2s,g+1,8+1,b+m,2+t,s+2i,c+e,4h+f,1d+1e,1bwe+dp,3+3z,x+c,2+1,35+3y,2rm+z,5+7,b+5,dt+l,c+u,17nl+27,1t+27,4x+6n,3+d",
+    "LRO": "6ct",
+    "RLO": "6cu",
+    "LRE": "6cq",
+    "RLE": "6cr",
+    "PDF": "6cs",
+    "LRI": "6ee",
+    "RLI": "6ef",
+    "FSI": "6eg",
+    "PDI": "6eh"
+  };
+
+  // node_modules/bidi-js/src/charTypes.js
+  var TYPES = {};
+  var TYPES_TO_NAMES = {};
+  TYPES.L = 1;
+  TYPES_TO_NAMES[1] = "L";
+  Object.keys(bidiCharTypes_data_default).forEach((type, i2) => {
+    TYPES[type] = 1 << i2 + 1;
+    TYPES_TO_NAMES[TYPES[type]] = type;
+  });
+  Object.freeze(TYPES);
+  var ISOLATE_INIT_TYPES = TYPES.LRI | TYPES.RLI | TYPES.FSI;
+  var STRONG_TYPES = TYPES.L | TYPES.R | TYPES.AL;
+  var NEUTRAL_ISOLATE_TYPES = TYPES.B | TYPES.S | TYPES.WS | TYPES.ON | TYPES.FSI | TYPES.LRI | TYPES.RLI | TYPES.PDI;
+  var BN_LIKE_TYPES = TYPES.BN | TYPES.RLE | TYPES.LRE | TYPES.RLO | TYPES.LRO | TYPES.PDF;
+  var TRAILING_TYPES = TYPES.S | TYPES.WS | TYPES.B | ISOLATE_INIT_TYPES | TYPES.PDI | BN_LIKE_TYPES;
+  var map = null;
+  function parseData() {
+    if (!map) {
+      map = /* @__PURE__ */ new Map();
+      for (let type in bidiCharTypes_data_default) {
+        if (bidiCharTypes_data_default.hasOwnProperty(type)) {
+          let lastCode = 0;
+          bidiCharTypes_data_default[type].split(",").forEach((range) => {
+            let [skip, step] = range.split("+");
+            skip = parseInt(skip, 36);
+            step = step ? parseInt(step, 36) : 0;
+            map.set(lastCode += skip, TYPES[type]);
+            for (let i2 = 0; i2 < step; i2++) {
+              map.set(++lastCode, TYPES[type]);
+            }
+          });
+        }
+      }
+    }
+  }
+  function getBidiCharType(char) {
+    parseData();
+    return map.get(char.codePointAt(0)) || TYPES.L;
+  }
+  function getBidiCharTypeName(char) {
+    return TYPES_TO_NAMES[getBidiCharType(char)];
+  }
+
+  // node_modules/bidi-js/src/data/bidiBrackets.data.js
+  var bidiBrackets_data_default = {
+    "pairs": "14>1,1e>2,u>2,2wt>1,1>1,1ge>1,1wp>1,1j>1,f>1,hm>1,1>1,u>1,u6>1,1>1,+5,28>1,w>1,1>1,+3,b8>1,1>1,+3,1>3,-1>-1,3>1,1>1,+2,1s>1,1>1,x>1,th>1,1>1,+2,db>1,1>1,+3,3>1,1>1,+2,14qm>1,1>1,+1,4q>1,1e>2,u>2,2>1,+1",
+    "canonical": "6f1>-6dx,6dy>-6dx,6ec>-6ed,6ee>-6ed,6ww>2jj,-2ji>2jj,14r4>-1e7l,1e7m>-1e7l,1e7m>-1e5c,1e5d>-1e5b,1e5c>-14qx,14qy>-14qx,14vn>-1ecg,1ech>-1ecg,1edu>-1ecg,1eci>-1ecg,1eda>-1ecg,1eci>-1ecg,1eci>-168q,168r>-168q,168s>-14ye,14yf>-14ye"
+  };
+
+  // node_modules/bidi-js/src/util/parseCharacterMap.js
+  function parseCharacterMap(encodedString, includeReverse) {
+    const radix = 36;
+    let lastCode = 0;
+    const map2 = /* @__PURE__ */ new Map();
+    const reverseMap = includeReverse && /* @__PURE__ */ new Map();
+    let prevPair;
+    encodedString.split(",").forEach(function visit(entry) {
+      if (entry.indexOf("+") !== -1) {
+        for (let i2 = +entry; i2--; ) {
+          visit(prevPair);
+        }
+      } else {
+        prevPair = entry;
+        let [a, b] = entry.split(">");
+        a = String.fromCodePoint(lastCode += parseInt(a, radix));
+        b = String.fromCodePoint(lastCode += parseInt(b, radix));
+        map2.set(a, b);
+        includeReverse && reverseMap.set(b, a);
+      }
+    });
+    return { map: map2, reverseMap };
+  }
+
+  // node_modules/bidi-js/src/brackets.js
+  var openToClose;
+  var closeToOpen;
+  var canonical;
+  function parse() {
+    if (!openToClose) {
+      let { map: map2, reverseMap } = parseCharacterMap(bidiBrackets_data_default.pairs, true);
+      openToClose = map2;
+      closeToOpen = reverseMap;
+      canonical = parseCharacterMap(bidiBrackets_data_default.canonical, false).map;
+    }
+  }
+  function openingToClosingBracket(char) {
+    parse();
+    return openToClose.get(char) || null;
+  }
+  function closingToOpeningBracket(char) {
+    parse();
+    return closeToOpen.get(char) || null;
+  }
+  function getCanonicalBracket(char) {
+    parse();
+    return canonical.get(char) || null;
+  }
+
+  // node_modules/bidi-js/src/embeddingLevels.js
+  var {
+    L: TYPE_L,
+    R: TYPE_R,
+    EN: TYPE_EN,
+    ES: TYPE_ES,
+    ET: TYPE_ET,
+    AN: TYPE_AN,
+    CS: TYPE_CS,
+    B: TYPE_B,
+    S: TYPE_S,
+    ON: TYPE_ON,
+    BN: TYPE_BN,
+    NSM: TYPE_NSM,
+    AL: TYPE_AL,
+    LRO: TYPE_LRO,
+    RLO: TYPE_RLO,
+    LRE: TYPE_LRE,
+    RLE: TYPE_RLE,
+    PDF: TYPE_PDF,
+    LRI: TYPE_LRI,
+    RLI: TYPE_RLI,
+    FSI: TYPE_FSI,
+    PDI: TYPE_PDI
+  } = TYPES;
+  function getEmbeddingLevels(string, baseDirection) {
+    const MAX_DEPTH = 125;
+    const charTypes = new Uint32Array(string.length);
+    for (let i2 = 0; i2 < string.length; i2++) {
+      charTypes[i2] = getBidiCharType(string[i2]);
+    }
+    const charTypeCounts = /* @__PURE__ */ new Map();
+    function changeCharType(i2, type) {
+      const oldType = charTypes[i2];
+      charTypes[i2] = type;
+      charTypeCounts.set(oldType, charTypeCounts.get(oldType) - 1);
+      if (oldType & NEUTRAL_ISOLATE_TYPES) {
+        charTypeCounts.set(NEUTRAL_ISOLATE_TYPES, charTypeCounts.get(NEUTRAL_ISOLATE_TYPES) - 1);
+      }
+      charTypeCounts.set(type, (charTypeCounts.get(type) || 0) + 1);
+      if (type & NEUTRAL_ISOLATE_TYPES) {
+        charTypeCounts.set(NEUTRAL_ISOLATE_TYPES, (charTypeCounts.get(NEUTRAL_ISOLATE_TYPES) || 0) + 1);
+      }
+    }
+    const embedLevels = new Uint8Array(string.length);
+    const isolationPairs = /* @__PURE__ */ new Map();
+    const paragraphs = [];
+    let paragraph = null;
+    for (let i2 = 0; i2 < string.length; i2++) {
+      if (!paragraph) {
+        paragraphs.push(paragraph = {
+          start: i2,
+          end: string.length - 1,
+          // 3.3.1 P2-P3: Determine the paragraph level
+          level: baseDirection === "rtl" ? 1 : baseDirection === "ltr" ? 0 : determineAutoEmbedLevel(i2, false)
+        });
+      }
+      if (charTypes[i2] & TYPE_B) {
+        paragraph.end = i2;
+        paragraph = null;
+      }
+    }
+    const FORMATTING_TYPES = TYPE_RLE | TYPE_LRE | TYPE_RLO | TYPE_LRO | ISOLATE_INIT_TYPES | TYPE_PDI | TYPE_PDF | TYPE_B;
+    const nextEven = (n) => n + (n & 1 ? 1 : 2);
+    const nextOdd = (n) => n + (n & 1 ? 2 : 1);
+    for (let paraIdx = 0; paraIdx < paragraphs.length; paraIdx++) {
+      paragraph = paragraphs[paraIdx];
+      const statusStack = [{
+        _level: paragraph.level,
+        _override: 0,
+        //0=neutral, 1=L, 2=R
+        _isolate: 0
+        //bool
+      }];
+      let stackTop;
+      let overflowIsolateCount = 0;
+      let overflowEmbeddingCount = 0;
+      let validIsolateCount = 0;
+      charTypeCounts.clear();
+      for (let i2 = paragraph.start; i2 <= paragraph.end; i2++) {
+        let charType = charTypes[i2];
+        stackTop = statusStack[statusStack.length - 1];
+        charTypeCounts.set(charType, (charTypeCounts.get(charType) || 0) + 1);
+        if (charType & NEUTRAL_ISOLATE_TYPES) {
+          charTypeCounts.set(NEUTRAL_ISOLATE_TYPES, (charTypeCounts.get(NEUTRAL_ISOLATE_TYPES) || 0) + 1);
+        }
+        if (charType & FORMATTING_TYPES) {
+          if (charType & (TYPE_RLE | TYPE_LRE)) {
+            embedLevels[i2] = stackTop._level;
+            const level = (charType === TYPE_RLE ? nextOdd : nextEven)(stackTop._level);
+            if (level <= MAX_DEPTH && !overflowIsolateCount && !overflowEmbeddingCount) {
+              statusStack.push({
+                _level: level,
+                _override: 0,
+                _isolate: 0
+              });
+            } else if (!overflowIsolateCount) {
+              overflowEmbeddingCount++;
+            }
+          } else if (charType & (TYPE_RLO | TYPE_LRO)) {
+            embedLevels[i2] = stackTop._level;
+            const level = (charType === TYPE_RLO ? nextOdd : nextEven)(stackTop._level);
+            if (level <= MAX_DEPTH && !overflowIsolateCount && !overflowEmbeddingCount) {
+              statusStack.push({
+                _level: level,
+                _override: charType & TYPE_RLO ? TYPE_R : TYPE_L,
+                _isolate: 0
+              });
+            } else if (!overflowIsolateCount) {
+              overflowEmbeddingCount++;
+            }
+          } else if (charType & ISOLATE_INIT_TYPES) {
+            if (charType & TYPE_FSI) {
+              charType = determineAutoEmbedLevel(i2 + 1, true) === 1 ? TYPE_RLI : TYPE_LRI;
+            }
+            embedLevels[i2] = stackTop._level;
+            if (stackTop._override) {
+              changeCharType(i2, stackTop._override);
+            }
+            const level = (charType === TYPE_RLI ? nextOdd : nextEven)(stackTop._level);
+            if (level <= MAX_DEPTH && overflowIsolateCount === 0 && overflowEmbeddingCount === 0) {
+              validIsolateCount++;
+              statusStack.push({
+                _level: level,
+                _override: 0,
+                _isolate: 1,
+                _isolInitIndex: i2
+              });
+            } else {
+              overflowIsolateCount++;
+            }
+          } else if (charType & TYPE_PDI) {
+            if (overflowIsolateCount > 0) {
+              overflowIsolateCount--;
+            } else if (validIsolateCount > 0) {
+              overflowEmbeddingCount = 0;
+              while (!statusStack[statusStack.length - 1]._isolate) {
+                statusStack.pop();
+              }
+              const isolInitIndex = statusStack[statusStack.length - 1]._isolInitIndex;
+              if (isolInitIndex != null) {
+                isolationPairs.set(isolInitIndex, i2);
+                isolationPairs.set(i2, isolInitIndex);
+              }
+              statusStack.pop();
+              validIsolateCount--;
+            }
+            stackTop = statusStack[statusStack.length - 1];
+            embedLevels[i2] = stackTop._level;
+            if (stackTop._override) {
+              changeCharType(i2, stackTop._override);
+            }
+          } else if (charType & TYPE_PDF) {
+            if (overflowIsolateCount === 0) {
+              if (overflowEmbeddingCount > 0) {
+                overflowEmbeddingCount--;
+              } else if (!stackTop._isolate && statusStack.length > 1) {
+                statusStack.pop();
+                stackTop = statusStack[statusStack.length - 1];
+              }
+            }
+            embedLevels[i2] = stackTop._level;
+          } else if (charType & TYPE_B) {
+            embedLevels[i2] = paragraph.level;
+          }
+        } else {
+          embedLevels[i2] = stackTop._level;
+          if (stackTop._override && charType !== TYPE_BN) {
+            changeCharType(i2, stackTop._override);
+          }
+        }
+      }
+      const levelRuns = [];
+      let currentRun = null;
+      let isolationLevel = 0;
+      for (let i2 = paragraph.start; i2 <= paragraph.end; i2++) {
+        const charType = charTypes[i2];
+        if (!(charType & BN_LIKE_TYPES)) {
+          const lvl = embedLevels[i2];
+          const isIsolInit = charType & ISOLATE_INIT_TYPES;
+          const isPDI = charType === TYPE_PDI;
+          if (isIsolInit) {
+            isolationLevel++;
+          }
+          if (currentRun && lvl === currentRun._level) {
+            currentRun._end = i2;
+            currentRun._endsWithIsolInit = isIsolInit;
+          } else {
+            levelRuns.push(currentRun = {
+              _start: i2,
+              _end: i2,
+              _level: lvl,
+              _startsWithPDI: isPDI,
+              _endsWithIsolInit: isIsolInit
+            });
+          }
+          if (isPDI) {
+            isolationLevel--;
+          }
+        }
+      }
+      const isolatingRunSeqs = [];
+      for (let runIdx = 0; runIdx < levelRuns.length; runIdx++) {
+        const run = levelRuns[runIdx];
+        if (!run._startsWithPDI || run._startsWithPDI && !isolationPairs.has(run._start)) {
+          const seqRuns = [currentRun = run];
+          for (let pdiIndex; currentRun && currentRun._endsWithIsolInit && (pdiIndex = isolationPairs.get(currentRun._end)) != null; ) {
+            for (let i2 = runIdx + 1; i2 < levelRuns.length; i2++) {
+              if (levelRuns[i2]._start === pdiIndex) {
+                seqRuns.push(currentRun = levelRuns[i2]);
+                break;
+              }
+            }
+          }
+          const seqIndices = [];
+          for (let i2 = 0; i2 < seqRuns.length; i2++) {
+            const run2 = seqRuns[i2];
+            for (let j = run2._start; j <= run2._end; j++) {
+              seqIndices.push(j);
+            }
+          }
+          let firstLevel = embedLevels[seqIndices[0]];
+          let prevLevel = paragraph.level;
+          for (let i2 = seqIndices[0] - 1; i2 >= 0; i2--) {
+            if (!(charTypes[i2] & BN_LIKE_TYPES)) {
+              prevLevel = embedLevels[i2];
+              break;
+            }
+          }
+          const lastIndex = seqIndices[seqIndices.length - 1];
+          let lastLevel = embedLevels[lastIndex];
+          let nextLevel = paragraph.level;
+          if (!(charTypes[lastIndex] & ISOLATE_INIT_TYPES)) {
+            for (let i2 = lastIndex + 1; i2 <= paragraph.end; i2++) {
+              if (!(charTypes[i2] & BN_LIKE_TYPES)) {
+                nextLevel = embedLevels[i2];
+                break;
+              }
+            }
+          }
+          isolatingRunSeqs.push({
+            _seqIndices: seqIndices,
+            _sosType: Math.max(prevLevel, firstLevel) % 2 ? TYPE_R : TYPE_L,
+            _eosType: Math.max(nextLevel, lastLevel) % 2 ? TYPE_R : TYPE_L
+          });
+        }
+      }
+      for (let seqIdx = 0; seqIdx < isolatingRunSeqs.length; seqIdx++) {
+        const { _seqIndices: seqIndices, _sosType: sosType, _eosType: eosType } = isolatingRunSeqs[seqIdx];
+        const embedDirection = embedLevels[seqIndices[0]] & 1 ? TYPE_R : TYPE_L;
+        if (charTypeCounts.get(TYPE_NSM)) {
+          for (let si = 0; si < seqIndices.length; si++) {
+            const i2 = seqIndices[si];
+            if (charTypes[i2] & TYPE_NSM) {
+              let prevType = sosType;
+              for (let sj = si - 1; sj >= 0; sj--) {
+                if (!(charTypes[seqIndices[sj]] & BN_LIKE_TYPES)) {
+                  prevType = charTypes[seqIndices[sj]];
+                  break;
+                }
+              }
+              changeCharType(i2, prevType & (ISOLATE_INIT_TYPES | TYPE_PDI) ? TYPE_ON : prevType);
+            }
+          }
+        }
+        if (charTypeCounts.get(TYPE_EN)) {
+          for (let si = 0; si < seqIndices.length; si++) {
+            const i2 = seqIndices[si];
+            if (charTypes[i2] & TYPE_EN) {
+              for (let sj = si - 1; sj >= -1; sj--) {
+                const prevCharType = sj === -1 ? sosType : charTypes[seqIndices[sj]];
+                if (prevCharType & STRONG_TYPES) {
+                  if (prevCharType === TYPE_AL) {
+                    changeCharType(i2, TYPE_AN);
+                  }
+                  break;
+                }
+              }
+            }
+          }
+        }
+        if (charTypeCounts.get(TYPE_AL)) {
+          for (let si = 0; si < seqIndices.length; si++) {
+            const i2 = seqIndices[si];
+            if (charTypes[i2] & TYPE_AL) {
+              changeCharType(i2, TYPE_R);
+            }
+          }
+        }
+        if (charTypeCounts.get(TYPE_ES) || charTypeCounts.get(TYPE_CS)) {
+          for (let si = 1; si < seqIndices.length - 1; si++) {
+            const i2 = seqIndices[si];
+            if (charTypes[i2] & (TYPE_ES | TYPE_CS)) {
+              let prevType = 0, nextType = 0;
+              for (let sj = si - 1; sj >= 0; sj--) {
+                prevType = charTypes[seqIndices[sj]];
+                if (!(prevType & BN_LIKE_TYPES)) {
+                  break;
+                }
+              }
+              for (let sj = si + 1; sj < seqIndices.length; sj++) {
+                nextType = charTypes[seqIndices[sj]];
+                if (!(nextType & BN_LIKE_TYPES)) {
+                  break;
+                }
+              }
+              if (prevType === nextType && (charTypes[i2] === TYPE_ES ? prevType === TYPE_EN : prevType & (TYPE_EN | TYPE_AN))) {
+                changeCharType(i2, prevType);
+              }
+            }
+          }
+        }
+        if (charTypeCounts.get(TYPE_EN)) {
+          for (let si = 0; si < seqIndices.length; si++) {
+            const i2 = seqIndices[si];
+            if (charTypes[i2] & TYPE_EN) {
+              for (let sj = si - 1; sj >= 0 && charTypes[seqIndices[sj]] & (TYPE_ET | BN_LIKE_TYPES); sj--) {
+                changeCharType(seqIndices[sj], TYPE_EN);
+              }
+              for (si++; si < seqIndices.length && charTypes[seqIndices[si]] & (TYPE_ET | BN_LIKE_TYPES | TYPE_EN); si++) {
+                if (charTypes[seqIndices[si]] !== TYPE_EN) {
+                  changeCharType(seqIndices[si], TYPE_EN);
+                }
+              }
+            }
+          }
+        }
+        if (charTypeCounts.get(TYPE_ET) || charTypeCounts.get(TYPE_ES) || charTypeCounts.get(TYPE_CS)) {
+          for (let si = 0; si < seqIndices.length; si++) {
+            const i2 = seqIndices[si];
+            if (charTypes[i2] & (TYPE_ET | TYPE_ES | TYPE_CS)) {
+              changeCharType(i2, TYPE_ON);
+              for (let sj = si - 1; sj >= 0 && charTypes[seqIndices[sj]] & BN_LIKE_TYPES; sj--) {
+                changeCharType(seqIndices[sj], TYPE_ON);
+              }
+              for (let sj = si + 1; sj < seqIndices.length && charTypes[seqIndices[sj]] & BN_LIKE_TYPES; sj++) {
+                changeCharType(seqIndices[sj], TYPE_ON);
+              }
+            }
+          }
+        }
+        if (charTypeCounts.get(TYPE_EN)) {
+          for (let si = 0, prevStrongType = sosType; si < seqIndices.length; si++) {
+            const i2 = seqIndices[si];
+            const type = charTypes[i2];
+            if (type & TYPE_EN) {
+              if (prevStrongType === TYPE_L) {
+                changeCharType(i2, TYPE_L);
+              }
+            } else if (type & STRONG_TYPES) {
+              prevStrongType = type;
+            }
+          }
+        }
+        if (charTypeCounts.get(NEUTRAL_ISOLATE_TYPES)) {
+          const R_TYPES_FOR_N_STEPS = TYPE_R | TYPE_EN | TYPE_AN;
+          const STRONG_TYPES_FOR_N_STEPS = R_TYPES_FOR_N_STEPS | TYPE_L;
+          const bracketPairs = [];
+          {
+            const openerStack = [];
+            for (let si = 0; si < seqIndices.length; si++) {
+              if (charTypes[seqIndices[si]] & NEUTRAL_ISOLATE_TYPES) {
+                const char = string[seqIndices[si]];
+                let oppositeBracket;
+                if (openingToClosingBracket(char) !== null) {
+                  if (openerStack.length < 63) {
+                    openerStack.push({ char, seqIndex: si });
+                  } else {
+                    break;
+                  }
+                } else if ((oppositeBracket = closingToOpeningBracket(char)) !== null) {
+                  for (let stackIdx = openerStack.length - 1; stackIdx >= 0; stackIdx--) {
+                    const stackChar = openerStack[stackIdx].char;
+                    if (stackChar === oppositeBracket || stackChar === closingToOpeningBracket(getCanonicalBracket(char)) || openingToClosingBracket(getCanonicalBracket(stackChar)) === char) {
+                      bracketPairs.push([openerStack[stackIdx].seqIndex, si]);
+                      openerStack.length = stackIdx;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            bracketPairs.sort((a, b) => a[0] - b[0]);
+          }
+          for (let pairIdx = 0; pairIdx < bracketPairs.length; pairIdx++) {
+            const [openSeqIdx, closeSeqIdx] = bracketPairs[pairIdx];
+            let foundStrongType = false;
+            let useStrongType = 0;
+            for (let si = openSeqIdx + 1; si < closeSeqIdx; si++) {
+              const i2 = seqIndices[si];
+              if (charTypes[i2] & STRONG_TYPES_FOR_N_STEPS) {
+                foundStrongType = true;
+                const lr = charTypes[i2] & R_TYPES_FOR_N_STEPS ? TYPE_R : TYPE_L;
+                if (lr === embedDirection) {
+                  useStrongType = lr;
+                  break;
+                }
+              }
+            }
+            if (foundStrongType && !useStrongType) {
+              useStrongType = sosType;
+              for (let si = openSeqIdx - 1; si >= 0; si--) {
+                const i2 = seqIndices[si];
+                if (charTypes[i2] & STRONG_TYPES_FOR_N_STEPS) {
+                  const lr = charTypes[i2] & R_TYPES_FOR_N_STEPS ? TYPE_R : TYPE_L;
+                  if (lr !== embedDirection) {
+                    useStrongType = lr;
+                  } else {
+                    useStrongType = embedDirection;
+                  }
+                  break;
+                }
+              }
+            }
+            if (useStrongType) {
+              charTypes[seqIndices[openSeqIdx]] = charTypes[seqIndices[closeSeqIdx]] = useStrongType;
+              if (useStrongType !== embedDirection) {
+                for (let si = openSeqIdx + 1; si < seqIndices.length; si++) {
+                  if (!(charTypes[seqIndices[si]] & BN_LIKE_TYPES)) {
+                    if (getBidiCharType(string[seqIndices[si]]) & TYPE_NSM) {
+                      charTypes[seqIndices[si]] = useStrongType;
+                    }
+                    break;
+                  }
+                }
+              }
+              if (useStrongType !== embedDirection) {
+                for (let si = closeSeqIdx + 1; si < seqIndices.length; si++) {
+                  if (!(charTypes[seqIndices[si]] & BN_LIKE_TYPES)) {
+                    if (getBidiCharType(string[seqIndices[si]]) & TYPE_NSM) {
+                      charTypes[seqIndices[si]] = useStrongType;
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          for (let si = 0; si < seqIndices.length; si++) {
+            if (charTypes[seqIndices[si]] & NEUTRAL_ISOLATE_TYPES) {
+              let niRunStart = si, niRunEnd = si;
+              let prevType = sosType;
+              for (let si2 = si - 1; si2 >= 0; si2--) {
+                if (charTypes[seqIndices[si2]] & BN_LIKE_TYPES) {
+                  niRunStart = si2;
+                } else {
+                  prevType = charTypes[seqIndices[si2]] & R_TYPES_FOR_N_STEPS ? TYPE_R : TYPE_L;
+                  break;
+                }
+              }
+              let nextType = eosType;
+              for (let si2 = si + 1; si2 < seqIndices.length; si2++) {
+                if (charTypes[seqIndices[si2]] & (NEUTRAL_ISOLATE_TYPES | BN_LIKE_TYPES)) {
+                  niRunEnd = si2;
+                } else {
+                  nextType = charTypes[seqIndices[si2]] & R_TYPES_FOR_N_STEPS ? TYPE_R : TYPE_L;
+                  break;
+                }
+              }
+              for (let sj = niRunStart; sj <= niRunEnd; sj++) {
+                charTypes[seqIndices[sj]] = prevType === nextType ? prevType : embedDirection;
+              }
+              si = niRunEnd;
+            }
+          }
+        }
+      }
+      for (let i2 = paragraph.start; i2 <= paragraph.end; i2++) {
+        const level = embedLevels[i2];
+        const type = charTypes[i2];
+        if (level & 1) {
+          if (type & (TYPE_L | TYPE_EN | TYPE_AN)) {
+            embedLevels[i2]++;
+          }
+        } else {
+          if (type & TYPE_R) {
+            embedLevels[i2]++;
+          } else if (type & (TYPE_AN | TYPE_EN)) {
+            embedLevels[i2] += 2;
+          }
+        }
+        if (type & BN_LIKE_TYPES) {
+          embedLevels[i2] = i2 === 0 ? paragraph.level : embedLevels[i2 - 1];
+        }
+        if (i2 === paragraph.end || getBidiCharType(string[i2]) & (TYPE_S | TYPE_B)) {
+          for (let j = i2; j >= 0 && getBidiCharType(string[j]) & TRAILING_TYPES; j--) {
+            embedLevels[j] = paragraph.level;
+          }
+        }
+      }
+    }
+    return {
+      levels: embedLevels,
+      paragraphs
+    };
+    function determineAutoEmbedLevel(start, isFSI) {
+      for (let i2 = start; i2 < string.length; i2++) {
+        const charType = charTypes[i2];
+        if (charType & (TYPE_R | TYPE_AL)) {
+          return 1;
+        }
+        if (charType & (TYPE_B | TYPE_L) || isFSI && charType === TYPE_PDI) {
+          return 0;
+        }
+        if (charType & ISOLATE_INIT_TYPES) {
+          const pdi = indexOfMatchingPDI(i2);
+          i2 = pdi === -1 ? string.length : pdi;
+        }
+      }
+      return 0;
+    }
+    function indexOfMatchingPDI(isolateStart) {
+      let isolationLevel = 1;
+      for (let i2 = isolateStart + 1; i2 < string.length; i2++) {
+        const charType = charTypes[i2];
+        if (charType & TYPE_B) {
+          break;
+        }
+        if (charType & TYPE_PDI) {
+          if (--isolationLevel === 0) {
+            return i2;
+          }
+        } else if (charType & ISOLATE_INIT_TYPES) {
+          isolationLevel++;
+        }
+      }
+      return -1;
+    }
+  }
+
+  // node_modules/bidi-js/src/data/bidiMirroring.data.js
+  var bidiMirroring_data_default = "14>1,j>2,t>2,u>2,1a>g,2v3>1,1>1,1ge>1,1wd>1,b>1,1j>1,f>1,ai>3,-2>3,+1,8>1k0,-1jq>1y7,-1y6>1hf,-1he>1h6,-1h5>1ha,-1h8>1qi,-1pu>1,6>3u,-3s>7,6>1,1>1,f>1,1>1,+2,3>1,1>1,+13,4>1,1>1,6>1eo,-1ee>1,3>1mg,-1me>1mk,-1mj>1mi,-1mg>1mi,-1md>1,1>1,+2,1>10k,-103>1,1>1,4>1,5>1,1>1,+10,3>1,1>8,-7>8,+1,-6>7,+1,a>1,1>1,u>1,u6>1,1>1,+5,26>1,1>1,2>1,2>2,8>1,7>1,4>1,1>1,+5,b8>1,1>1,+3,1>3,-2>1,2>1,1>1,+2,c>1,3>1,1>1,+2,h>1,3>1,a>1,1>1,2>1,3>1,1>1,d>1,f>1,3>1,1a>1,1>1,6>1,7>1,13>1,k>1,1>1,+19,4>1,1>1,+2,2>1,1>1,+18,m>1,a>1,1>1,lk>1,1>1,4>1,2>1,f>1,3>1,1>1,+3,db>1,1>1,+3,3>1,1>1,+2,14qm>1,1>1,+1,6>1,4j>1,j>2,t>2,u>2,2>1,+1";
+
+  // node_modules/bidi-js/src/mirroring.js
+  var mirrorMap;
+  function parse2() {
+    if (!mirrorMap) {
+      const { map: map2, reverseMap } = parseCharacterMap(bidiMirroring_data_default, true);
+      reverseMap.forEach((value, key) => {
+        map2.set(key, value);
+      });
+      mirrorMap = map2;
+    }
+  }
+  function getMirroredCharacter(char) {
+    parse2();
+    return mirrorMap.get(char) || null;
+  }
+  function getMirroredCharactersMap(string, embeddingLevels, start, end) {
+    let strLen = string.length;
+    start = Math.max(0, start == null ? 0 : +start);
+    end = Math.min(strLen - 1, end == null ? strLen - 1 : +end);
+    const map2 = /* @__PURE__ */ new Map();
+    for (let i2 = start; i2 <= end; i2++) {
+      if (embeddingLevels[i2] & 1) {
+        const mirror = getMirroredCharacter(string[i2]);
+        if (mirror !== null) {
+          map2.set(i2, mirror);
+        }
+      }
+    }
+    return map2;
+  }
+
+  // node_modules/bidi-js/src/reordering.js
+  function getReorderSegments(string, embeddingLevelsResult, start, end) {
+    let strLen = string.length;
+    start = Math.max(0, start == null ? 0 : +start);
+    end = Math.min(strLen - 1, end == null ? strLen - 1 : +end);
+    const segments = [];
+    embeddingLevelsResult.paragraphs.forEach((paragraph) => {
+      const lineStart = Math.max(start, paragraph.start);
+      const lineEnd = Math.min(end, paragraph.end);
+      if (lineStart < lineEnd) {
+        const lineLevels = embeddingLevelsResult.levels.slice(lineStart, lineEnd + 1);
+        for (let i2 = lineEnd; i2 >= lineStart && getBidiCharType(string[i2]) & TRAILING_TYPES; i2--) {
+          lineLevels[i2] = paragraph.level;
+        }
+        let maxLevel = paragraph.level;
+        let minOddLevel = Infinity;
+        for (let i2 = 0; i2 < lineLevels.length; i2++) {
+          const level = lineLevels[i2];
+          if (level > maxLevel) maxLevel = level;
+          if (level < minOddLevel) minOddLevel = level | 1;
+        }
+        for (let lvl = maxLevel; lvl >= minOddLevel; lvl--) {
+          for (let i2 = 0; i2 < lineLevels.length; i2++) {
+            if (lineLevels[i2] >= lvl) {
+              const segStart = i2;
+              while (i2 + 1 < lineLevels.length && lineLevels[i2 + 1] >= lvl) {
+                i2++;
+              }
+              if (i2 > segStart) {
+                segments.push([segStart + lineStart, i2 + lineStart]);
+              }
+            }
+          }
+        }
+      }
+    });
+    return segments;
+  }
+  function getReorderedString(string, embedLevelsResult, start, end) {
+    const indices = getReorderedIndices(string, embedLevelsResult, start, end);
+    const chars = [...string];
+    indices.forEach((charIndex, i2) => {
+      chars[i2] = (embedLevelsResult.levels[charIndex] & 1 ? getMirroredCharacter(string[charIndex]) : null) || string[charIndex];
+    });
+    return chars.join("");
+  }
+  function getReorderedIndices(string, embedLevelsResult, start, end) {
+    const segments = getReorderSegments(string, embedLevelsResult, start, end);
+    const indices = [];
+    for (let i2 = 0; i2 < string.length; i2++) {
+      indices[i2] = i2;
+    }
+    segments.forEach(([start2, end2]) => {
+      const slice = indices.slice(start2, end2 + 1);
+      for (let i2 = slice.length; i2--; ) {
+        indices[end2 - i2] = slice[i2];
+      }
+    });
+    return indices;
+  }
   return __toCommonJS(entry_exports);
 })();

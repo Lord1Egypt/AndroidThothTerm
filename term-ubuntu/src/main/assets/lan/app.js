@@ -155,7 +155,8 @@
       cursorBlink: true,
       scrollback: 10000,
       fontSize: 14,
-      fontFamily: 'ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace',
+      // The bundled font (fonts.css), identical in every browser and OS.
+      fontFamily: '"ThothTerm Mono", monospace',
       theme: { background: '#0d1117', foreground: '#e6edf3', cursor: '#e95420',
                selectionBackground: 'rgba(233, 84, 32, 0.35)' }
     });
@@ -181,6 +182,7 @@
       return true;
     });
     new ResizeObserver(function () { if (!$('terminal').hidden) fit.fit(); }).observe($('terminal'));
+    ThothRtl.attach(term, ThothXterm.Bidi);
   }
 
   function copySelection() {
@@ -227,7 +229,26 @@
     }
   }
 
+  /**
+   * xterm.js measures its cell from the font when it opens, so the bundled
+   * font must be loaded first -- otherwise the grid is measured on a fallback.
+   */
+  var fontReady = null;
+  function loadFont() {
+    if (!fontReady) {
+      var faces = ['400 14px "ThothTerm Mono"', '700 14px "ThothTerm Mono"'];
+      fontReady = Promise.all(faces.map(function (f) {
+        return document.fonts.load(f, 'M\u0628\u05d0');
+      })).catch(function () { /* fall back to the generic monospace font */ });
+    }
+    return fontReady;
+  }
+
   function startTerminal() {
+    loadFont().then(openTerminal);
+  }
+
+  function openTerminal() {
     ensureTerminal();
     showOnly('terminal');
     fit.fit();
