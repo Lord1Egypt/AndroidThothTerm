@@ -69,6 +69,48 @@ final class GuestConfig {
     private static final int AID_CACHE_START = 20000;
     private static final int AID_SHARED_START = 50000;
 
+    /** Where the guest's sudo package stands, from dpkg's status database. */
+    enum PackageState {
+        /** Fully installed and configured. */
+        INSTALLED,
+        /**
+         * Present but not finished -- unpacked, half-configured or awaiting
+         * triggers. {@code dpkg --configure -a} completes it in place;
+         * reinstalling a bundled copy would downgrade a newer version.
+         */
+        UNFINISHED,
+        /** Never installed, removed, or purged. */
+        ABSENT,
+    }
+
+    /** The state of {@code packageName} in the text of /var/lib/dpkg/status. */
+    static PackageState packageState(String dpkgStatus, String packageName) {
+        for (String stanza : dpkgStatus.split("\n\n")) {
+            String status = null;
+            boolean match = false;
+            for (String line : stanza.split("\n")) {
+                if (line.equals("Package: " + packageName)) match = true;
+                else if (line.startsWith("Status: ")) status = line.substring("Status: ".length());
+            }
+            if (!match || status == null) continue;
+            String[] words = status.trim().split("\\s+");
+            String current = words[words.length - 1];
+            switch (current) {
+                case "installed":
+                    return PackageState.INSTALLED;
+                case "unpacked":
+                case "half-configured":
+                case "triggers-awaited":
+                case "triggers-pending":
+                case "half-installed":
+                    return PackageState.UNFINISHED;
+                default:
+                    return PackageState.ABSENT;
+            }
+        }
+        return PackageState.ABSENT;
+    }
+
     static String sudoersEntry() {
         return USER + " ALL=(ALL:ALL) NOPASSWD: ALL\n";
     }

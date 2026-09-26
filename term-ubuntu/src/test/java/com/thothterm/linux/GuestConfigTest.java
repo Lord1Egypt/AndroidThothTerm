@@ -198,4 +198,39 @@ public class GuestConfigTest {
         }
         return count;
     }
+
+    private static final String DPKG_STATUS =
+            "Package: sudo-common\nStatus: install ok installed\nVersion: 1.2ubuntu\n\n"
+                    + "Package: sudo\nStatus: install ok half-configured\nPriority: optional\n"
+                    + "Version: 1.9.17p2-1ubuntu3.1\n\n"
+                    + "Package: tree\nStatus: deinstall ok config-files\nVersion: 2.2.1-1\n";
+
+    @Test
+    public void readsTheDpkgStateOfAPackage() {
+        // After an interrupted upgrade: present but unfinished, never "absent".
+        assertEquals(GuestConfig.PackageState.UNFINISHED, GuestConfig.packageState(DPKG_STATUS, "sudo"));
+        // "sudo-common" must not be mistaken for "sudo", nor the reverse.
+        assertEquals(GuestConfig.PackageState.INSTALLED, GuestConfig.packageState(DPKG_STATUS, "sudo-common"));
+        assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.packageState(DPKG_STATUS, "tree"));
+        assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.packageState(DPKG_STATUS, "missing"));
+        assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.packageState("", "sudo"));
+    }
+
+    @Test
+    public void classifiesEveryDpkgCurrentState() {
+        String[][] cases = {
+                {"install ok installed", "INSTALLED"},
+                {"install ok unpacked", "UNFINISHED"},
+                {"install ok half-configured", "UNFINISHED"},
+                {"install ok triggers-awaited", "UNFINISHED"},
+                {"install ok triggers-pending", "UNFINISHED"},
+                {"install reinstreq half-installed", "UNFINISHED"},
+                {"deinstall ok config-files", "ABSENT"},
+                {"purge ok not-installed", "ABSENT"},
+        };
+        for (String[] c : cases) {
+            assertEquals(c[0], GuestConfig.PackageState.valueOf(c[1]),
+                    GuestConfig.packageState("Package: sudo\nStatus: " + c[0] + "\n", "sudo"));
+        }
+    }
 }

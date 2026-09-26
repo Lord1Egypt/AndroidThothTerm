@@ -633,8 +633,25 @@ public final class RootfsManager {
      * and it never blocks the terminal from opening.
      */
     private synchronized void ensureRealSudo(File root) {
-        if (isSudoInstalled(root)) {
+        GuestConfig.PackageState state = sudoState(root);
+        if (state == GuestConfig.PackageState.INSTALLED) {
             forceSudoSetuid(root);
+            return;
+        }
+        if (state == GuestConfig.PackageState.UNFINISHED) {
+            // An interrupted dpkg run -- typically an upgrade -- left sudo
+            // unpacked but not configured. Finish it in place; installing the
+            // bundled copy would downgrade the newer version it unpacked.
+            try {
+                runProvisioning(root, dpkgConfigureScript());
+                boolean setuid = forceSudoSetuid(root);
+                String report = runProvisioning(root, sudoVerifyScript());
+                ThothLog.i(LogCategory.ROOTFS, "sudo configuration completed setuid="
+                        + setuid + " report=" + report.replace('\n', ' ').trim());
+            } catch (Throwable t) {
+                ThothLog.e(LogCategory.ROOTFS, "sudo configuration failed type="
+                        + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
+            }
             return;
         }
         try {
@@ -658,26 +675,16 @@ public final class RootfsManager {
         }
     }
 
-    /** True when the dpkg database already records sudo as installed. */
-    private boolean isSudoInstalled(File root) {
+    /** Where sudo stands in the guest's dpkg database. */
+    private GuestConfig.PackageState sudoState(File root) {
         File status = new File(root, "var/lib/dpkg/status");
-        if (!status.isFile()) return false;
+        if (!status.isFile()) return GuestConfig.PackageState.ABSENT;
         try {
-            String text = readText(status);
-            for (String stanza : text.split("\n\n")) {
-                if (!(stanza.startsWith("Package: sudo\n")
-                        || stanza.contains("\nPackage: sudo\n"))) {
-                    continue;
-                }
-                if (stanza.contains("\nStatus: install ok installed\n")
-                        || stanza.endsWith("\nStatus: install ok installed")) {
-                    return true;
-                }
-            }
+            return GuestConfig.packageState(readText(status), "sudo");
         } catch (IOException e) {
             ThothLog.w(LogCategory.ROOTFS, "Cannot read dpkg status");
+            return GuestConfig.PackageState.ABSENT;
         }
-        return false;
     }
 
     private void stageSudoPackages(File root) throws IOException {
@@ -738,6 +745,15 @@ public final class RootfsManager {
                 // whole directory as bad even though our own file is fine.
                 + "[ -f /etc/sudoers.d/README ] && chmod 0440 /etc/sudoers.d/README\n"
                 + "exit 0\n";
+    }
+
+    /** Finishes whatever an interrupted dpkg run left unconfigured. */
+    private String dpkgConfigureScript() {
+        return "set -e\n"
+                + PATH_EXPORT + "\n"
+                + "export DEBIAN_FRONTEND=noninteractive\n"
+                + "cd /\n"
+                + "dpkg --configure -a\n";
     }
 
     private String sudoVerifyScript() {
