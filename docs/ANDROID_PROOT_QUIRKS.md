@@ -84,6 +84,12 @@ artifact with no functional effect. **Do not "repair" it.**
 The extractor must reproduce hard links, symlinks and permission bits, including
 setuid, or `dpkg` and `sudo` break in ways that surface much later.
 
+Android forbids apps from creating hard links, so the extractor copies them.
+Hard links the guest creates later go through link2symlink, and then
+`/proc/self/exe` must still name the hard link, not the `.l2s.*` backing file.
+Ubuntu's rust-coreutils refuses to run otherwise. See
+`docs/garden/HARDLINK_EXECUTABLES.md`.
+
 ---
 
 ## Shell and environment
