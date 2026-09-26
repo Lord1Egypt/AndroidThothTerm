@@ -17,6 +17,20 @@ Features
 * Portrait and landscape, with the layout adapting to each
 * Copy and paste, text selection and scrollback
 * Tools you install under your home directory stay on PATH between sessions
+* LAN Mode: open this Ubuntu in a web browser on another computer on the
+  same Wi-Fi, each browser with a terminal of its own
+
+LAN Mode
+
+LAN Mode is off by default and listens only while you have it on. It is in
+the menu, above Windows. When it is on, the app shows an address to open in
+a browser on the same Wi-Fi or Ethernet network and a short one-time PIN.
+The browser must pair with that PIN before it gets anything. Each browser
+gets its own terminal; the windows on your phone are never shared. It never
+listens on mobile data or the Internet, and turning it off disconnects
+every browser and invalidates their access. The connection is plain HTTP:
+traffic on your network is not encrypted, so use it only on networks you
+trust.
 
 First run
 
@@ -29,7 +43,7 @@ refused if it does not match.
 Requirements
 
 * A 64-bit ARM device (arm64-v8a). Other ABIs are not supported.
-* Roughly 400 MB of free space for the Ubuntu environment.
+* About 1.5 GB of free space for the Ubuntu environment.
 
 This is an early release. It concentrates on being a solid, honest terminal and
 a correct Ubuntu environment; more features are planned for later updates.

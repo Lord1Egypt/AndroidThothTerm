@@ -55,7 +55,7 @@ fixed by the same code.
   pinned sources plus the patches and checks the kernel semantics: absolute
   path, the linked original, relative and absolute symlinks to a hard link, a
   relative path, and no hard link at all. Without the patch, five of its seven
-  checks fail. `ProotHardlinkIdentityTest` runs it in the JVM unit tests on
+  checks fail. `ProotRuntimeHostTest` runs it in the JVM unit tests on
   Linux build hosts.
 - `tests/proot-runtime/device/device-test.sh` runs the full
   upgrade matrix on the phone as the adb shell user in `/data/local/tmp`. It

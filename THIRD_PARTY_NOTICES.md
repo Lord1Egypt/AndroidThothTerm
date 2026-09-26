@@ -76,6 +76,9 @@ Two patches, kept in `term-ubuntu/patches/` and applied in filename order:
 | `0001-ashmem_memfd-include-string.h.patch` | `third_party/proot` | Adds `#include <string.h>` to `src/extension/ashmem_memfd/ashmem_memfd.c`. The file calls `strcmp()` and `memset()` without declaring them; clang 21 (NDK r29) rejects the implicit declarations, and an implicitly declared `memset()` would return `int`, truncating the pointer on arm64. No behavioural change. |
 | `0002-loader-info-generate-without-host-binutils-or-gawk.patch` | `third_party/proot` | Generates `loader/loader-info.c` without host binutils or GNU awk. The rule called a bare `readelf` and an awk script using `strtonum()` and `\y`, which are gawk extensions; the F-Droid buildserver image has neither binutils nor gawk. The rule now uses `$(READELF)`, defaulting to `$(CROSS_COMPILE)readelf`, and the awk script is POSIX. Build-time code generation only; the generated value is unchanged. |
 
+| `0003-link2symlink-name-proc-self-exe-after-the-faked-hard-link.patch` | `third_party/proot` | Makes `/proc/self/exe` name the hard link a program was started through, not link2symlink's hidden `.l2s.*` backing file, as Linux does. Ubuntu's rust-coreutils refuses to run otherwise, which broke every coreutils command after `apt full-upgrade`. See `docs/garden/HARDLINK_EXECUTABLES.md`. |
+| `0004-hang-up-the-session-on-command-exit-and-never-outlive-proot.patch` | `third_party/proot` | Adds `--hangup-on-exit`. When the main command exits, remaining tracees in proot's session get SIGHUP and SIGCONT, as on a terminal hangup, so nohup'd jobs survive. It also sets `PTRACE_O_EXITKILL`, so tracees never outlive proot. See `docs/garden/SESSION_LIFECYCLE.md`. |
+
 No other upstream source is modified. `libandroid-shmem` is built unpatched,
 with `_PATH_TMP` defined at compile time to the app's runtime scratch directory.
 
@@ -87,17 +90,9 @@ with `_PATH_TMP` defined at compile time to the app's runtime scratch directory.
 script asserts the resulting alignment is `0x4000` and that `libproot.so` links
 against both `libtalloc.so.2` and `libandroid-shmem.so`, rather than assuming it.
 
-Artifacts produced by the pinned toolchain at the time of writing:
-
-| Artifact | Size | SHA-256 |
-|---|---|---|
-| `libproot.so` | 271,864 | `f45d9c262d3a50951107a8861960a28582a8a9eab4929d8bb764980f4782140e` |
-| `libproot_loader.so` | 6,328 | `72c7a54f61ae83e47d3920577558f1a988b1a311a9b1a2f2aaa846989fea4ae5` |
-| `libtalloc.so.2` | 46,072 | `7bf984aad2595ee6dd3dba2530c8c159780815880dbcd5727493a9697cc6c3e5` |
-| `libandroid-shmem.so` | 18,432 | `3f26c27c6c18ad65d244a88862b63fb888554ff0bcf013d30a00c0cd92b738aa` |
-
-These are outputs of a specific toolchain, not a reproducibility claim across
-machines. `libproot.so` and `libproot_loader.so` are executables, not libraries;
+Artifact hashes are recorded per release, in the release's `SHA256SUMS.txt`
+and notes, not here: the binaries embed build paths, so in-tree hashes go
+stale. `libproot.so` and `libproot_loader.so` are executables, not libraries;
 they ship under `lib*.so` names so Android extracts them into
 `nativeLibraryDir` with the executable bit, which needs `useLegacyPackaging`.
 
@@ -111,6 +106,25 @@ longer shipped**: the binary built here does not reference it.
 | DejaVu Sans Mono | `term-ubuntu/src/main/assets/font/DejaVuSansMono.ttf` | Bitstream Vera Fonts Copyright (permissive); DejaVu changes public domain; Arev glyphs © Tavmjong Bah | Yes — `term-ubuntu/src/main/assets/font/DejaVu.lic` ships beside it |
 
 ---
+
+### 1.5 LAN Mode web terminal
+
+Served by LAN Mode to browsers on the local network, from
+`term-ubuntu/src/main/assets/lan/`. Everything is packaged; nothing is fetched
+from a CDN. Built reproducibly from npm packages pinned by sha512 in
+`term-ubuntu/lan-web/package-lock.json`. Full provenance is in
+`term-ubuntu/lan-web/README.md`, and the notices ship in `assets/lan/licenses.txt`.
+
+| Component | Version | Upstream | License | How it ships |
+|---|---|---|---|---|
+| xterm.js | 6.0.0 | `https://github.com/xtermjs/xterm.js` tag `6.0.0` = `f447274f430fd22513f6adbf9862d19524471c04` | MIT | Bundled **unminified from its TypeScript sources** into `xterm.js`; `xterm.css` verbatim |
+| @xterm/addon-fit | 0.11.0 | same repository and commit | MIT | Bundled into `xterm.js` from source |
+| VS Code base library (vendored by xterm.js in `src/vs`) | as vendored by xterm.js 6.0.0 | `https://github.com/microsoft/vscode` | MIT | Part of the xterm.js bundle; licence text from microsoft/vscode `529ee190` |
+| bidi-js | 1.0.3 | `https://github.com/lojjic/bidi-js` | MIT | Bundled into `xterm.js` from source |
+| Cascadia Mono | via @fontsource/cascadia-mono 5.3.0 | `https://github.com/microsoft/cascadia-code` | SIL OFL 1.1 | Eight script subsets, regular and bold, unmodified `.woff2` files, served under the family name "ThothTerm Mono" |
+
+`index.html`, `app.js`, `app.css` and `rtl.js` are ThothTerm's own (Apache-2.0).
+esbuild 0.28.2 (MIT) only builds the bundle and is not shipped.
 
 ## 2. Application source lineage
 
