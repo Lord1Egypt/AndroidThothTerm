@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <memory.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 #include <wait.h>
 
@@ -164,6 +165,11 @@ process_create_subprocess(
         dup2(pts, STDERR_FILENO);
 
         closefrom(STDERR_FILENO + 1);
+
+        /* Android app processes ignore SIGHUP, and an ignored disposition
+           survives execve(), so without this the shell and every job it
+           starts would shrug off the hangup that closing a window sends. */
+        signal(SIGHUP, SIG_DFL);
 
         execve(path, argv, envp);
         /* NOTE On success, execve() does not return */
