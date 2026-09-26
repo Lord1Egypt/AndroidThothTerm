@@ -1,0 +1,125 @@
+Subject: link2symlink: name /proc/self/exe after the faked hard link
+
+On Linux, /proc/self/exe of a program started through a hard link is that
+link's own path. link2symlink fakes a hard link as a symlink chain into its
+l2s directory, so PRoot reported the l2s backing file instead
+(".../.l2s.coreutils.dpkg-new0001.0116"), a name no tracee ever used.
+
+Ubuntu 26.04's rust-coreutils is a multicall binary installed as hard links
+(/usr/lib/cargo/bin/coreutils/<util>). Ubuntu patches it
+(require-utility-to-be-invoked-at-matching-path.patch) to refuse to run
+unless basename(/proc/self/exe) equals the utility requested. After the
+0.10.0-1ubuntu2~26.04.1 update re-created those links under PRoot, every
+coreutils command failed with "Security violation", and so did sudo's
+postinst.
+
+At execve, when the executed file lives in the l2s directory, walk the path
+the tracee passed: follow ordinary symlinks as the kernel does, and stop at
+the faked hard link that leads to the executed file. Report that link as the
+new /proc/self/exe. Nothing changes when no faked hard link is involved.
+This is generic (any hard-linked executable), not package-specific.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92)
+
+diff -ruN proot-a/src/extension/link2symlink/link2symlink.c proot-b/src/extension/link2symlink/link2symlink.c
+diff -ruN proot-a/src/extension/link2symlink/link2symlink.c proot-b/src/extension/link2symlink/link2symlink.c
+--- a/src/extension/link2symlink/link2symlink.c	2026-08-23 01:32:39.000000000 +0300
++++ b/src/extension/link2symlink/link2symlink.c	2026-09-26 08:49:25.233433963 +0300
+@@ -20,6 +20,7 @@
+ #include "syscall/syscall.h"
+ #include "syscall/sysnum.h"
+ #include "path/path.h"
++#include "execve/execve.h"
+ #include "path/f2fs-bug.h"
+ #include "arch.h"
+ #include "attribute.h"
+@@ -476,6 +477,77 @@
+ }
+ 
+ /**
++ * Name "/proc/self/exe" after the faked hard link @tracee executed.
++ *
++ * On Linux, /proc/self/exe of a program started through a hard link is
++ * that link's own path.  A faked hard link is a symlink chain into the
++ * l2s directory, so PRoot would otherwise report the l2s backing file,
++ * a name no tracee ever used.  Multicall binaries installed as hard links
++ * check that name -- Ubuntu's rust-coreutils refuses to run when
++ * basename(/proc/self/exe) differs from the utility requested -- so after
++ * any dpkg upgrade that re-creates such links every utility breaks.
++ *
++ * Walk the path the tracee passed to execve(2): follow ordinary symlinks,
++ * as the kernel does, and stop at the faked hard link that leads to the
++ * executed file.  Nothing changes when no faked hard link is involved.
++ */
++static void name_exe_after_faked_link(Tracee *tracee)
++{
++	char guest[PATH_MAX];
++	char host[PATH_MAX];
++	char final[PATH_MAX];
++	char target[PATH_MAX];
++	const char *raw;
++	ssize_t length;
++	int status;
++	int i;
++
++	if (tracee->load_info == NULL || tracee->host_exe == NULL || tracee->new_exe == NULL)
++		return;
++	if (!is_l2s_file(tracee->host_exe))
++		return;
++
++	raw = tracee->load_info->raw_path;
++	if (raw == NULL || strlen(raw) >= PATH_MAX)
++		return;
++	strcpy(guest, raw);
++
++	for (i = 0; i < 40; i++) { /* MAXSYMLINKS */
++		status = translate_path(tracee, host, AT_FDCWD, guest, false);
++		if (status < 0)
++			return;
++
++		if (resolve_faked_hard_link(host, final) == 0) {
++			if (strcmp(final, tracee->host_exe) != 0)
++				return;
++			status = detranslate_path(tracee, host, NULL);
++			if (status < 0)
++				return;
++			talloc_unlink(tracee, tracee->new_exe);
++			tracee->new_exe = talloc_strdup(tracee, host);
++			return;
++		}
++
++		/* An ordinary symlink: continue with its target, a guest path. */
++		length = readlink(host, target, PATH_MAX - 1);
++		if (length <= 0)
++			return;
++		target[length] = '\0';
++
++		if (target[0] == '/') {
++			strcpy(guest, target);
++		}
++		else {
++			char *slash = strrchr(guest, '/');
++			size_t dir = (slash == NULL ? 0 : (size_t) (slash - guest) + 1);
++			if (dir + strlen(target) >= PATH_MAX)
++				return;
++			strcpy(guest + dir, target);
++		}
++	}
++}
++
++/**
+  * Move the path pointed to by @tracee's @sysarg to a new location,
+  * symlink the original path to this new one, make @tracee's @sysarg
+  * point to the new location.  This function returns -errno if an
+@@ -1162,6 +1234,11 @@
+ 		Tracee *tracee = TRACEE(extension);
+ 
+ 		switch (get_sysnum(tracee, ORIGINAL)) {
++		case PR_execve:
++			if ((int) data1 >= 0)
++				name_exe_after_faked_link(tracee);
++			break;
++
+ 		case PR_rename:
+ 			/*int rename(const char *oldpath, const char *newpath);
+ 			 *If newpath is a psuedo hard link decrement the link count.
