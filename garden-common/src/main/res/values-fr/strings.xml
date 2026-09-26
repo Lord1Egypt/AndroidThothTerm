@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2025 Roumen Petrov.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+<!--
+Copyright (c) 2017-2020, Jean-Marc
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+  * Redistributions in binary form must reproduce the above
+    copyright notice, this list of conditions and the following
+    disclaimer in the documentation and/or other materials provided
+    with the distribution.
+
+  * Neither the name of the "ThothTerm" nor the names of its
+    contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<resources>
+    <!-- == Interface == -->
+    <string name="application_terminal">ThothTerm</string>
+    <string name="preferences">Préférences</string>
+    <string name="new_window">Nouvelle fenêtre</string>
+    <string name="close_window">Fermer la fenêtre</string>
+    <string name="window_list">Fenêtres</string>
+    <string name="prev_window">Fenêtre préc.</string>
+    <string name="next_window">Fenêtre suiv.</string>
+    <string name="reset">Terminal par défaut</string>
+    <string name="toggle_soft_keyboard">Afficher/Masquer le clavier</string>
+
+    <string name="reset_toast_notification">État de cette fenêtre par défaut.</string>
+
+    <string name="enable_wakelock">Bloquer la mise en veille</string>
+    <string name="disable_wakelock">Débloquer la mise en veille</string>
+    <string name="enable_wifilock">Bloquer le WiFi</string>
+    <string name="disable_wifilock">Débloquer le WiFi</string>
+
+    <string name="edit_text">Modifier le texte</string>
+    <string name="select_text">Sélectionner le texte</string>
+    <string name="copy_all">Tout copier</string>
+    <string name="paste">Coller</string>
+    <string name="send_control_key">Touche Control</string>
+    <string name="send_fn_key">Touche Fonction</string>
+
+    <string name="window_title">Fenêtre %1$d</string>
+
+    <string name="service_notify_text">Session terminal en cours d\'exécution</string>
+
+    <string name="process_exit_message">Session terminal terminée</string>
+
+    <!-- == Préférences == -->
+    <string name="screen_preferences">Écran</string>
+
+    <string name="title_statusbar_preference">Barre d\'état</string>
+    <string name="summary_statusbar_preference">Afficher/Masquer la barre d\'état</string>
+    <string name="dialog_title_statusbar_preference">Barre d\'état</string>
+
+    <string name="title_actionbar_preference">Barre d\'actions</string>
+    <string name="summary_actionbar_preference">Choisir le comportement de la barre d\'actions</string>
+    <string name="summary_actionbar_preference_compat">Choisir le comportement de la barre d\'actions</string>
+    <string name="dialog_title_actionbar_preference">Barre d\'actions</string>
+
+    <string name="title_orientation_preference">Orientation de l\'écran</string>
+    <string name="summary_orientation_preference">Choisir le comportement de rotation d\'écran.</string>
+    <string name="dialog_title_orientation_preference">Comportement de rotation d\'écran</string>
+
+    <string name="title_sizecalc_preference">Calcul de la taille</string>
+    <string name="dialog_title_sizecalc_preference">Méthode de calcul de la taille</string>
+
+    <string name="title_cursorstyle_preference">Style du curseur</string>
+    <string name="summary_cursorstyle_preference">Choisir le style du curseur</string>
+    <string name="dialog_title_cursorstyle_preference">Style du curseur</string>
+
+    <string name="title_cursorblink_preference">Clignotement du curseur</string>
+    <string name="summary_cursorblink_preference">Choisir si le curseur doit clignoter.</string>
+    <string name="dialog_title_cursorblink_preference">Clignotement du curseur</string>
+
+    <string name="text_preferences">Texte</string>
+
+    <string name="title_utf8_by_default_preference">UTF-8 par défaut</string>
+    <string name="summary_utf8_by_default_preference">Activer le mode UTF-8 par défaut</string>
+
+    <string name="title_fontsize_preference">Taille de la police de caractères</string>
+    <string name="summary_fontsize_preference">Choisir la taille de la police de caractères en points</string>
+    <string name="dialog_title_fontsize_preference">Taille de la police</string>
+
+    <string name="title_color_preference">Couleurs</string>
+    <string name="summary_color_preference">Choisir la couleur du texte</string>
+    <string name="dialog_title_color_preference">Couleur du texte</string>
+
+    <string name="keyboard_preferences">Clavier</string>
+
+    <string name="title_backaction_preference">Bouton retour</string>
+    <string name="summary_backaction_preference">Choisir l\'action du bouton retour quand il est cliqué</string>
+    <string name="dialog_title_backaction_preference">Bouton retour</string>
+
+    <string name="title_controlkey_preference">Touche CTRL</string>
+    <string name="summary_controlkey_preference">Choisir quelle touche utiliser pour Control (CTRL)</string>
+    <string name="dialog_title_controlkey_preference">Touche CTRL</string>
+
+    <string name="title_fnkey_preference">Touche Fn</string>
+    <string name="summary_fnkey_preference">Choisir quelle touche utiliser pour Fonction (Fn)</string>
+    <string name="dialog_title_fnkey_preference">Touche Fn</string>
+
+    <string name="title_ime_preference">Méthode d\'entrée</string>
+    <string name="summary_ime_preference">Choisir la méthode d\'entrée du clavier virtuel</string>
+    <string name="dialog_title_ime_preference">Méthode d\'entrée</string>
+
+    <string name="shell_preferences">Shell</string>
+    <string name="title_shell_preference">Ligne de commande</string>
+    <string name="summary_shell_preference">Régler la ligne de commande du shell</string>
+    <string name="dialog_title_shell_preference">Shell</string>
+
+    <string name="title_initialcommand_preference">Commande initiale</string>
+    <string name="summary_initialcommand_preference">Choisir une commande au démarrage du shell</string>
+    <string name="dialog_title_initialcommand_preference">Commande initiale</string>
+
+    <string name="title_termtype_preference">Type de terminal</string>
+    <string name="summary_termtype_preference">Type de terminal à reporter au shell</string>
+    <string name="dialog_title_termtype_preference">Type de terminal</string>
+
+    <string name="title_close_window_on_process_exit_preference">Quitter avec exit</string>
+    <string name="summary_close_window_on_process_exit_preference">Quitter la fenêtre en cours en exécutant la commande exit</string>
+
+    <string name="title_home_path_preference">Dossier HOME</string>
+    <string name="summary_home_path_preference">Chemin vers un dossier accessible en écriture pour être utilisé comme HOME.</string>
+
+    <!-- Le mot CTRLKEY ne doit pas être traduit. Il sera remplacé par la touche CTRL renseignée dans les paramètres -->
+    <!-- Le mot FNKEY ne doit pas être traduit. Il sera remplacé par la touche Fn renseignée dans les paramètres -->
+
+    <string name="confirm_window_close_message">Fermer cette fenêtre ?</string>
+
+    <string name="perm_run_script">Lancer des commandes tierces</string>
+    <string name="permdesc_run_script">Permettre à une application d\'ouvrir une nouvelle fenêtre dans Terminal Emulator en exécutant des commandes avec les permissions de l\'application comme l\'accès à Internet et à votre carte SD</string>
+
+
+    <string name="alt_sends_esc">Touche Alt</string>
+    <string name="alt_sends_esc_summary_on">Alt simule la touche Echap</string>
+    <string name="alt_sends_esc_summary_off">Alt ne simule pas la touche Echap</string>
+
+    <string name="title_mouse_tracking_preference">Envoyer des événements de souris</string>
+    <string name="summary_mouse_tracking_preference">Aussi bien les événements d\'appui et de scroll doivent être envoyés sous forme de séquences d\'échappement au terminal.</string>
+
+    <string name="title_use_keyboard_shortcuts">Utiliser les raccourcis clavier</string>
+    <string name="use_keyboard_shortcuts_summary_on">Ctrl-Tab: cycle window, Ctrl-Shift-N: nouvelle fenêtre, Ctrl-Shift-V: coller.</string>
+    <string name="use_keyboard_shortcuts_summary_off">Raccourcis clavier désactivés.</string>
+
+
+    <!-- BEGIN SHORTCUT RELATED STRINGS -->
+    <!-- AndroidManifest.xml -->
+    <!-- FileSelection activity -->
+    <string name="fsnavigator_title">Sélecteur de fichiers</string>
+    <string name="fsnavigator_no_external_storage">Stockage externe non disponible</string>
+    <string name="fsnavigator_optional_enter_path">Ou entrer le chemin ici.</string>
+    <string name="fsnavigator_change_theme">Changer le thème</string>
+    <!-- AddShortcut activity -->
+    <string name="addshortcut_command_hint">commande</string>
+    <string name="addshortcut_example_hint">--example=\"a\"</string>
+    <string name="addshortcut_navigator_title">SÉLECTIONNER LA CIBLE</string>
+    <string name="addshortcut_command_window_instructions">La fenêtre de commande nécessite un chemin complet, pas d\'arguments. Pour les autres commandes, utilisez la fenêtre Arguments (ex : cd / carte SD).</string>
+    <string name="addshortcut_arguments_label">Arguments</string>
+    <string name="addshortcut_shortcut_label">Étiquette de raccourci</string>
+    <string name="addshortcut_button_text_icon">Icône de texte</string>
+    <!-- ColorValue.java -->
+    <string name="colorvalue_letter_alpha">α</string>
+    <string name="colorvalue_letter_red">R</string>
+    <string name="colorvalue_letter_green">V</string>
+    <string name="colorvalue_letter_blue">B</string>
+    <string name="colorvalue_label_lock_button_column">VERROUILLER</string>
+    <string name="colorvalue_icon_text_entry_hint">Saisir le texte de l\'icône</string>
+    <!-- END SHORTCUT RELATED STRINGS -->
+</resources>

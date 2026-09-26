@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2020-2023 Michal L
+ * Copyright (C) 2025 Roumen Petrov.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<resources>
+    <string name="application_terminal">ThothTerm</string>
+    <string name="preferences">Ustawienia</string>
+    <string name="new_window">Nowe okno</string>
+    <string name="close_window">Zamknij okno</string>
+    <string name="window_list">Okna</string>
+    <string name="prev_window">Poprzednie okno</string>
+    <string name="next_window">Następne okno</string>
+    <string name="reset">Wyczyść terminal</string>
+    <string name="toggle_soft_keyboard">Pokaż klawiaturę</string>
+
+    <string name="reset_toast_notification">Stan tego okna terminala został zresetowany</string>
+
+    <string name="enable_wakelock">Weź WakeLock</string>
+    <string name="disable_wakelock">Zwolnij WakeLock</string>
+    <string name="ignore_battery_optimizations">Pozwolić \"%1$s\" na ignorowanie optymalizacji baterii?</string>
+    <string name="enable_wifilock">Weź WifiLock</string>
+    <string name="disable_wifilock">Zwolnij WifiLock</string>
+
+    <!-- Navigation drawer -->
+    <string name="navigation_drawer_open">Otwórz panel nawigacji</string>
+    <string name="navigation_drawer_close">Zamknij panel nawigacji</string>
+
+    <!-- access "external storage" -->
+    <string name="message_external_storage_rationale">Dostęp do \"pamięci zewnętrznej\" jest wymagany do zarządzania plikami</string>
+    <string name="message_external_storage_granted">Dostęp przyznany do \"pamięci zewnętrznej\"</string>
+    <string name="message_external_storage_not_granted">Odmowa dostępu do \"pamięci zewnętrznej\"</string>
+
+    <!-- Context menu -->
+    <string name="edit_text">Edytuj tekst</string>
+    <string name="select_text">Wybierz tekst</string>
+    <string name="copy_all">Kopiuj wszystko</string>
+    <string name="paste">Wklej</string>
+    <string name="paste_script">Wklej skrypt</string>
+    <string name="send_control_key">Wyślij przycisk control</string>
+    <string name="send_fn_key">Wyślij przycisk fn</string>
+
+    <!-- Miscellaneous -->
+    <string name="window_title">Okno %1$d</string>
+
+    <string name="service_notify_text">Sesja Terminala jest włączona</string>
+
+    <string name="process_exit_message">Sesja Terminala została zakończona</string>
+
+    <!-- Preference dialog -->
+    <string name="screen_preferences">Ekran</string>
+
+    <string name="title_statusbar_preference">Pasek stanu</string>
+    <string name="summary_statusbar_preference">Pokaż/ukryj pasek stanu.</string>
+    <string name="dialog_title_statusbar_preference">Pasek stanu</string>
+    <string name="restart_statusbar_change">Ponowne uruchamianie czynności ...\n(nowy tryb paska stanu)</string>
+
+    <string name="title_actionbar_preference">Pasek akcji</string>
+    <string name="summary_actionbar_preference">Wybierz zachowanie paska akcji.</string>
+    <string name="summary_actionbar_preference_compat">Wybierz zachowanie paska akcji.</string>
+    <string name="dialog_title_actionbar_preference">Zachowanie paska akcji</string>
+    <string name="restart_actionbar_change">Ponowne uruchamianie czynności ...\n(nowy tryb paska akcji)</string>
+
+    <string name="title_thememode_preference">Motyw</string>
+    <string name="summary_thememode_preference">Zmień motyw</string>
+    <string name="dialog_title_thememode_preference">Motyw</string>
+    <string name="restart_thememode_change">Ponowne uruchamianie czynności ...\n(nowy motyw)</string>
+
+    <string name="title_orientation_preference">Orientacja ekranu</string>
+    <string name="summary_orientation_preference">Wybierz zachowanie orientacji ekranu.</string>
+    <string name="dialog_title_orientation_preference">Zachowanie orientacji ekranu</string>
+
+    <string name="title_sizecalc_preference">Obliczanie rozmiaru</string>
+    <string name="summary_sizecalc_preference">Określa, kiedy obliczyć rozmiar ekranu terminala, używane jest to jako obejście dla starszych urządzeń lub niektórych klawiatur programowych.</string>
+    <string name="dialog_title_sizecalc_preference">Metoda obliczania rozmiaru</string>
+
+    <string name="title_cursorstyle_preference">Styl kursora</string>
+    <string name="summary_cursorstyle_preference">Wybierz styl kursora.</string>
+    <string name="dialog_title_cursorstyle_preference">Styl kursora</string>
+
+    <string name="title_cursorblink_preference">Miganie kursora</string>
+    <string name="summary_cursorblink_preference">Wybierz miganie kursora.</string>
+    <string name="dialog_title_cursorblink_preference">Miganie kursora</string>
+
+    <string name="text_preferences">Tekst</string>
+
+    <string name="title_utf8_by_default_preference">Domyślnie do UTF-8</string>
+    <string name="summary_utf8_by_default_preference">Określa, czy tryb UTF-8 ma być włączony domyślnie.</string>
+
+    <string name="title_fontsize_preference">Rozmiar czcionki</string>
+    <string name="summary_fontsize_preference">Wybierz wielkość liter.</string>
+    <string name="dialog_title_fontsize_preference">Rozmiar czcionki</string>
+
+    <string name="title_color_preference">Kolory</string>
+    <string name="summary_color_preference">Wybierz kolor tekstu.</string>
+    <string name="dialog_title_color_preference">Kolor tekstu</string>
+
+    <string name="keyboard_preferences">Klawiatura</string>
+
+    <string name="title_backaction_preference">Zachowanie przycisku wstecz</string>
+    <string name="summary_backaction_preference">Wybierz, co ma robić wciśnięcie przycisku wstecz.</string>
+    <string name="dialog_title_backaction_preference">Zachowanie przycisku wstecz</string>
+
+    <string name="title_controlkey_preference">Przycisk control</string>
+    <string name="summary_controlkey_preference">Wybierz przycisk control.</string>
+    <string name="dialog_title_controlkey_preference">Przycisk control</string>
+
+    <string name="title_fnkey_preference">Przycisk Fn</string>
+    <string name="summary_fnkey_preference">Wybierz przycisk Fn.</string>
+    <string name="dialog_title_fnkey_preference">Przycisk Fn</string>
+
+    <string name="title_ime_preference">Metoda wprowadzania</string>
+    <string name="summary_ime_preference">Wybierz metodę wprowadzania.</string>
+    <string name="dialog_title_ime_preference">Metoda wprowadzania</string>
+
+    <string name="shell_preferences">Powłoka</string>
+    <string name="title_shell_preference">Wiersz poleceń</string>
+    <string name="summary_shell_preference">Określ wiersz poleceń powłoki.</string>
+    <string name="dialog_title_shell_preference">Powłoka</string>
+
+    <string name="title_source_sys_shrc_preference">Źródłowy plik systemowy mkshrc</string>
+    <string name="summary_source_sys_shrc_preference">
+      W specyficznych dla aplikacji komendach źródłowych skryptu startowego powłoki z pliku startowego powłoki systemowej (/system/etc/mkshrc).
+      Zależy od wiersza poleceń powłoki.
+    </string>
+
+    <string name="title_initialcommand_preference">Komenda początkowa</string>
+    <string name="summary_initialcommand_preference">Wysyłana do powłoki podczas startu.</string>
+    <string name="dialog_title_initialcommand_preference">Komenda początkowa</string>
+
+    <string name="title_shellrc_preference">Rozruch powłoki</string>
+    <string name="summary_shellrc_preference">Polecenia rozruchu powłoki</string>
+    <string name="dialog_title_shellrc_preference">Rozruch powłoki</string>
+    <string name="hint_shellrc_preference">(polecenia rozruchu powłoki)</string>
+
+    <string name="title_termtype_preference">Typ terminala</string>
+    <string name="summary_termtype_preference">Jaki typ terminala zgłosić do shella.</string>
+    <string name="dialog_title_termtype_preference">Typ terminala</string>
+
+    <string name="title_close_window_on_process_exit_preference">Zamknij okno przy wyjściu</string>
+    <string name="summary_close_window_on_process_exit_preference">Określa, czy okno powinno zamykać się po zamknięciu powłoki.</string>
+
+    <string name="title_home_path_preference">Folder domowy (HOME)</string>
+    <string name="summary_home_path_preference">Ścieżka do folderu z możliwością zapisu, który będzie używany jako folder domowy (HOME)</string>
+
+    <!-- The word CTRLKEY should be left un-translated. It will be replaced at run-time with the
+         actual control key key name. -->
+    <!-- The word FNKEY should be left un-translated. It will be replaced at run-time with the
+         actual function key key name. -->
+
+    <string name="confirm_window_close_message">Zamknąć to okno?</string>
+
+    <string name="perm_grp_term">Uprawnienia programu Terminal Emulator</string>
+    <string name="permdesc_grp_term">Służy do uzyskiwania dostępu do funkcji emulatora terminala.</string>
+    <string name="perm_run_script">Uruchamiaj komendy w Terminal Emulator</string>
+    <string name="permdesc_run_script">Pozwala na otwieranie nowych okien w aplikacji Terminal Emulator dla systemu Android i wykonywanie poleceń w tych oknach ze wszystkimi uprawnieniami, w tym dostępem do Internetu i karty SD.</string>
+
+
+    <string name="alt_sends_esc">Przycisk Alt wysyła ESC</string>
+    <string name="alt_sends_esc_summary_on">Przycisk Alt wysyła ESC.</string>
+    <string name="alt_sends_esc_summary_off">Przycisk Alt nie wysyła ESC.</string>
+
+    <string name="title_mouse_tracking_preference">Wyślij zdarzenia dotyczące myszy</string>
+    <string name="summary_mouse_tracking_preference">Określa, czy zdarzenia takie jak kliknięcie i scroll (przewinięcie) powinny być wysyłane jako sekwencje ucieczki do terminala.</string>
+
+    <string name="title_use_keyboard_shortcuts">Używaj skrótów klawiaturowych</string>
+    <string name="use_keyboard_shortcuts_summary_on">Ctrl-Tab: przełącz okno, Ctrl-Shift-N: nowe okno, Ctrl-Shift-V: wklej.</string>
+    <string name="use_keyboard_shortcuts_summary_off">Skróty klawiaturowe wyłączone.</string>
+
+    <string name="script_intent_title">Wybierz skrypt</string>
+    <string name="script_import_error">Nie można odczytać wybranego skryptu</string>
+    <string name="script_access_error">Nie można uzyskać dostępu do wybranego skryptu</string>
+    <string name="script_source_content_error">Nie znaleziono działania do obsługi akcji „Pobierz zawartość”</string>
+
+    <string name="activity_term_here_title">Terminal tutaj</string>
+    <!-- BEGIN SHORTCUT RELATED STRINGS -->
+    <!-- AndroidManifest.xml -->
+    <string name="activity_shortcut_create">Skrót Terminala</string>
+    <!-- FileSelection activity -->
+    <string name="fsnavigator_title">Wybieranie pliku</string>
+    <string name="fsnavigator_no_external_storage">Pamięć zewnętrzna niedostępna</string>
+    <string name="fsnavigator_optional_enter_path">Lub wprowadź ścieżkę tutaj.</string>
+    <string name="fsnavigator_change_theme">Zmień motyw</string>
+    <!-- AddShortcut activity -->
+    <string name="addshortcut_command_hint">polecenie</string>
+    <string name="addshortcut_example_hint">--przyklad=\"a\"</string>
+    <string name="addshortcut_button_find_command">Znajdź polecenie</string>
+    <string name="addshortcut_navigator_title">WYBIERZ MIEJSCE DOCELOWE SKRÓTU</string>
+    <string name="addshortcut_command_window_instructions">Okno polecenia wymaga pełnej ścieżki, bez argumentów. Dla innych poleceń użyj okna argumentów (np.: cd /sdcard).</string>
+    <string name="addshortcut_arguments_label">Argumenty</string>
+    <string name="addshortcut_shortcut_label">Etykieta skrótu</string>
+    <string name="addshortcut_button_text_icon">Ikona tekstowa</string>
+    <string name="addshortcut_make_text_icon">TWORZENIE IKONY TEKSTOWEJ</string>
+    <string name="addshortcut_title">Skrót Terminala</string>
+    <!-- ColorValue.java -->
+    <string name="colorvalue_letter_alpha">α</string>
+    <string name="colorvalue_letter_red">R</string>
+    <string name="colorvalue_letter_green">G</string>
+    <string name="colorvalue_letter_blue">B</string>
+    <string name="colorvalue_label_lock_button_column">ZABLOKUJ</string>
+    <string name="colorvalue_icon_text_entry_hint">Wprowadź tekst ikony</string>
+    <!-- END SHORTCUT RELATED STRINGS -->
+</resources>

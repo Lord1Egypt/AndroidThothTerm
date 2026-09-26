@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (C) 2017-2018 Roumen Petrov.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<resources>
+    <!-- ThothTerm visual identity. Keep app chrome separate from terminal ANSI colors. -->
+    <color name="brand_midnight">#08111F</color>
+    <color name="brand_navy">#10243A</color>
+    <color name="brand_navy_light">#18344F</color>
+    <color name="brand_teal">#39D9C5</color>
+    <color name="brand_teal_dark">#007C72</color>
+    <color name="brand_mist">#F3F7FA</color>
+    <color name="brand_white">#FFFFFFFF</color>
+    <color name="brand_text_muted_dark">#AAB9CC</color>
+
+    <color name="colorvalue_alpha">#FFFFFFFF</color>
+    <color name="colorvalue_red">#FFFF0000</color>
+    <color name="colorvalue_green">#FF00FF00</color>
+    <color name="colorvalue_blue">#FF0000FF</color>
+
+    <!-- Diagnostics log level accents (legible on dark, light, and AMOLED). -->
+    <color name="log_level_error">#FFE53935</color>
+    <color name="log_level_warn">#FFFB8C00</color>
+    <color name="log_level_info">#FF43A047</color>
+    <color name="log_level_debug">#FF1E88E5</color>
+    <color name="log_level_verbose">#FF9E9E9E</color>
+</resources>
