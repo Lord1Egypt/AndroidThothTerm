@@ -28,10 +28,20 @@
     <string name="window_list">Windows</string>
     <string name="prev_window">Prev window</string>
     <string name="next_window">Next window</string>
+    <string name="clear_scrollback">Clear scrollback</string>
+    <string name="zoom_in">Zoom in</string>
+    <string name="zoom_out">Zoom out</string>
+    <string name="zoom_reset">Reset font size</string>
+    <string name="zoom_toast">Font size %1$d pt</string>
     <string name="reset">Restart terminal</string>
     <string name="toggle_soft_keyboard">Show keyboard</string>
 
     <string name="reset_toast_notification">This window\'s terminal state has been restarted.</string>
+    <string name="clear_scrollback_toast_notification">This window\'s scrollback has been cleared.</string>
+
+    <string name="exit">Exit</string>
+    <string name="exit_title">Exit ThothTerm?</string>
+    <string name="exit_message">This will close all terminal sessions and stop running commands.</string>
 
     <string name="enable_wakelock">Keep screen awake</string>
     <string name="disable_wakelock">Allow screen to sleep</string>
@@ -80,7 +90,7 @@
         It is essential to deliver reliable, and uninterrupted session that application users rely on, and that ensures a seamless user experience.
         The application request only necessary permissions and this texts provides detailed information on data usage.
     </string>
-    <string name="service_notify_text">Terminal session is running</string>
+    <string name="service_notify_text">ThothTerm is running</string>
     <string name="service_timeout_text">System terminates long-running terminal sessions</string>
 
     <string name="process_exit_message">Terminal session finished</string>

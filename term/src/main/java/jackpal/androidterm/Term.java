@@ -17,6 +17,7 @@
 
 package jackpal.androidterm;
 
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -42,6 +43,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.preference.PreferenceManager;
 
@@ -52,6 +54,7 @@ import com.thothterm.Permissions;
 import com.thothterm.R;
 import com.thothterm.Settings;
 import com.thothterm.TermActionBar;
+import com.thothterm.TerminalZoom;
 import com.thothterm.TermPreferencesActivity;
 import com.thothterm.WindowListActivity;
 import com.thothterm.compat.SoftInputCompat;
@@ -177,6 +180,7 @@ public class Term extends AppCompatActivity
             ThothLog.d(LogCategory.SESSION, "Activity connected to terminal service");
             mTermService = service;
             populateSessions();
+            mTermService.refreshRunningNotification();
         } else {
             ThothLog.d(LogCategory.SESSION, "Activity disconnected from terminal service");
             mTermService = null;
@@ -340,11 +344,78 @@ public class Term extends AppCompatActivity
         return createTermSession(this, null);
     }
 
+    /** Font size captured when the current pinch began; -1 while not pinching. */
+    private int zoom_base_size = -1;
+
+    private void onTerminalZoom(float scaleFactor) {
+        if (zoom_base_size < 0) zoom_base_size = mSettings.getFontSize();
+        applyFontSize(TerminalZoom.scaled(zoom_base_size, scaleFactor));
+    }
+
+    /** Ends the pinch so the next one measures from the size now on screen. */
+    private void endTerminalZoom() {
+        zoom_base_size = -1;
+    }
+
+    protected void zoomIn() {
+        applyFontSize(TerminalZoom.zoomIn(mSettings.getFontSize()));
+        announceFontSize();
+    }
+
+    protected void zoomOut() {
+        applyFontSize(TerminalZoom.zoomOut(mSettings.getFontSize()));
+        announceFontSize();
+    }
+
+    protected void zoomReset() {
+        applyFontSize(TerminalZoom.DEFAULT_SIZE);
+        announceFontSize();
+    }
+
+    /**
+     * Confirms the resulting size for the menu actions. The pinch gesture does
+     * not announce, as it would post a message per motion event.
+     */
+    private void announceFontSize() {
+        ScreenMessage.show(getApplicationContext(),
+                getString(R.string.zoom_toast, mSettings.getFontSize()));
+    }
+
+    /**
+     * Stores the new size in the existing global font-size preference and pushes
+     * it through {@link #updatePrefs()}, which re-lays out every session and so
+     * resizes each PTY. Writing a string keeps the value readable both by
+     * TermSettings and by the Settings list that shares this key.
+     */
+    private void applyFontSize(int size) {
+        int wanted = TerminalZoom.clamp(size);
+        if (wanted == mSettings.getFontSize()) return;
+
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .edit()
+                .putString("fontsize", Integer.toString(wanted))
+                .apply();
+        mSettings.readPrefs(this,
+                PreferenceManager.getDefaultSharedPreferences(this));
+        updatePrefs();
+    }
+
     private TermView createEmulatorView(TermSession session) {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         TermView emulatorView = new TermView(this, session, metrics);
 
         emulatorView.setExtGestureListener(new EmulatorViewGestureListener(emulatorView));
+        emulatorView.setZoomListener(new EmulatorView.ZoomListener() {
+            @Override
+            public void onZoom(float scaleFactor) {
+                onTerminalZoom(scaleFactor);
+            }
+
+            @Override
+            public void onZoomEnd() {
+                endTerminalZoom();
+            }
+        });
         emulatorView.setOnKeyListener(mKeyListener);
         emulatorView.setOnToggleSelectingTextListener(
                 () -> mActionBar.lockDrawer(emulatorView.getSelectingText()));
@@ -420,6 +491,9 @@ public class Term extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         ThothLog.d(LogCategory.UI, "Term activity resumed");
+        // Covers returning from the notification-permission prompt, which
+        // is answered after the service already tried to post.
+        if (mTermService != null) mTermService.refreshRunningNotification();
     }
 
     @Override
@@ -488,10 +562,22 @@ public class Term extends AppCompatActivity
             doCreateNewWindow();
         } else if (id == R.id.menu_close_window) {
             confirmCloseWindow();
+        } else if (id == R.id.menu_zoom_in) {
+            zoomIn();
+        } else if (id == R.id.menu_zoom_out) {
+            zoomOut();
+        } else if (id == R.id.menu_zoom_reset) {
+            zoomReset();
+        } else if (id == R.id.menu_clear_scrollback) {
+            doClearScrollback();
+            ScreenMessage.show(getApplicationContext(),
+                    R.string.clear_scrollback_toast_notification);
         } else if (id == R.id.menu_reset) {
             doResetTerminal();
             ScreenMessage.show(getApplicationContext(),
                     R.string.reset_toast_notification);
+        } else if (id == R.id.menu_exit) {
+            doExit();
         } else if (id == R.id.menu_toggle_soft_keyboard) {
             doToggleSoftKeyboard();
         } else if (id == R.id.menu_toggle_wakelock) {
@@ -768,6 +854,84 @@ public class Term extends AppCompatActivity
         if (session == null) return;
 
         session.reset();
+    }
+
+    /** How long the shells get to honour SIGHUP before Exit stops waiting. */
+    private static final long EXIT_GRACE_MS = 400;
+
+    private void doExit() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.exit_title)
+                .setMessage(R.string.exit_message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.exit, (dialog, which) -> performExit())
+                .show();
+    }
+
+    /**
+     * Shut the application down as far as an ordinary app is allowed to.
+     * <p>
+     * Android reserves Settings' "Force stop" for the system, so this does the
+     * strongest correct equivalent: hang up every session, give the shells a
+     * moment to exit, then kill whatever is left of the process groups we
+     * started -- by the pids the service tracks, never by matching process
+     * names. The app's tasks go with it, and we end our own process last so
+     * that the service, its notification and its threads go down with us.
+     * <p>
+     * Nothing on disk is touched: HOME and the preferences are still there
+     * for the next launch.
+     */
+    private void performExit() {
+        ThothLog.i(LogCategory.APP, "Exit requested; shutting down all sessions");
+
+        WifiLock.release();
+        WakeLock.release();
+
+        final int[] pids;
+        if (mTermService != null) {
+            pids = mTermService.sessionProcessIds();
+            mTermService.shutdownAll();
+        } else {
+            pids = new int[0];
+        }
+
+        // Let onStop()/onDestroy() unbind and stop the service on the way out.
+        mStopServiceOnFinish = true;
+        finishAffinity();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP /*API level 21*/)
+            RemoveTasksCompat21.removeAll(this);
+
+        mHandler.postDelayed(() -> {
+            for (int pid : pids) {
+                com.thothterm.Process.killChilds(pid);
+            }
+            android.os.Process.killProcess(android.os.Process.myPid());
+        }, EXIT_GRACE_MS);
+    }
+
+    @RequiresApi(21)
+    private static class RemoveTasksCompat21 {
+        /**
+         * finishAffinity() leaves the task card in Recents, and an activity's
+         * own finishAndRemoveTask() only drops the task it roots, so remove
+         * every task the app owns through ActivityManager instead.
+         */
+        private static void removeAll(Context context) {
+            ActivityManager activityManager =
+                    (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (activityManager == null) return;
+            for (ActivityManager.AppTask task : activityManager.getAppTasks()) {
+                task.finishAndRemoveTask();
+            }
+        }
+    }
+
+    /** Drop the current window's scrollback without disturbing its shell. */
+    private void doClearScrollback() {
+        TermSession session = getCurrentTermSession();
+        if (session == null) return;
+
+        session.clearScrollback();
     }
 
     private void doShowAbout() {

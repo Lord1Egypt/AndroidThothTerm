@@ -39,6 +39,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.ResultReceiver;
+import android.service.notification.StatusBarNotification;
 import android.text.TextUtils;
 
 import androidx.annotation.RequiresApi;
@@ -46,6 +47,7 @@ import androidx.core.app.NotificationCompat;
 
 import com.thothterm.Application;
 import com.thothterm.BuildConfig;
+import com.thothterm.NotificationPermission;
 import com.thothterm.R;
 import com.thothterm.RemoteSession;
 import com.thothterm.TermActivity;
@@ -55,6 +57,8 @@ import com.thothterm.logging.ThothLog;
 import com.thothterm.services.CommandService;
 import com.thothterm.services.SessionsService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import jackpal.androidterm.emulatorview.TermSession;
@@ -67,6 +71,8 @@ public class TermService extends SessionsService {
 
     private final IBinder mTSBinder = new TSBinder();
     private CommandService command_service;
+    /** True while this service holds its foreground state and notification. */
+    private boolean mForeground;
 
     private static Notification buildNotification(Context context, NotificationSettings callback) {
         NotificationChannelCompat.create(context);
@@ -83,6 +89,9 @@ public class TermService extends SessionsService {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setWhen(System.currentTimeMillis())
                 .setOngoing(true)
+                // Android 12+ otherwise holds a new foreground-service
+                // notification back for up to ten seconds.
+                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
                 .setContentIntent(pendingIntent);
         callback.set(context, builder);
         return builder.build();
@@ -115,6 +124,7 @@ public class TermService extends SessionsService {
         /* Put the service in the foreground. */
         Notification notification = buildNotification();
         if (!StartForeground.start(this, notification)) return;
+        mForeground = true;
 
         command_service = new CommandService(this);
         command_service.start();
@@ -143,11 +153,98 @@ public class TermService extends SessionsService {
         stopSelf();
     }
 
+    /**
+     * The pids of the shell process groups this service owns, captured before
+     * the sessions are torn down so Exit can make sure nothing of ours
+     * outlives the hangup.
+     */
+    public int[] sessionProcessIds() {
+        List<Integer> pids = new ArrayList<>();
+        for (TermSession session : getSessions()) {
+            if (session instanceof ShellTermSession) {
+                pids.add(((ShellTermSession) session).getProcessId());
+            }
+        }
+        int[] result = new int[pids.size()];
+        for (int i = 0; i < result.length; ++i) result[i] = pids.get(i);
+        return result;
+    }
+
+    /**
+     * Stop taking new work, hang up every session, and drop the ongoing
+     * notification. Used by the Exit action; ordinary teardown still goes
+     * through {@link #onDestroy()}.
+     */
+    public void shutdownAll() {
+        if (command_service != null) command_service.stop();
+        clearSessions();
+        removeRunningNotification();
+    }
+
+    /**
+     * Post the ongoing notification again if the system is not showing it.
+     * <p>
+     * The service starts before the user has answered the Android 13+
+     * notification prompt, and a notification blocked at that moment is not
+     * shown later when consent arrives. Posting under the same id as the
+     * foreground notification replaces it in place, so this is safe to call
+     * whenever the terminal comes to the front.
+     */
+    public void refreshRunningNotification() {
+        if (!mForeground) return;
+        if (!NotificationPermission.isGranted(this)) return;
+
+        NotificationManager manager = (NotificationManager) getApplicationContext()
+                .getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M /*API level 23*/
+                && ActiveNotificationsCompat23.isShowing(manager, RUNNING_NOTIFICATION))
+            return;
+        manager.notify(RUNNING_NOTIFICATION, buildNotification());
+    }
+
+    @RequiresApi(23)
+    private static class ActiveNotificationsCompat23 {
+        private static boolean isShowing(NotificationManager manager, int id) {
+            for (StatusBarNotification notification : manager.getActiveNotifications()) {
+                if (notification.getId() == id) return true;
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Take the ongoing notification down with the service.
+     * <p>
+     * {@link StopForeground} only detaches it, which is right while the app
+     * keeps running, but leaves "ThothTerm is running" on screen after
+     * the service is gone. Cancelling it separately races the detach, so ask
+     * for removal through the same call that ends the foreground state.
+     */
+    private void removeRunningNotification() {
+        mForeground = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N /*API level 24*/)
+            RemoveForegroundCompat24.stop(this);
+        else
+            StopForeground.stop(this);
+
+        NotificationManager manager = (NotificationManager) getApplicationContext()
+                .getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) manager.cancel(RUNNING_NOTIFICATION);
+    }
+
+    @RequiresApi(24)
+    private static class RemoveForegroundCompat24 {
+        private static void stop(Service service) {
+            service.stopForeground(STOP_FOREGROUND_REMOVE);
+        }
+    }
+
     @Override
     public void onDestroy() {
         if (command_service != null) command_service.stop();
         clearSessions();
-        StopForeground.stop(this);
+        removeRunningNotification();
         super.onDestroy();
 
         ThothLog.i(LogCategory.APP, "Terminal service stopped");

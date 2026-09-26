@@ -51,6 +51,8 @@ public class ShellTermSession extends GenericTermSession {
     private final String mInitialCommand;
     private final int mProcId;
     private final Thread mWatcherThread;
+    /** Set once waitExit() has reaped the shell. */
+    private volatile boolean mExited;
 
 
     public ShellTermSession(TermSettings settings, String initialCommand) throws IOException {
@@ -65,6 +67,7 @@ public class ShellTermSession extends GenericTermSession {
         mWatcherThread = new Thread(() -> {
             ThothLog.d(LogCategory.SHELL, "Waiting for shell exit pid=" + mProcId);
             int result = Process.waitExit(mProcId);
+            mExited = true;
             handler.sendMessage(handler.obtainMessage(PROCESS_EXITED, result));
         });
         mWatcherThread.setName("Process watcher");
@@ -190,10 +193,44 @@ public class ShellTermSession extends GenericTermSession {
         onProcessExit();
     }
 
+    /** How long a closed window's shell gets to honour SIGHUP before SIGKILL. */
+    private static final long KILL_GRACE_MS = 400;
+
+    /** android.os.Process has no named constant for SIGHUP. */
+    private static final int SIGNAL_HUP = 1;
+
     @Override
     public void finish() {
+        final int foreground = SessionProcesses.foregroundGroupOf(mProcId);
+
         Process.finishChilds(mProcId);
+        // Hang up the whole session, as a real terminal hangup does: job
+        // control gives the foreground job and every background job a process
+        // group of their own, so the shell's group alone misses them. A
+        // background job that ignores SIGHUP (nohup) keeps running, as
+        // intended.
+        for (int pid : SessionProcesses.members(mProcId)) {
+            android.os.Process.sendSignal(pid, SIGNAL_HUP);
+        }
         super.finish();
+
+        // Backstop for whatever ignored the hangup in the window's foreground:
+        // the shell itself and the job the user was running there. Only this
+        // session's groups are killed -- the shell's only while it is
+        // unreaped, the job's only while the group is still in this session --
+        // so a recycled id is never hit.
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (!mExited) Process.killChilds(mProcId);
+            if (foreground > 0 && foreground != mProcId
+                    && SessionProcesses.groupInSession(foreground, mProcId)) {
+                Process.killChilds(foreground);
+            }
+        }, KILL_GRACE_MS);
+    }
+
+    /** The shell pid, which is also its process group id. */
+    public int getProcessId() {
+        return mProcId;
     }
 
     private static class ProcessHandler extends Handler {

@@ -1191,6 +1191,10 @@ class TerminalEmulator {
                 blockClear(0, 0, mColumns, mRows);
                 break;
 
+            case 3: // Erase saved lines (xterm)
+                clearScrollback();
+                break;
+
             default:
                 unknownSequence(b);
                 break;
@@ -1870,9 +1874,26 @@ class TerminalEmulator {
     }
 
     /**
+     * Erase the saved lines above the screen, leaving the visible screen, the
+     * cursor and the running process untouched. Backs CSI 3 J and the
+     * "Clear scrollback" action.
+     * <p>
+     * On the alternate screen this is a no-op, because that buffer keeps no
+     * saved lines -- which is why switching to it does not lose the main
+     * screen's history.
+     */
+    public void clearScrollback() {
+        mScreen.clearTranscript();
+    }
+
+    /**
      * Reset the terminal emulator to its initial state.
      */
     public void reset() {
+        // A latched Alt/Ctrl/Fn lives on the key listener, not on the screen,
+        // so without this the user-facing "Restart terminal" left a stuck
+        // modifier in place and only killing the process could clear it.
+        mKeyListener.resetTransientState();
         mCursorRow = 0;
         mCursorCol = 0;
         mArgIndex = 0;
