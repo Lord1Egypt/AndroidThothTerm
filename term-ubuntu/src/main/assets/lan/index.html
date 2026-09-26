@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>ThothTerm Ubuntu — LAN Terminal</title>
+<link rel="stylesheet" href="/xterm.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header id="bar">
+  <span class="brand">ThothTerm Ubuntu</span>
+  <span class="sub">LAN Terminal</span>
+  <span id="state" class="state" role="status"></span>
+  <span class="spacer"></span>
+  <button id="copy" type="button" hidden title="Copy the selection (Ctrl+Shift+C)">Copy</button>
+  <button id="signout" type="button" hidden>Sign out</button>
+</header>
+<main>
+  <section id="pair" class="panel" hidden>
+    <h1>Pair this browser</h1>
+    <p>On the phone, open the menu, tap <b>LAN Mode</b>, and enter the PIN shown there.</p>
+    <form id="pair-form" autocomplete="off">
+      <input id="pin" name="pin" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" pattern="[0-9]{6}" required aria-label="PIN" placeholder="000000">
+      <button type="submit">Pair</button>
+    </form>
+    <p id="pair-error" class="error" role="alert"></p>
+    <p class="warn">LAN traffic is not encrypted. Use only on networks you trust.</p>
+  </section>
+  <section id="notice" class="panel" hidden>
+    <p id="notice-text"></p>
+    <button id="notice-action" type="button"></button>
+  </section>
+  <div id="terminal" hidden></div>
+</main>
+<script src="/xterm.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
