@@ -91,6 +91,9 @@ final class RemoteTerminals {
             } catch (IOException e) {
                 // EIO once the slave side is gone: the shell exited or was hung up.
             }
+            // Nothing holds the terminal any more. The shell has exited even
+            // if PRoot lives on for a nohup'd job, so the terminal is over.
+            onExited(this);
         }
 
         private synchronized void deliver(byte[] buffer, int n) {

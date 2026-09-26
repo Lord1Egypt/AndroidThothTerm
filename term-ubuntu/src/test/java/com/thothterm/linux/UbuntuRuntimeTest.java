@@ -38,12 +38,25 @@ public class UbuntuRuntimeTest {
     }
 
     @Test
+    public void provisioningLeavesNothingBehind() {
+        // The app waits for provisioning's PRoot to exit, so a script must not
+        // leave anything running -- the opposite of an interactive window.
+        List<String> argv = runtime().buildProvisioningArgv(java.util.Arrays.asList("/bin/sh", "-c", "true"));
+        assertTrue(argv.contains("--kill-on-exit"));
+        assertFalse(argv.contains("--hangup-on-exit"));
+        assertEquals("true", argv.get(argv.size() - 1));
+    }
+
+    @Test
     public void argvEntersUbuntuAsFakeRootInHome() {
         List<String> argv = runtime().buildArgv();
 
         assertEquals("/data/app/com.thothterm.ubuntu/lib/arm64/libproot.so", argv.get(0));
         assertTrue(argv.contains("--rootfs=/data/user/0/com.thothterm.ubuntu/files/linux/ubuntu-26.04/rootfs"));
         assertTrue(argv.contains("--root-id"));
+        // A window hangs up like a terminal; --kill-on-exit would kill nohup'd jobs.
+        assertTrue(argv.contains("--hangup-on-exit"));
+        assertFalse(argv.contains("--kill-on-exit"));
         assertTrue(argv.contains("--cwd=" + UbuntuRuntime.LINUX_HOME));
         assertTrue(argv.contains("--bind=/dev"));
         assertTrue(argv.contains("--bind=/proc"));

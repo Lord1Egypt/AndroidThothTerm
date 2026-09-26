@@ -17,8 +17,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -69,16 +67,62 @@ public class LanServerTest {
         }
     };
 
+    /**
+     * The shell's output as the master reads it. Unlike PipedInputStream it
+     * does not break when the thread that last wrote to it ends -- the
+     * server's connection threads come and go.
+     */
+    static final class ShellOutput extends InputStream {
+        private final java.util.concurrent.LinkedBlockingQueue<byte[]> chunks =
+                new java.util.concurrent.LinkedBlockingQueue<>();
+        private static final byte[] EOF = new byte[0];
+        private byte[] current;
+        private int offset;
+
+        void write(byte[] b, int off, int len) {
+            chunks.add(java.util.Arrays.copyOfRange(b, off, off + len));
+        }
+
+        /** The shell side is gone: readers see end of file. */
+        void end() {
+            chunks.add(EOF);
+        }
+
+        @Override
+        public int read() throws IOException {
+            byte[] one = new byte[1];
+            return read(one, 0, 1) < 0 ? -1 : one[0] & 0xff;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            try {
+                while (current == null || offset == current.length) {
+                    current = chunks.take();
+                    offset = 0;
+                    if (current == EOF) {
+                        chunks.add(EOF);
+                        return -1;
+                    }
+                }
+            } catch (InterruptedException e) {
+                throw new java.io.InterruptedIOException();
+            }
+            int n = Math.min(len, current.length - offset);
+            System.arraycopy(current, offset, b, off, n);
+            offset += n;
+            return n;
+        }
+    }
+
     /** Echoes input back as output; "exit\r" ends the shell. */
     static final class FakePty implements Pty {
-        private final PipedInputStream shellOut = new PipedInputStream(1 << 16);
-        private final PipedOutputStream shellWriter;
+        private final ShellOutput shellOut = new ShellOutput();
         private final CountDownLatch exited = new CountDownLatch(1);
         final List<int[]> resizes = Collections.synchronizedList(new ArrayList<>());
         volatile boolean hungUp;
 
-        FakePty(int columns, int rows) throws IOException {
-            shellWriter = new PipedOutputStream(shellOut);
+        FakePty(int columns, int rows) {
             resizes.add(new int[]{columns, rows});
         }
 
@@ -91,11 +135,13 @@ public class LanServerTest {
             }
 
             @Override
-            public void write(byte[] b, int off, int len) throws IOException {
-                shellWriter.write(b, off, len);
-                shellWriter.flush();
+            public void write(byte[] b, int off, int len) {
+                shellOut.write(b, off, len);
                 line.append(new String(b, off, len, StandardCharsets.UTF_8));
                 if (line.toString().contains("exit\r")) exited.countDown();
+                // The shell exits but a nohup'd job keeps PRoot alive: the
+                // terminal's output ends while waitFor() does not return.
+                if (line.toString().contains("nohup-exit\r")) shellOut.end();
             }
         };
 
@@ -128,11 +174,7 @@ public class LanServerTest {
         public void hangUp() {
             hungUp = true;
             exited.countDown();
-            try {
-                shellWriter.close();
-            } catch (IOException ignore) {
-                // Closed either way.
-            }
+            shellOut.end();
         }
 
         @Override
@@ -621,6 +663,20 @@ public class LanServerTest {
             assertEquals(LanServer.CLOSE_EXITED, ws.closeCode());
         }
         eventually("terminal removal", () -> mode.status().terminals == 0);
+    }
+
+    @Test
+    public void terminalEndsWhenItsOutputEndsEvenIfPtyLivesOn() throws Exception {
+        int port = start();
+        String token = pairedToken(port);
+        try (Ws ws = ws(port, token)) {
+            ws.sendText("{\"type\":\"open\",\"term\":null,\"cols\":80,\"rows\":24}");
+            ws.ready();
+            ws.send(WebSocketCodec.OP_BINARY, "nohup-exit\r".getBytes(StandardCharsets.UTF_8));
+            assertEquals(LanServer.CLOSE_EXITED, ws.closeCode());
+        }
+        eventually("terminal removal", () -> mode.status().terminals == 0);
+        assertTrue("the PTY is hung up and released", ptys.get(0).hungUp);
     }
 
     @Test

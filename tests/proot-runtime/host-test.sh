@@ -1,14 +1,17 @@
 #!/bin/sh
-# PRoot link2symlink regression test: /proc/self/exe must name the hard link a
-# program was started through, as Linux does, never link2symlink's hidden
-# ".l2s.*" backing file. Ubuntu's rust-coreutils refuses to run otherwise (see
-# docs/garden/HARDLINK_EXECUTABLES.md).
+# Regression tests for the PRoot runtime ThothTerm ships, built natively:
+#  - /proc/self/exe must name the hard link a program was started through, as
+#    Linux does, never link2symlink's hidden ".l2s.*" backing file. Ubuntu's
+#    rust-coreutils refuses to run otherwise (docs/garden/HARDLINK_EXECUTABLES.md).
+#  - --hangup-on-exit must hang up the session like a terminal (nohup and
+#    setsid survive), and a SIGKILLed proot must take its tracees with it
+#    (docs/garden/SESSION_LIFECYCLE.md).
 #
 # Builds PRoot natively for this Linux host from third_party/proot plus
 # term-ubuntu/patches/*.patch -- the same sources the app ships -- and runs
 # executables under --link2symlink. Needs a Linux host with cc, make and ar.
 #
-#   tests/proot-hardlink-identity/host-test.sh [WORK_DIR]
+#   tests/proot-runtime/host-test.sh [WORK_DIR]
 #
 # Exit status 0 when every case holds, 1 on a failed case, 2 when it cannot run.
 set -u
@@ -93,4 +96,40 @@ case "$(ls -a "$D/bin")" in
     *.l2s.*) echo "PASS link2symlink faked the hard link (the case is meaningful)" ;;
     *) echo "FAIL link2symlink did not fake the hard link; the test proves nothing"; fail=1 ;;
 esac
+
+# ------------------------------------------------------ session lifecycle
+alive() { kill -0 "$1" 2>/dev/null; }
+result() { # result NAME CONDITION...
+    name="$1"; shift
+    if "$@"; then echo "PASS $name"; else echo "FAIL $name"; fail=1; fi
+}
+S="$WORK/session"
+rm -rf "$S"; mkdir -p "$S"
+PROOT_TMP_DIR="$WORK" "$PROOT" -r / --hangup-on-exit sh -c "
+    sleep 600 & echo \$! > '$S/job'
+    nohup sleep 601 >/dev/null 2>&1 & echo \$! > '$S/nohup'
+    setsid sleep 602 & echo \$! > '$S/setsid'
+    sleep 0.3
+" </dev/null >"$S/proot.out" 2>&1 &
+PR=$!
+sleep 2
+JOB=$(cat "$S/job" 2>/dev/null); NOHUP=$(cat "$S/nohup" 2>/dev/null); SETSID=$(cat "$S/setsid" 2>/dev/null)
+result "hangup-on-exit: a background job gets SIGHUP and ends" test -n "$JOB" -a ! -d "/proc/$JOB"
+result "hangup-on-exit: a nohup'd job keeps running" alive "$NOHUP"
+result "hangup-on-exit: a setsid'd job keeps running" alive "$SETSID"
+result "hangup-on-exit: proot stays for them" alive "$PR"
+result "hangup-on-exit: proot lets go of the terminal" \
+    test "$(readlink /proc/$PR/fd/0)$(readlink /proc/$PR/fd/1)$(readlink /proc/$PR/fd/2)" = /dev/null/dev/null/dev/null
+kill "$NOHUP" "$SETSID" 2>/dev/null
+n=0; while alive "$PR" && [ $n -lt 50 ]; do sleep 0.1; n=$((n+1)); done
+result "hangup-on-exit: proot exits once they end" test ! -d "/proc/$PR"
+
+PROOT_TMP_DIR="$WORK" "$PROOT" -r / sh -c "sleep 603 & echo \$! > '$S/traced'; wait" </dev/null >/dev/null 2>&1 &
+PR=$!
+sleep 1.5
+TRACED=$(cat "$S/traced" 2>/dev/null)
+kill -9 "$PR"
+sleep 0.5
+result "a SIGKILLed proot takes its tracees with it (EXITKILL)" test -n "$TRACED" -a ! -d "/proc/$TRACED"
+kill "$TRACED" 2>/dev/null
 exit $fail

@@ -64,7 +64,11 @@ public final class UbuntuRuntime {
     }
 
     public List<String> buildArgv() {
-        List<String> argv = baseArgv(LINUX_HOME, true);
+        // A window hangs up like a real terminal when its shell exits: the
+        // rest of its session gets SIGHUP, a nohup'd job keeps running, and
+        // PRoot stays only as long as such a job needs it. --kill-on-exit
+        // would kill nohup'd jobs too.
+        List<String> argv = baseArgv(LINUX_HOME, true, "--hangup-on-exit");
         // Drop from PRoot fake-root to the guest "thoth" account through the
         // guest's own util-linux su. Options must precede the user name;
         // "-i" is not a su option and previously made su exit immediately
@@ -90,20 +94,21 @@ public final class UbuntuRuntime {
      * nothing in the offline case.
      */
     public List<String> buildProvisioningArgv(List<String> command) {
+        // Provisioning waits for PRoot to exit, so nothing it starts may outlive it.
         List<String> argv = baseArgv("/", resolverFile != null
-                && new java.io.File(resolverFile).isFile());
+                && new java.io.File(resolverFile).isFile(), "--kill-on-exit");
         argv.addAll(command);
         return argv;
     }
 
-    private List<String> baseArgv(String cwd, boolean bindResolver) {
+    private List<String> baseArgv(String cwd, boolean bindResolver, String exitPolicy) {
         List<String> argv = new ArrayList<>();
         argv.add(prootPath);
         argv.add("--rootfs=" + rootfsDir);
         argv.add("--root-id");
         argv.add("--link2symlink");
         argv.add("--cwd=" + cwd);
-        argv.add("--kill-on-exit");
+        argv.add(exitPolicy);
         argv.add("--kernel-release=6.1.0-thothterm");
         argv.add("--bind=/dev");
         argv.add("--bind=/proc");

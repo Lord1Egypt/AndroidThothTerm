@@ -51,13 +51,13 @@ fixed by the same code.
 
 ## Regression tests
 
-- `tests/proot-hardlink-identity/host-test.sh` builds PRoot natively from the
+- `tests/proot-runtime/host-test.sh` builds PRoot natively from the
   pinned sources plus the patches and checks the kernel semantics: absolute
   path, the linked original, relative and absolute symlinks to a hard link, a
   relative path, and no hard link at all. Without the patch, five of its seven
   checks fail. `ProotHardlinkIdentityTest` runs it in the JVM unit tests on
   Linux build hosts.
-- `tests/proot-hardlink-identity/device/device-test.sh` runs the full
+- `tests/proot-runtime/device/device-test.sh` runs the full
   upgrade matrix on the phone as the adb shell user in `/data/local/tmp`. It
   never touches app data. Starting from the pinned baseline rootfs it runs
   `apt update`, `full-upgrade`, `dpkg --audit`, `--fix-broken install`,

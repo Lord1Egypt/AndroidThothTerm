@@ -218,11 +218,16 @@ plugs it into the existing PTY/session engine. No new PTY or session code.
 ```text
 nativeLibraryDir/libproot.so
   --rootfs=<files>/linux/ubuntu-26.04/rootfs
-  --root-id --link2symlink --kill-on-exit
-  --cwd=/home/thoth --kernel-release=6.1.0-thothterm
+  --root-id --link2symlink --cwd=/home/thoth --hangup-on-exit
+  --kernel-release=6.1.0-thothterm
   --bind=/dev --bind=/proc --bind=/sys --bind=/proc/mounts:/etc/mtab
-  /bin/bash --login -i
+  --bind=<files>/linux/runtime/resolv.conf:/etc/resolv.conf
+  /usr/bin/su -m -s /bin/bash thoth
 ```
+
+`--hangup-on-exit` hangs the session up like a terminal when the shell
+exits, and nohup'd jobs survive. Provisioning uses `--kill-on-exit` instead.
+See `docs/garden/SESSION_LIFECYCLE.md`.
 
 Environment: `HOME=/home/thoth`, `USER=thoth`, `LOGNAME=thoth`,
 `TERM=<configured>`, a Linux `PATH`, `LANG=C.UTF-8`, `TMPDIR=/tmp`,

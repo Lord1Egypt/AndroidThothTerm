@@ -57,7 +57,7 @@ public final class SessionHangup {
         // ignore it: a shell or job that traps SIGHUP, or a stopped job. The
         // session leader here is proot, which ignores SIGHUP and has to stay
         // while it still traces a nohup'd job -- killing it would take that
-        // job down through --kill-on-exit -- so it is left to exit by itself
+        // job down (PTRACE_O_EXITKILL) -- so it is left to exit by itself
         // once its last tracee has. Skipped once proot is reaped: its tracees
         // are gone with it, and its pid may already belong to someone else.
         new Handler(Looper.getMainLooper()).postDelayed(() -> {

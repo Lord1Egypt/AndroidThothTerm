@@ -56,8 +56,11 @@ public class ShellTermSession extends GenericTermSession {
 
 
     public ShellTermSession(TermSettings settings, String initialCommand) throws IOException {
+        // exitOnEOF: the window closes when nothing holds its terminal any more
+        // -- the shell exited and PRoot hung up the rest of its session --
+        // even while PRoot keeps running for a nohup'd job.
         super(ParcelFileDescriptor.open(new File("/dev/ptmx"), ParcelFileDescriptor.MODE_READ_WRITE),
-                settings, false);
+                settings, true);
 
         mInitialCommand = initialCommand;
 
