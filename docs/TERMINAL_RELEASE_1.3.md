@@ -168,18 +168,27 @@ in-place `install -r`, keeping `firstInstallTime`.
 
 ## Artifacts
 
-Produced by a clean build of a fresh clone at the release commit (JetBrains 17,
-toolchain auto-download and auto-detection disabled). Build outputs are not
-committed.
+The published artifacts and their sizes and SHA-256 are attached to the
+GitHub release `terminal-v1.3.0` together with `terminal-v1.3.0-SHA256SUMS.txt`,
+which is authoritative. They come from a clean build of a fresh clone at the
+tag target, with the JetBrains 17 JDK and toolchain auto-download and
+auto-detection disabled. They are deliberately not listed here: AGP embeds the
+commit being built in `META-INF/version-control-info.textproto`, so a table
+committed in this tree would describe a different commit's build.
 
-| Artifact | Path | Size (bytes) | SHA-256 |
-| --- | --- | --- | --- |
-| Full debug APK | `term/build/outputs/apk/full/debug/term-full-debug.apk` | 6,785,091 | `df272502f7419bc716df0c760fa41a8d99a38564b3f52a740eaba9163745cfe1` |
-| Play debug APK | `term/build/outputs/apk/play/debug/term-play-debug.apk` | 6,784,208 | `6bc1ef00175701dc58ad4bf4cf61b01e9323ba8959cdb048b456dc31ecb2e8f8` |
-| Full release APK (unsigned) | `term/build/outputs/apk/full/release/term-full-release-unsigned.apk` | 2,987,775 | `b164edeee86ee8941c542e962f7224d2bde09a9c131404e21b097a73d0d4ad88` |
-| Play release APK (unsigned) | `term/build/outputs/apk/play/release/term-play-release-unsigned.apk` | 2,987,399 | `729bcc521bfa90ad2ca0256aa97eb06627aa523fc53b36767a911c28cab09ea4` |
-| Full release AAB (unsigned) | `term/build/outputs/bundle/fullRelease/term-full-release.aab` | 3,484,878 | `13df02775fe59ce6a3423fc78d861a9bdd6600db022190d1baad2be4d82ba64a` |
-| Play release AAB (unsigned) | `term/build/outputs/bundle/playRelease/term-play-release.aab` | 3,484,260 | `4a85bc2172419c76e4c751aa2ecf12acc5d61f098a48a1a626f40e25ecab624a` |
+Two clean builds of the same source in different directories were compared
+entry by entry: the DEX, manifest, resources and native code are identical;
+only the embedded commit and each native library's 20-byte
+`NT_GNU_BUILD_ID`, which the linker derives from the build path, differ.
+
+| Artifact | Path |
+| --- | --- |
+| Full debug APK | `term/build/outputs/apk/full/debug/term-full-debug.apk` |
+| Play debug APK | `term/build/outputs/apk/play/debug/term-play-debug.apk` |
+| Full release APK (unsigned) | `term/build/outputs/apk/full/release/term-full-release-unsigned.apk` |
+| Play release APK (unsigned) | `term/build/outputs/apk/play/release/term-play-release-unsigned.apk` |
+| Full release AAB (unsigned) | `term/build/outputs/bundle/fullRelease/term-full-release.aab` |
+| Play release AAB (unsigned) | `term/build/outputs/bundle/playRelease/term-play-release.aab` |
 
 ## Signing status
 
