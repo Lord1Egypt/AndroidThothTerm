@@ -21,6 +21,7 @@ import android.content.res.Resources;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.util.TypedValue;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
@@ -129,6 +130,13 @@ public class TermActionBar {
             drawer.closeDrawer(GravityCompat.START);
             return result;
         });
+    }
+
+    /** The trailing Off/Active label of the drawer's LAN Mode row. */
+    public void setLanState(CharSequence state) {
+        MenuItem item = nav_view.getMenu().findItem(R.id.nav_lan_mode);
+        View label = item == null ? null : item.getActionView();
+        if (label instanceof TextView) ((TextView) label).setText(state);
     }
 
     public boolean isShowing() {

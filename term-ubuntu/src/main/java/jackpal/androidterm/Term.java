@@ -55,6 +55,8 @@ import com.thothterm.TerminalZoom;
 import com.thothterm.TermPreferencesActivity;
 import com.thothterm.WindowListActivity;
 import com.thothterm.compat.SoftInputCompat;
+import com.thothterm.lan.LanController;
+import com.thothterm.lan.LanModeActivity;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 import com.thothterm.remote.CommandCollector;
@@ -483,15 +485,26 @@ public class Term extends AppCompatActivity
         }
     }
 
+    private final LanController.Listener mLanListener = this::showLanState;
+
+    private void showLanState() {
+        if (mActionBar == null) return;
+        mActionBar.setLanState(getString(LanController.get().isOn()
+                ? R.string.lan_state_active : R.string.lan_state_off));
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         ThothLog.d(LogCategory.UI, "Term activity resumed");
+        LanController.get().addListener(mLanListener);
+        showLanState();
     }
 
     @Override
     public void onPause() {
         super.onPause();
+        LanController.get().removeListener(mLanListener);
 
         /* Explicitly close the input method
            Otherwise, the soft keyboard could cover up whatever activity takes
@@ -589,7 +602,9 @@ public class Term extends AppCompatActivity
         int id = item.getItemId();
         /* NOTE: Resource IDs will be non-final in Android Gradle Plugin version 5.0,
            avoid using them in switch case statements */
-        if (id == R.id.nav_window_list)
+        if (id == R.id.nav_lan_mode)
+            startActivity(new Intent(this, LanModeActivity.class));
+        else if (id == R.id.nav_window_list)
             request_choose_window.launch(new Intent(this, WindowListActivity.class));
         else if (id == R.id.nav_preferences)
             doPreferences();
@@ -849,12 +864,17 @@ public class Term extends AppCompatActivity
         WifiLock.release();
         WakeLock.release();
 
-        final int[] pids;
+        // Browser terminals too: shutdownAll() turns LAN Mode off, and their
+        // proot groups get the same final sweep as the phone's windows.
+        final int[] windows = mTermService != null ? mTermService.sessionProcessIds() : new int[0];
+        final int[] browsers = LanController.get().terminalPids();
+        final int[] pids = new int[windows.length + browsers.length];
+        System.arraycopy(windows, 0, pids, 0, windows.length);
+        System.arraycopy(browsers, 0, pids, windows.length, browsers.length);
         if (mTermService != null) {
-            pids = mTermService.sessionProcessIds();
             mTermService.shutdownAll();
         } else {
-            pids = new int[0];
+            LanController.get().stop();
         }
 
         // Let onStop()/onDestroy() unbind and stop the service on the way out.

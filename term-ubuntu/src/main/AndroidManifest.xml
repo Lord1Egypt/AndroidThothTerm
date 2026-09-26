@@ -139,6 +139,15 @@
                 android:value="com.thothterm.TermActivity"/>
         </activity>
         <activity
+            android:name=".lan.LanModeActivity"
+            android:exported="false"
+            android:label="@string/lan_mode"
+            android:parentActivityName="com.thothterm.TermActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.thothterm.TermActivity"/>
+        </activity>
+        <activity
             android:name=".TermPreferencesActivity"
             android:label="@string/preferences"
             android:parentActivityName="com.thothterm.TermActivity"

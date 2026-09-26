@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (C) 2026 ThothTerm.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<resources>
+    <string name="lan_mode">LAN Mode</string>
+    <string name="lan_state_off">Off</string>
+    <string name="lan_state_active">Active</string>
+    <string name="lan_title">LAN Terminal</string>
+    <string name="lan_status_label">Status</string>
+    <string name="lan_address_label">Address</string>
+    <string name="lan_copy_address">Copy address</string>
+    <string name="lan_address_copied">Address copied</string>
+    <string name="lan_pin_label">Pairing PIN</string>
+    <string name="lan_pin_expires">Expires in %1$s</string>
+    <string name="lan_pin_used">Used. A browser is paired.</string>
+    <string name="lan_pin_expired">Expired</string>
+    <string name="lan_pin_locked">Locked after too many wrong attempts</string>
+    <string name="lan_new_pin">New PIN</string>
+    <string name="lan_browsers">Paired browsers: %1$d</string>
+    <string name="lan_terminals">Browser terminals: %1$d (%2$d connected)</string>
+    <string name="lan_stop">Stop LAN Mode</string>
+    <string name="lan_help_off">LAN Mode lets a computer on the same Wi-Fi network use this Ubuntu in a web browser. Each browser gets a terminal of its own; the windows on this phone are not shared.</string>
+    <string name="lan_help_on">On a computer on the same network, open the address in a web browser and enter the PIN.</string>
+    <string name="lan_warning">LAN traffic is not encrypted. Use only on networks you trust.</string>
+    <string name="lan_problem_no_network">Could not start: connect the phone to a Wi-Fi or Ethernet network first.</string>
+    <string name="lan_problem_port_in_use">Could not start: ports 7681 to 7690 are all in use.</string>
+    <string name="lan_problem_network_lost">Stopped: the Wi-Fi or Ethernet network was lost.</string>
+    <string name="lan_problem_start_failed">Could not start LAN Mode.</string>
+    <string name="lan_notify_active">LAN terminal active</string>
+</resources>

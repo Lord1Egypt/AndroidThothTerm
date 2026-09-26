@@ -16,7 +16,14 @@
 -->
 
 <menu
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/nav_lan_mode"
+        android:icon="@drawable/ic_lan_white_24dp"
+        android:title="@string/lan_mode"
+        app:actionLayout="@layout/nav_lan_state"/>
 
     <item
         android:id="@+id/nav_window_list"

@@ -102,7 +102,7 @@
         The application request only necessary permissions and this texts provides detailed information on data usage.
     </string>
     <string name="notification_channel_sessions_description">Shown while an Ubuntu terminal session is running</string>
-    <string name="service_notify_text">Terminal session is running</string>
+    <string name="service_notify_text">ThothTerm Ubuntu is running</string>
     <string name="service_timeout_text">System terminates long-running terminal sessions</string>
 
     <string name="process_exit_message">Terminal session finished</string>

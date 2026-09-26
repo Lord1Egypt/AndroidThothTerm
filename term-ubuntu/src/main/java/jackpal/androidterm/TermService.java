@@ -50,6 +50,7 @@ import com.thothterm.R;
 import com.thothterm.RemoteSession;
 import com.thothterm.TermActivity;
 import com.thothterm.compat.PackageManagerCompat;
+import com.thothterm.lan.LanController;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 import com.thothterm.services.CommandService;
@@ -69,6 +70,7 @@ public class TermService extends SessionsService {
 
     private final IBinder mTSBinder = new TSBinder();
     private CommandService command_service;
+    private final LanController.Listener lanListener = this::refreshNotification;
 
     private static Notification buildNotification(Context context, NotificationSettings callback) {
         NotificationChannelCompat.create(context);
@@ -121,12 +123,18 @@ public class TermService extends SessionsService {
         command_service = new CommandService(this);
         command_service.start();
 
+        LanController.get().addListener(lanListener);
+        LanController.get().hostStarted();
+
         ThothLog.i(LogCategory.APP, "Terminal service started");
     }
 
     @Override
     public void onTimeout(int startId, int fgsType) {
         ThothLog.w(LogCategory.SESSION, "Foreground service timeout; clearing sessions");
+        // LAN Mode first, so its notification refresh cannot replace the timeout notice.
+        LanController.get().removeListener(lanListener);
+        LanController.get().hostStopped();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M /*API Level 23*/) {
             NotificationManager notificationManager = this.getApplicationContext().getSystemService(NotificationManager.class);
             notificationManager.notify(
@@ -169,6 +177,8 @@ public class TermService extends SessionsService {
      */
     public void shutdownAll() {
         if (command_service != null) command_service.stop();
+        LanController.get().removeListener(lanListener);
+        LanController.get().hostStopped();
         clearSessions();
         removeRunningNotification();
     }
@@ -202,6 +212,8 @@ public class TermService extends SessionsService {
     @Override
     public void onDestroy() {
         if (command_service != null) command_service.stop();
+        LanController.get().removeListener(lanListener);
+        LanController.get().hostStopped();
         clearSessions();
         removeRunningNotification();
         super.onDestroy();
@@ -216,12 +228,25 @@ public class TermService extends SessionsService {
 
 
     private Notification buildNotification() {
+        final boolean lanActive = LanController.get().isOn();
         return buildNotification(this.getApplicationContext(),
                 (context, builder) -> {
                     CharSequence msg = context.getText(R.string.service_notify_text);
                     builder.setContentText(msg).setTicker(msg);
+                    if (lanActive) {
+                        // State only: never the address, the PIN or any credential.
+                        CharSequence lan = context.getText(R.string.lan_notify_active);
+                        builder.setSubText(lan)
+                                .setStyle(new NotificationCompat.BigTextStyle().bigText(msg + "\n" + lan));
+                    }
                 }
         );
+    }
+
+    /** Show or clear the LAN line after LAN Mode changes. */
+    private void refreshNotification() {
+        NotificationManager manager = getApplicationContext().getSystemService(NotificationManager.class);
+        if (manager != null) manager.notify(RUNNING_NOTIFICATION, buildNotification());
     }
 
 
