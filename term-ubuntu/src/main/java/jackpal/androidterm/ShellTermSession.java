@@ -200,40 +200,10 @@ public class ShellTermSession extends GenericTermSession {
         onProcessExit();
     }
 
-    /** How long a closed window's processes get to honour SIGHUP before SIGKILL. */
-    private static final long KILL_GRACE_MS = 400;
-
-    /** android.os.Process has no named constant for SIGHUP. */
-    private static final int SIGNAL_HUP = 1;
-
     @Override
     public void finish() {
-        Process.finishChilds(mProcId);
-        // Hang up the whole session, as a real terminal hangup does: job
-        // control gives the foreground job and every background job a process
-        // group of their own, so the shell's group alone misses them. A
-        // background job that ignores SIGHUP (nohup) keeps running, as
-        // intended.
-        for (int pid : SessionProcesses.members(mProcId)) {
-            android.os.Process.sendSignal(pid, SIGNAL_HUP);
-        }
+        SessionHangup.hangUp(mProcId, () -> mExited);
         super.finish();
-
-        // Backstop for whatever survived the hangup without having chosen to
-        // ignore it: a shell or job that traps SIGHUP, or a stopped job. The
-        // session leader here is proot, which ignores SIGHUP and has to stay
-        // while it still traces a nohup'd job -- killing it would take that
-        // job down through --kill-on-exit -- so it is left to exit by itself
-        // once its last tracee has. Skipped once proot is reaped: its tracees
-        // are gone with it, and its pid may already belong to someone else.
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            if (mExited) return;
-            for (int pid : SessionProcesses.members(mProcId)) {
-                if (pid != mProcId && !SessionProcesses.ignoresHangup(pid)) {
-                    android.os.Process.sendSignal(pid, android.os.Process.SIGNAL_KILL);
-                }
-            }
-        }, KILL_GRACE_MS);
     }
 
     /** The shell pid, which is also its process group id. */

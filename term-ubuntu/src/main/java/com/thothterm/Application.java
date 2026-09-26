@@ -24,6 +24,7 @@ import androidx.preference.PreferenceManager;
 
 import com.google.android.material.color.DynamicColors;
 import com.thothterm.linux.AndroidNetworkResolver;
+import com.thothterm.lan.LanController;
 import com.thothterm.linux.RootfsManager;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
@@ -114,6 +115,7 @@ public class Application extends android.app.Application {
                 + " flavor=" + BuildConfig.FLAVOR + "-" + BuildConfig.BUILD_TYPE);
         AndroidNetworkResolver.init(this);
         RootfsManager.init(this);
+        LanController.init(this);
 
         // enable Material3 dynamic colors
         DynamicColors.applyToActivitiesIfAvailable(this);

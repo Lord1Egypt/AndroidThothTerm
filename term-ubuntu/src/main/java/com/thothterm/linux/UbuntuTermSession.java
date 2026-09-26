@@ -37,12 +37,20 @@ public class UbuntuTermSession extends ShellTermSession {
     }
 
     private static String prepareSession(String initialCommand) throws IOException {
+        prepareRuntime();
+        return initialCommand;
+    }
+
+    /**
+     * Everything a PRoot shell needs before it starts: the verified rootfs and
+     * runtime, and a current resolver. Also used by LAN Mode's browser terminals.
+     */
+    public static void prepareRuntime() throws IOException {
         RootfsManager.get().prepareSession();
         AndroidNetworkResolver.get().refresh();
         if (!AndroidNetworkResolver.get().resolverFile().isFile()) {
             throw new IOException("Linux resolver could not be prepared");
         }
-        return initialCommand;
     }
 
     @Override
