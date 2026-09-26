@@ -1,0 +1,10 @@
+# Packages added on top of debootstrap's minbase variant (which already carries
+# bash, coreutils, apt, dpkg, passwd/login and the rest of Debian's Essential and
+# Required sets). Kept deliberately small: users install the rest with apt.
+sudo
+ca-certificates
+curl
+netbase
+procps
+less
+nano
