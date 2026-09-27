@@ -61,10 +61,12 @@ import java.util.Collection;
  * "Keep screen awake" against the real window, the real menu and the real
  * power manager.
  * <p>
- * It is written against the installed app from the outside -- menu labels,
- * the activity's {@code Window}, {@code dumpsys} -- and names no app class, so
- * it runs unchanged against the minified release build. The same file runs in
- * every ThothTerm edition; only the package differs.
+ * It reads menu labels, the activity's {@code Window} and {@code dumpsys}, and
+ * names no app class, so the same file runs in every ThothTerm edition. It
+ * runs against the debug build: the test runner needs AndroidX classes that
+ * R8 removes from the release build. The minified release is checked on the
+ * device from outside, through the same window flag and display hold in
+ * {@code dumpsys}.
  */
 @RunWith(AndroidJUnit4.class)
 public class KeepScreenAwakeTest {
