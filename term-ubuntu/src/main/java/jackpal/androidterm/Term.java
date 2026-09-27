@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -57,11 +58,15 @@ import com.thothterm.WindowListActivity;
 import com.thothterm.compat.SoftInputCompat;
 import com.thothterm.lan.LanController;
 import com.thothterm.lan.LanModeActivity;
+import com.thothterm.linux.RootfsManager;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 import com.thothterm.remote.CommandCollector;
 import com.thothterm.services.ServiceManager;
 import com.thothterm.utils.ConsoleStartupScript;
+import com.thothterm.upload.LocalUpload;
+import com.thothterm.upload.SessionDirectory;
+import com.thothterm.upload.UploadUi;
 import com.thothterm.utils.ScreenAwake;
 import com.thothterm.utils.SimpleClipboardManager;
 import com.thothterm.utils.WifiLock;
@@ -70,6 +75,8 @@ import com.thothterm.widget.ScreenMessage;
 import com.thothterm.widget.ExtraKeysView;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 import jackpal.androidterm.emulatorview.EmulatorView;
 import jackpal.androidterm.emulatorview.TermSession;
@@ -95,6 +102,20 @@ public class Term extends AppCompatActivity
                     new ActivityResultContracts.StartActivityForResult(),
                     result -> onRequestChooseWindow(result.getResultCode(), result.getData())
             );
+
+    private final ActivityResultLauncher<String[]> request_upload_files =
+            registerForActivityResult(new ActivityResultContracts.OpenMultipleDocuments(),
+                    uris -> onUploadPicked(false, uris));
+
+    private final ActivityResultLauncher<Uri> request_upload_folder =
+            registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(),
+                    tree -> onUploadPicked(true, tree == null ? null : Collections.singletonList(tree)));
+
+    private static final String STATE_UPLOAD_SESSION = "com.thothterm.upload_session";
+    /** The shell of the window that was in front when an upload was chosen; -1 if none. */
+    private int mUploadSessionPid = -1;
+    private ScreenAwake mScreenAwake;
+    private UploadUi mUploadUi;
 
     /**
      * The ViewFlipper which holds the collection of EmulatorView widgets.
@@ -217,6 +238,10 @@ public class Term extends AppCompatActivity
             mSettings.setHomePath(value);
         }
 
+        if (ScreenAwake.PREF_WHILE_CHARGING.equals(key) && mScreenAwake != null) {
+            mScreenAwake.onPreferencesChanged();
+        }
+
         mSettings.readPrefs(this, sharedPreferences);
         if (mExtraKeys != null) {
             mExtraKeys.applyPreferences(sharedPreferences);
@@ -262,7 +287,12 @@ public class Term extends AppCompatActivity
 
         service_manager.onCreate(this);
 
-        ScreenAwake.restore(getWindow(), icicle);
+        mScreenAwake = new ScreenAwake(this, icicle);
+        mUploadUi = new UploadUi(this);
+        if (icicle != null) mUploadSessionPid = icicle.getInt(STATE_UPLOAD_SESSION, -1);
+        // Removes what an upload left behind if the app died during it.
+        final android.content.Context app = getApplicationContext();
+        new Thread(() -> LocalUpload.journal(app), "Upload journal").start();
         WifiLock.create(this);
 
         mHaveFullHwKeyboard = checkHaveFullHwKeyboard(getResources().getConfiguration());
@@ -278,6 +308,7 @@ public class Term extends AppCompatActivity
 
         service_manager.setOnServiceConnectionListener(Term.this::onServiceConnection);
         service_manager.onStart(this);
+        mScreenAwake.start();
     }
 
     private synchronized void populateSessions() {
@@ -340,7 +371,8 @@ public class Term extends AppCompatActivity
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        ScreenAwake.save(getWindow(), outState);
+        mScreenAwake.save(outState);
+        outState.putInt(STATE_UPLOAD_SESSION, mUploadSessionPid);
     }
 
     private TermSession createTermSession() throws IOException {
@@ -504,12 +536,14 @@ public class Term extends AppCompatActivity
         ThothLog.d(LogCategory.UI, "Term activity resumed");
         LanController.get().addListener(mLanListener);
         showLanState();
+        mUploadUi.attach();
     }
 
     @Override
     public void onPause() {
         super.onPause();
         LanController.get().removeListener(mLanListener);
+        mUploadUi.detach();
 
         /* Explicitly close the input method
            Otherwise, the soft keyboard could cover up whatever activity takes
@@ -537,6 +571,7 @@ public class Term extends AppCompatActivity
         mViewFlipper.removeAllViews();
 
         service_manager.onStop(this);
+        mScreenAwake.stop();
 
         super.onStop();
     }
@@ -589,6 +624,10 @@ public class Term extends AppCompatActivity
                     R.string.reset_toast_notification);
         } else if (id == R.id.menu_exit) {
             doExit();
+        } else if (id == R.id.menu_upload_files) {
+            doUpload(false);
+        } else if (id == R.id.menu_upload_folder) {
+            doUpload(true);
         } else if (id == R.id.menu_toggle_soft_keyboard) {
             doToggleSoftKeyboard();
         } else if (id == R.id.menu_toggle_keep_screen_on) {
@@ -743,7 +782,7 @@ public class Term extends AppCompatActivity
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.findItem(R.id.menu_toggle_keep_screen_on)
-                .setTitle(ScreenAwake.menuTitle(ScreenAwake.isOn(getWindow())));
+                .setTitle(ScreenAwake.menuTitle(mScreenAwake.menu()));
         MenuItem wifiLockItem = menu.findItem(R.id.menu_toggle_wifilock);
         if (WifiLock.isHeld()) {
             wifiLockItem.setTitle(R.string.disable_wifilock);
@@ -863,6 +902,7 @@ public class Term extends AppCompatActivity
         ThothLog.i(LogCategory.APP, "Exit requested; shutting down all sessions");
 
         WifiLock.release();
+        LocalUpload.cancelCurrent();
 
         // Browser terminals too: shutdownAll() turns LAN Mode off, and their
         // proot groups get the same final sweep as the phone's windows.
@@ -947,8 +987,48 @@ public class Term extends AppCompatActivity
     }
 
     private void doToggleKeepScreenOn() {
-        ScreenAwake.toggle(getWindow());
+        if (mScreenAwake.menu() == ScreenAwake.Menu.AWAKE_WHILE_CHARGING) {
+            // Only charging keeps it on; the setting is where that changes.
+            doPreferences();
+            return;
+        }
+        mScreenAwake.toggleManual();
         invalidateOptionsMenu();
+    }
+
+    /**
+     * Upload files or a folder into the current directory of the window in
+     * front now. The target is read from that window's session once the
+     * documents are picked, and shown before anything is copied.
+     */
+    private void doUpload(boolean folder) {
+        TermSession session = getCurrentTermSession();
+        if (!(session instanceof ShellTermSession)) return;
+        LocalUpload running = LocalUpload.current();
+        if (running != null && !running.isSettled()) {
+            ScreenMessage.show(getApplicationContext(), R.string.upload_busy);
+            return;
+        }
+        mUploadSessionPid = ((ShellTermSession) session).getProcessId();
+        try {
+            if (folder) request_upload_folder.launch(null);
+            else request_upload_files.launch(new String[]{"*/*"});
+        } catch (android.content.ActivityNotFoundException e) {
+            ScreenMessage.show(getApplicationContext(), R.string.upload_error_io);
+        }
+    }
+
+    private void onUploadPicked(boolean folder, List<Uri> picked) {
+        int pid = mUploadSessionPid;
+        mUploadSessionPid = -1;
+        if (picked == null || picked.isEmpty() || pid <= 0) return;
+        LocalUpload upload = LocalUpload.prepare(this, folder, picked,
+                SessionDirectory.guestView(RootfsManager.get().prootRootfsPath()), pid, false);
+        if (upload == null) {
+            ScreenMessage.show(getApplicationContext(), R.string.upload_busy);
+            return;
+        }
+        mUploadUi.attach();
     }
 
     private void doToggleWifiLock() {

@@ -26,6 +26,12 @@
     <item android:id="@+id/menu_close_window"
           android:title="@string/close_window"
           app:showAsAction="never"/>
+    <item android:id="@+id/menu_upload_files"
+          android:title="@string/upload_files"
+          app:showAsAction="never"/>
+    <item android:id="@+id/menu_upload_folder"
+          android:title="@string/upload_folder"
+          app:showAsAction="never"/>
     <item android:id="@+id/menu_toggle_soft_keyboard"
           android:title="@string/toggle_soft_keyboard"
           app:showAsAction="never"/>
