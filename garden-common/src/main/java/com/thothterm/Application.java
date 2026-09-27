@@ -39,7 +39,7 @@ public class Application extends android.app.Application {
      * garden-common library, whose BuildConfig describes the library rather
      * than the edition that ships it.
      */
-    /** This edition's package name, e.g. com.thothterm.debian. */
+    /** This edition's package name, e.g. com.thothterm.<edition>. */
     public static String ID = "";
     /** This edition's versionName. */
     public static String VER = "";

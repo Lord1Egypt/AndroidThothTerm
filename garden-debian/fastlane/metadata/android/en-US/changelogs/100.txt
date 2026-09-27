@@ -1,0 +1,8 @@
+First release of ThothTerm Debian.
+
+* Debian 13 "trixie" for ARM64, with apt, dpkg and Debian's own sudo
+* Package sources: trixie, trixie-updates and trixie-security, main only
+* Multiple windows, extra keys, pinch-to-zoom, Arabic and other RTL text
+* LAN Mode (off by default): a paired browser on your Wi-Fi gets its own terminal
+* The F-Droid build downloads the Debian userland only after you agree,
+  and checks its size and SHA-256 first

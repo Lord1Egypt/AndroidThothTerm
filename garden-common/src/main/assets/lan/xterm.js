@@ -2,7 +2,7 @@
  * xterm.js 6.0.0 and @xterm/addon-fit 0.11.0
  * (https://github.com/xtermjs/xterm.js, tag 6.0.0) and
  * bidi-js 1.0.3 (https://github.com/lojjic/bidi-js),
- * bundled unminified from their sources by term-ubuntu/lan-web/build.mjs
+ * bundled unminified from their sources by garden-common/lan-web/build.mjs
  * with esbuild 0.28.2. MIT licensed: the xterm.js authors,
  * SourceLair, Christopher Jeffrey, Microsoft Corporation (src/vs) and
  * Jason Johnston (bidi-js). Full notices in licenses.txt.
