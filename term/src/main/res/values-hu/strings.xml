@@ -29,8 +29,8 @@
 
     <string name="reset_toast_notification">A terminál ablak alaphelyzetbe állítva.</string>
 
-    <string name="enable_wakelock">Alvás megakadályozása</string>
-    <string name="disable_wakelock">Alvás engedélyezése</string>
+    <string name="enable_keep_screen_on">Alvás megakadályozása</string>
+    <string name="disable_keep_screen_on">Alvás engedélyezése</string>
     <string name="enable_wifilock">Wi-Fi-alvás megakadályozása</string>
     <string name="disable_wifilock">Wi-Fi-alvás engedélyezése</string>
 

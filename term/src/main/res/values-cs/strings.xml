@@ -28,8 +28,8 @@
 
     <string name="reset_toast_notification">Toto terminálové okno bylo restartováno.</string>
 
-    <string name="enable_wakelock">Zabránit uspání</string>
-    <string name="disable_wakelock">Povolit uspání</string>
+    <string name="enable_keep_screen_on">Zabránit uspání</string>
+    <string name="disable_keep_screen_on">Povolit uspání</string>
     <string name="enable_wifilock">Zabránit odpojení wifi</string>
     <string name="disable_wifilock">Povolit odpojení wifi</string>
 
