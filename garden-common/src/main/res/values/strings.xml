@@ -32,7 +32,7 @@
     <string name="garden_extracting_percent">Extracting Linux\u2026 %1$d%%</string>
     <string name="garden_downloading">Downloading Linux\u2026</string>
     <string name="garden_consent_title">Linux needs to be downloaded</string>
-    <string name="garden_consent_body">This build does not include its Linux %1$s userland, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n\u2022 This downloads executable software onto your device after installation.\n\u2022 It is not part of this app\u2019s package and was not built or verified by F\u2011Droid.\n\u2022 ThothTerm checks the download against a SHA\u2011256 checksum that is fixed in this app\u2019s source, and refuses it if it does not match.\n\nNothing is downloaded unless you choose Download.</string>
+    <string name="garden_consent_body">This build does not include its Linux %1$s environment, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n\u2022 This downloads executable software onto your device after installation.\n\u2022 It is not part of this app\u2019s package and was not built or verified by F\u2011Droid.\n\u2022 ThothTerm checks the download against a SHA\u2011256 checksum that is fixed in this app\u2019s source, and refuses it if it does not match.\n\nNothing is downloaded unless you choose Download.</string>
     <string name="garden_consent_accept">Download</string>
     <string name="garden_consent_decline">Not now</string>
     <string name="garden_consent_declined">Linux was not downloaded. You can start the download whenever you want.</string>

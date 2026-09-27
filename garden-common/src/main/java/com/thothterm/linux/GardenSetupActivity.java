@@ -109,6 +109,9 @@ public class GardenSetupActivity extends AppCompatActivity
         decline.setOnClickListener(view -> {
             // Stay on this screen with the download still one tap away; the
             // app must not look broken because the answer was no.
+            // The long consent text goes too: left in place it pushes the
+            // actions below the fold. Continue setup shows it again.
+            consent.setVisibility(View.GONE);
             consentActions.setVisibility(View.GONE);
             progress.setVisibility(View.GONE);
             status.setText(R.string.garden_consent_declined);

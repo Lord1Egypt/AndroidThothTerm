@@ -1,7 +1,7 @@
 ThothTerm Trixie is an independent Android application that provides a Debian
 GNU/Linux 13 (trixie) userspace under PRoot, and a terminal to work in it.
 There is no root, no virtual machine and no server somewhere else: the Debian
-userland runs on the phone itself, inside the app.
+GNU/Linux 13 (trixie) environment runs on the phone itself, inside the app.
 
 The Debian side is ordinary Debian. apt and dpkg install from Debian's own
 archives (trixie, trixie-updates and trixie-security), sudo is Debian's sudo,
