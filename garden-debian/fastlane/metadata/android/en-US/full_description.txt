@@ -1,0 +1,56 @@
+ThothTerm Debian gives your phone a Debian 13 "trixie" system for ARM64 and a
+terminal to work in it. There is no root, no virtual machine and no server
+somewhere else: the Debian userland runs on the phone itself, inside the app.
+
+The Debian side is ordinary Debian. apt and dpkg install from Debian's own
+archives (trixie, trixie-updates and trixie-security), sudo is Debian's sudo,
+and what you install stays installed across app updates, as does everything
+in your home directory.
+
+What you get
+
+* Debian 13 "trixie", arm64, set up on first launch
+* apt, dpkg and passwordless sudo for the user thoth
+* Several terminal windows at once, with a window list
+* Pinch-to-zoom and Zoom in / Zoom out / Reset
+* An extra keys row: Esc, Ctrl, Alt, Tab, Home, End and the arrows
+* Copy and paste, selection and scrollback
+* Correct display of Arabic and other right-to-left text
+* A welcome banner that shows the Debian release actually installed
+* LAN Mode, to use the same Debian from a web browser on another computer
+
+LAN Mode
+
+LAN Mode is off until you turn it on, and it is off again whenever the app
+restarts. It is in the menu, above Windows. While it is on, the app shows an
+address and a one-time PIN; a browser on the same Wi-Fi or Ethernet network
+must pair with that PIN before it gets anything. Every browser gets its own
+terminal, and the windows on the phone are never shared. It does not listen on
+mobile data or the Internet. Turning it off ends every browser's access. The
+connection is plain HTTP, which is not encrypted: use it only on networks you
+trust.
+
+First run
+
+The F-Droid build does not include Debian, so the first launch offers to
+download it: about 60 MB from the project's GitHub release. Nothing is
+downloaded until you agree. The download is checked against a size and a
+SHA-256 checksum written into the app, and refused if either differs. The
+archive holds only unmodified Debian packages; it is built reproducibly from
+Debian's archive by a script in the app's source, so anyone can rebuild it
+byte for byte.
+
+Requirements
+
+* A 64-bit ARM phone (arm64-v8a), Android 8.0 or newer
+* About 185 MB for Debian right after setup (measured on a phone), plus
+  what apt's package lists and the software you install add
+
+ThothTerm Debian is an independent application and is not affiliated with or
+endorsed by the Debian Project. Debian is a registered trademark owned by
+Software in the Public Interest, Inc.
+
+ThothTerm is free software under the Apache License 2.0, a fork of TermOne
+Plus, which derives from Terminal Emulator for Android and the Android Open
+Source Project. The PRoot runtime is built from source during the build. Its
+licence and those of the Debian packages are listed in THIRD_PARTY_NOTICES.md.
