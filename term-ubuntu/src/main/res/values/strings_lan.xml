@@ -35,7 +35,7 @@
     <string name="lan_stop">Stop LAN Mode</string>
     <string name="lan_help_off">LAN Mode lets a computer on the same Wi-Fi network use this Ubuntu in a web browser. Each browser gets a terminal of its own; the windows on this phone are not shared.</string>
     <string name="lan_help_on">On a computer on the same network, open the address in a web browser and enter the PIN.</string>
-    <string name="lan_warning">LAN traffic is not encrypted. Use only on networks you trust.</string>
+    <string name="lan_warning">LAN terminal traffic and uploaded file contents are not encrypted. Use only on networks you trust.</string>
     <string name="lan_problem_no_network">Could not start: connect the phone to a Wi-Fi or Ethernet network first.</string>
     <string name="lan_problem_port_in_use">Could not start: ports 7681 to 7690 are all in use.</string>
     <string name="lan_problem_network_lost">Stopped: the Wi-Fi or Ethernet network was lost.</string>
