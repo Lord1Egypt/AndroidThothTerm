@@ -222,6 +222,12 @@
             android:summary="@string/summary_sizecalc_preference"
             android:title="@string/title_sizecalc_preference"/>
 
+        <androidx.preference.SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="keep_screen_on_while_charging"
+            android:summary="@string/summary_keep_screen_on_while_charging_preference"
+            android:title="@string/title_keep_screen_on_while_charging_preference"/>
+
         <CheckBoxPreference
             android:defaultValue="@bool/pref_utf8_by_default_default"
             android:key="utf8_by_default"

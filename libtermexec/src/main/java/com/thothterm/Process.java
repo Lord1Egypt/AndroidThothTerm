@@ -16,6 +16,7 @@
 
 package com.thothterm;
 
+import android.os.Build;
 import android.os.ParcelFileDescriptor;
 
 import java.io.IOException;
@@ -23,6 +24,8 @@ import java.io.UnsupportedEncodingException;
 
 
 public class Process {
+    /** ENOSYS on every Linux ABI; android.system.OsConstants needs API 21. */
+    private static final int ENOSYS = 38;
 
     static {
         System.loadLibrary("term-system");
@@ -86,6 +89,21 @@ public class Process {
         Native.killChilds(pid);
     }
 
+    /**
+     * rename(2) that fails with EEXIST rather than replace an existing
+     * {@code to}: renameat2(2) with RENAME_NOREPLACE. Returns 0 or the errno;
+     * ENOSYS before Android 11, whose app system-call filter does not list
+     * renameat2, and EINVAL where the file system cannot do it.
+     */
+    public static int renameNoReplace(String from, String to) {
+        if (Build.VERSION.SDK_INT < 30) return ENOSYS;
+        try {
+            return Native.renameNoReplace(from.getBytes("UTF-8"), to.getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            throw new AssertionError(e);
+        }
+    }
+
 
     private static class Native {
         private static native int createSubprocess(
@@ -95,5 +113,6 @@ public class Process {
         private static native int waitExit(int pid);
         private static native void finishChilds(int pid);
         private static native void killChilds(int pid);
+        private static native int renameNoReplace(byte[] from, byte[] to);
     }
 }
