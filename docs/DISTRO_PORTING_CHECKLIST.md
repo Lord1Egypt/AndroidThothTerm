@@ -142,9 +142,9 @@ in one column per distro; "n/a" needs a written reason.
 | 31 | Upgrade persistence | home, rootfs, prefs intact | PASS | | | |
 | 32 | Provenance recorded | every binary hashed and licensed | PASS | | | |
 | 33 | Keep screen awake | on: display stays on past 2× the timeout in front; off, or in the background: sleeps at the timeout; no partial wake lock, no battery prompt | PASS (0.2.1) | | | |
-| 34 | Keep screen awake while charging | on power with the setting on: display stays on past 3× the timeout in front; background or unplugged: sleeps at the timeout; no wake lock | | | | |
-| 35 | Upload from the phone | files and a nested Unicode folder land in the window's current directory, hashes equal, keep-both on collision, no staging left | | | | |
-| 36 | Upload from a browser | two tabs into two directories, folder, 150 MB, cancel, LAN off mid-transfer: hashes equal, nothing partial left | | | | |
+| 34 | Keep screen awake while charging | on power with the setting on: display stays on past 3× the timeout in front; background or unplugged: sleeps at the timeout; no wake lock | PASS (0.3.0; Trixie 0.2.0) | | | |
+| 35 | Upload from the phone | files and a nested Unicode folder land in the window's current directory, hashes equal, keep-both on collision, no staging left | PASS (0.3.0; Trixie 0.2.0) | | | |
+| 36 | Upload from a browser | two tabs into two directories, folder, 150 MB, cancel, LAN off mid-transfer: hashes equal, nothing partial left | PASS (0.3.0; Trixie 0.2.0) | | | |
 
 ---
 
