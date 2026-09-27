@@ -345,8 +345,9 @@ public class KeepScreenAwakeTest {
         shell("dumpsys battery set ac 1");
     }
 
+    /** The app's default preferences, the same instance the terminal listens to. */
     private android.content.SharedPreferences preferences() {
-        return androidx.preference.PreferenceManager.getDefaultSharedPreferences(context);
+        return context.getSharedPreferences(pkg + "_preferences", Context.MODE_PRIVATE);
     }
 
     private boolean waitForFlag(boolean expected) throws IOException {
