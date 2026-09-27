@@ -41,6 +41,10 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.thothterm.upload.UploadBatch;
+import com.thothterm.upload.UploadError;
+import com.thothterm.upload.UploadNames;
+
 /**
  * The LAN Mode HTTP and WebSocket endpoint.
  * <p>
@@ -56,6 +60,11 @@ import java.util.concurrent.TimeUnit;
  * </ul>
  * Browser credentials are bearer tokens held by the page, so there is no
  * ambient cookie for cross-site requests to ride on.
+ * <p>
+ * Uploads ({@code /api/upload/*}) pass the same three checks and are bound to
+ * a terminal the paired browser owns; the directory is always that terminal's
+ * current one, read on the phone, never a path from the browser. A file's body
+ * is read only after every check has passed.
  */
 final class LanServer {
     static final String PROTOCOL = "thothterm.v1";
@@ -66,6 +75,14 @@ final class LanServer {
     static final int SOCKET_IDLE_MS = 60_000;
     static final int OPEN_TIMEOUT_MS = 10_000;
     static final long STOP_NOTICE_MS = 500;
+    /** An upload body that stalls this long is abandoned. */
+    static final int UPLOAD_IDLE_MS = 30_000;
+    static final String UPLOAD_BEGIN = "/api/upload/begin";
+    static final String UPLOAD_FILE = "/api/upload/file";
+    static final String UPLOAD_FINISH = "/api/upload/finish";
+    static final String UPLOAD_CANCEL = "/api/upload/cancel";
+    static final String UPLOAD_HEADER = "X-ThothTerm-Upload";
+    static final String PATH_HEADER = "X-ThothTerm-Path";
 
     /** Close codes of our own (RFC 6455 reserves 4000-4999 for applications). */
     static final int CLOSE_EXITED = 4000;
@@ -102,6 +119,7 @@ final class LanServer {
 
     private final LanAuth auth;
     private final RemoteTerminals terminals;
+    private final LanUploads uploads;
     private final Assets assets;
     private final LanLog log;
 
@@ -113,9 +131,10 @@ final class LanServer {
     private final List<Connection> webSockets = new ArrayList<>();
     private volatile boolean stopping;
 
-    LanServer(LanAuth auth, RemoteTerminals terminals, Assets assets, LanLog log) {
+    LanServer(LanAuth auth, RemoteTerminals terminals, LanUploads uploads, Assets assets, LanLog log) {
         this.auth = auth;
         this.terminals = terminals;
+        this.uploads = uploads;
         this.assets = assets;
         this.log = log;
     }
@@ -248,7 +267,7 @@ final class LanServer {
             OutputStream out = new BufferedOutputStream(socket.getOutputStream());
             HttpRequest request;
             try {
-                request = HttpRequest.read(in);
+                request = HttpRequest.read(in, UPLOAD_FILE);
             } catch (HttpRequest.BadRequest e) {
                 respond(out, e.status, "text/plain; charset=utf-8", bytes("Bad request"));
                 return;
@@ -307,10 +326,16 @@ final class LanServer {
             int browser = auth.browserFor(token);
             if (browser > 0) {
                 auth.revoke(token);
+                uploads.cancelBrowser(browser);
                 disconnectBrowser(browser);
                 log.info("Browser signed out; paired browsers=" + auth.pairedBrowsers());
             }
             respond(out, 204, null, new byte[0]);
+            return;
+        }
+        if (path.equals(UPLOAD_BEGIN) || path.equals(UPLOAD_FILE) || path.equals(UPLOAD_FINISH)
+                || path.equals(UPLOAD_CANCEL)) {
+            upload(socket, in, out, request);
             return;
         }
         for (String[] entry : STATIC) {
@@ -376,6 +401,198 @@ final class LanServer {
                 return;
             default:
                 respond(out, 409, "application/json", bytes("{\"error\":\"no_pin\"}"));
+        }
+    }
+
+    // ------------------------------------------------------------ uploads
+
+    private void upload(Socket socket, InputStream in, OutputStream out, HttpRequest request)
+            throws IOException {
+        boolean file = request.path.equals(UPLOAD_FILE);
+        if (!(file ? "PUT" : "POST").equals(request.method)) {
+            respond(out, 405, "text/plain; charset=utf-8", bytes("Method not allowed"));
+            return;
+        }
+        if (!sameOrigin(request)) {
+            log.warn("Upload refused: foreign origin");
+            respondError(out, 403, "forbidden");
+            return;
+        }
+        int browser = auth.browserFor(bearer(request));
+        if (browser <= 0) {
+            log.warn("Upload refused: not authenticated");
+            respondError(out, 401, "unauthorized");
+            return;
+        }
+        if (file) {
+            receiveFile(socket, in, out, request, browser);
+            return;
+        }
+        Map<String, Object> m;
+        try {
+            if (!isJson(request)) throw new IllegalArgumentException("not JSON");
+            m = FlatJson.parse(new String(request.body, StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException e) {
+            respondError(out, 400, "bad_request");
+            return;
+        }
+        if (request.path.equals(UPLOAD_BEGIN)) {
+            beginUpload(out, browser, m);
+            return;
+        }
+        LanUploads.Upload upload = uploads.find(string(m.get("upload")), browser);
+        if (request.path.equals(UPLOAD_CANCEL)) {
+            if (upload != null) {
+                uploads.end(upload);
+                log.info("Browser upload cancelled");
+            }
+            respond(out, 204, null, new byte[0]);
+            return;
+        }
+        if (upload == null) {
+            respondError(out, 404, "no_upload");
+            return;
+        }
+        try {
+            String name = upload.batch.finish();
+            uploads.end(upload);
+            log.info("Browser upload finished bytes=" + upload.batch.batchBytes());
+            respond(out, 200, "application/json",
+                    bytes("{\"name\":" + (name == null ? "null" : FlatJson.quote(name)) + "}"));
+        } catch (UploadError e) {
+            uploads.end(upload);
+            uploadFailed(out, e);
+        }
+    }
+
+    /** {"term": id, "kind": "files"|"folder", "name": folder name, "bytes": total}. */
+    private void beginUpload(OutputStream out, int browser, Map<String, Object> m) throws IOException {
+        RemoteTerminals.Terminal terminal = terminals.find(string(m.get("term")), browser);
+        if (terminal == null) {
+            respondError(out, 404, "no_terminal");
+            return;
+        }
+        String kind = string(m.get("kind"));
+        UploadBatch.Kind batchKind;
+        if ("files".equals(kind)) batchKind = UploadBatch.Kind.FILES;
+        else if ("folder".equals(kind)) batchKind = UploadBatch.Kind.FOLDER;
+        else {
+            respondError(out, 400, "bad_request");
+            return;
+        }
+        Object total = m.get("bytes");
+        long expected = total instanceof Long && (Long) total >= 0 ? (Long) total : -1;
+        try {
+            LanUploads.Upload upload = uploads.begin(browser, terminal, batchKind,
+                    batchKind == UploadBatch.Kind.FOLDER ? string(m.get("name")) : null, expected);
+            log.info("Browser upload started kind=" + kind + " bytes=" + expected);
+            respond(out, 200, "application/json", bytes("{\"upload\":" + FlatJson.quote(upload.id)
+                    + ",\"target\":" + FlatJson.quote(upload.batch.target().displayPath) + "}"));
+        } catch (UploadError e) {
+            uploadFailed(out, e);
+        }
+    }
+
+    /**
+     * PUT with X-ThothTerm-Upload (the upload id), X-ThothTerm-Path (the file's
+     * path, each component percent-encoded) and Content-Length. Everything is
+     * checked before the body is touched.
+     */
+    private void receiveFile(Socket socket, InputStream in, OutputStream out, HttpRequest request,
+                             int browser) throws IOException {
+        LanUploads.Upload upload = uploads.find(request.header(UPLOAD_HEADER), browser);
+        if (upload == null) {
+            respondError(out, 404, "no_upload");
+            return;
+        }
+        if (request.streamLength < 0) {
+            respondError(out, 411, "length_required");
+            return;
+        }
+        java.util.List<String> path;
+        try {
+            path = UploadNames.decodeRelativePath(request.header(PATH_HEADER));
+            upload.batch.ensureSpace(request.streamLength);
+        } catch (UploadError e) {
+            // A refused name or a file too big for the device fails this
+            // file only; the browser decides whether to go on.
+            uploadFailed(out, e);
+            return;
+        }
+        socket.setSoTimeout(UPLOAD_IDLE_MS);
+        uploads.receiving(upload, true);
+        try {
+            String name = upload.batch.receive(path, request.streamLength,
+                    new Body(in, request.streamLength), null);
+            respond(out, 200, "application/json", bytes("{\"name\":" + FlatJson.quote(name) + "}"));
+        } catch (UploadError e) {
+            if (!upload.batch.isOpen()) {
+                uploads.end(upload);
+                log.warn("Browser upload failed code=" + e.code.wire());
+            }
+            uploadFailed(out, e);
+        } finally {
+            uploads.receiving(upload, false);
+        }
+    }
+
+    private void uploadFailed(OutputStream out, UploadError e) throws IOException {
+        int status;
+        switch (e.code) {
+            case BAD_NAME:
+                status = 400;
+                break;
+            case NO_SPACE:
+                status = 507;
+                break;
+            case CANCELLED:
+                status = 410;
+                break;
+            case IO:
+                status = 500;
+                break;
+            default:
+                status = 409;
+        }
+        respondError(out, status, e.code.wire());
+    }
+
+    private void respondError(OutputStream out, int status, String code) throws IOException {
+        respond(out, status, "application/json", bytes("{\"error\":" + FlatJson.quote(code) + "}"));
+    }
+
+    private static String string(Object value) {
+        return value instanceof String ? (String) value : null;
+    }
+
+    /** Exactly {@code length} bytes of a request body; closing it closes the connection. */
+    private static final class Body extends InputStream {
+        private final InputStream in;
+        private long left;
+
+        Body(InputStream in, long length) {
+            this.in = in;
+            this.left = length;
+        }
+
+        @Override
+        public int read() throws IOException {
+            byte[] one = new byte[1];
+            return read(one, 0, 1) < 0 ? -1 : one[0] & 0xff;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            if (left <= 0) return -1;
+            int n = in.read(b, off, (int) Math.min(len, left));
+            if (n < 0) return -1;
+            left -= n;
+            return n;
+        }
+
+        @Override
+        public void close() throws IOException {
+            in.close();
         }
     }
 
@@ -625,12 +842,15 @@ final class LanServer {
             case 405: return "Method Not Allowed";
             case 409: return "Conflict";
             case 410: return "Gone";
+            case 411: return "Length Required";
             case 413: return "Payload Too Large";
             case 421: return "Misdirected Request";
             case 423: return "Locked";
             case 429: return "Too Many Requests";
             case 431: return "Request Header Fields Too Large";
+            case 500: return "Internal Server Error";
             case 501: return "Not Implemented";
+            case 507: return "Insufficient Storage";
             default: return "Status";
         }
     }

@@ -8,6 +8,11 @@
  * Sec-WebSocket-Protocol header and in an Authorization header -- never in
  * a URL, never as a cookie. Each tab remembers its own terminal id in
  * sessionStorage, so a reload reattaches to the same shell.
+ *
+ * Uploads go to the current folder of this tab's terminal, which the phone
+ * reads from the terminal's own session; the page only names the terminal
+ * and sends the files, one streamed request each (XMLHttpRequest, for its
+ * upload progress). Browsers send no empty folders, so none arrive.
  */
 (function () {
   'use strict';
@@ -41,7 +46,8 @@
   function showOnly(id) {
     ['pair', 'notice', 'terminal'].forEach(function (v) { $(v).hidden = v !== id; });
     var inTerminal = id === 'terminal';
-    $('copy').hidden = !inTerminal;
+    $('upload-files').hidden = !inTerminal;
+    $('upload-folder').hidden = !inTerminal;
     $('signout').hidden = !token;
   }
 
@@ -127,6 +133,7 @@
   }
 
   $('signout').addEventListener('click', function () {
+    abandonUpload('This browser was signed out.');
     var old = token;
     forgetToken();
     closeSocket();
@@ -217,7 +224,6 @@
     try { document.execCommand('copy'); } catch (e) { /* nothing more to try */ }
     document.body.removeChild(area);
   }
-  $('copy').addEventListener('click', copySelection);
 
   function send(bytes) {
     if (socket && socket.readyState === WebSocket.OPEN) socket.send(bytes);
@@ -312,12 +318,14 @@
           notice('The shell exited.', 'Open a new terminal', startTerminal);
           return;
         case 4410:
+          abandonUpload('LAN Mode was turned off on the phone.');
           forgetToken();
           setState('LAN Mode off', 'bad');
           notice('LAN Mode was turned off on the phone. Turn it on again and pair this browser with a new PIN.',
             'Pair again', function () { showPairing(''); });
           return;
         case 4401:
+          abandonUpload('This browser was signed out.');
           forgetToken();
           showPairing('This browser was signed out.');
           return;
@@ -355,6 +363,273 @@
       }).catch(scheduleRetry);
     }, 2000);
   }
+
+  // ------------------------------------------------------------ uploads
+
+  var UPLOAD_ERRORS = {
+    unauthorized: 'This browser is no longer signed in.',
+    forbidden: 'The phone refused the upload.',
+    no_terminal: 'This terminal is no longer open on the phone.',
+    no_upload: 'The upload was stopped on the phone.',
+    no_directory: 'The phone cannot find this terminal\u2019s current folder.',
+    outside: 'Uploads cannot go to this folder.',
+    directory_gone: 'The current folder no longer exists.',
+    not_writable: 'Cannot upload to this folder.',
+    no_space: 'Not enough storage space on the phone.',
+    bad_name: 'A file or folder name cannot be used',
+    conflict: 'Could not find a free name to keep both files.',
+    busy: 'Another upload is already running for this terminal.',
+    cancelled: 'The upload was stopped.',
+    io: 'The upload failed.'
+  };
+
+  var upload = null;
+
+  function formatBytes(n) {
+    var units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    var i = 0;
+    while (n >= 1000 && i < units.length - 1) { n /= 1000; ++i; }
+    return (i === 0 ? n : n.toFixed(n < 10 ? 1 : 0)) + ' ' + units[i];
+  }
+
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  function authHeaders(json) {
+    var h = { Authorization: 'Bearer ' + token };
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+  }
+
+  function api(path, body) {
+    return fetch(path, {
+      method: 'POST', headers: authHeaders(true), body: JSON.stringify(body),
+      cache: 'no-store', credentials: 'omit'
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        b.status = r.status;
+        return b;
+      });
+    });
+  }
+
+  function explain(code, name) {
+    var text = UPLOAD_ERRORS[code] || 'The upload failed.';
+    return code === 'bad_name' && name ? text + ': ' + name : text + (code === 'bad_name' ? '.' : '');
+  }
+
+  function showUpload(title) {
+    $('upload-title').textContent = title;
+    $('upload-what').textContent = '';
+    $('upload-where').hidden = true;
+    $('upload-progress').hidden = true;
+    $('upload-message').textContent = '';
+    $('upload-message').className = '';
+    $('upload-go').hidden = true;
+    $('upload-cancel').textContent = 'Cancel';
+    $('upload').hidden = false;
+    $('upload-cancel').focus();
+  }
+
+  function uploadMessage(text, bad) {
+    $('upload-message').textContent = text;
+    $('upload-message').className = bad ? 'bad' : '';
+  }
+
+  function closeUpload() {
+    $('upload').hidden = true;
+    upload = null;
+    if (term) term.focus();
+  }
+
+  /** The dialog stays with the outcome; its button only closes it now. */
+  function settle(text, bad) {
+    if (upload) upload.settled = true;
+    $('upload-go').hidden = true;
+    $('upload-cancel').textContent = 'Close';
+    uploadMessage(text, bad);
+  }
+
+  function pick(kind) {
+    if (upload) return;
+    var terminalId = load(window.sessionStorage, TERM_KEY);
+    if (!token || !terminalId) return;
+    var input = $(kind === 'folder' ? 'pick-folder' : 'pick-files');
+    input.value = '';
+    input.click();
+  }
+
+  $('upload-files').addEventListener('click', function () { pick('files'); });
+  $('upload-folder').addEventListener('click', function () { pick('folder'); });
+  $('pick-files').addEventListener('change', function () { begin('files', this.files); });
+  $('pick-folder').addEventListener('change', function () { begin('folder', this.files); });
+
+  /** List the picked files, then ask the phone where they would go. */
+  function begin(kind, list) {
+    if (upload) return;
+    var files = Array.prototype.slice.call(list || []);
+    var folder = kind === 'folder';
+    showUpload(folder ? 'Upload folder' : 'Upload files');
+    upload = { kind: kind, items: [], total: 0, id: null, xhr: null, settled: false, started: false,
+      index: 0, names: [] };
+    if (!files.length) {
+      settle(folder ? 'That folder has no files. Browsers do not send empty folders.' : 'No files were chosen.');
+      return;
+    }
+    var root = null;
+    for (var i = 0; i < files.length; ++i) {
+      var f = files[i];
+      var path = f.name;
+      if (folder) {
+        var parts = (f.webkitRelativePath || '').split('/');
+        if (parts.length < 2 || (root !== null && parts[0] !== root)) {
+          settle('This browser did not give the folder\u2019s structure.', true);
+          return;
+        }
+        root = parts[0];
+        path = parts.slice(1).join('/');
+      }
+      upload.items.push({ file: f, path: path });
+      upload.total += f.size;
+    }
+    upload.name = root;
+    var count = plural(files.length, 'file', 'files') + ' (' + formatBytes(upload.total) + ')';
+    $('upload-what').textContent = folder ? 'Folder \u201c' + root + '\u201d \u2014 ' + count : count;
+    uploadMessage('Asking the phone for this terminal\u2019s current folder\u2026');
+    var current = upload;
+    api('/api/upload/begin', {
+      term: load(window.sessionStorage, TERM_KEY), kind: kind, name: root, bytes: current.total
+    }).then(function (r) {
+      if (upload !== current) {
+        if (r.upload) api('/api/upload/cancel', { upload: r.upload }).catch(function () {});
+        return;
+      }
+      if (r.status !== 200 || !r.upload) {
+        settle(explain(r.error, root), true);
+        return;
+      }
+      current.id = r.upload;
+      $('upload-target').textContent = r.target;
+      $('upload-where').hidden = false;
+      uploadMessage('');
+      $('upload-go').hidden = false;
+      $('upload-go').focus();
+    }).catch(function () {
+      if (upload === current) settle('The phone did not answer. Is LAN Mode still on?', true);
+    });
+  }
+
+  $('upload-go').addEventListener('click', function () {
+    if (!upload || !upload.id || upload.xhr || upload.settled) return;
+    $('upload-go').hidden = true;
+    $('upload-progress').hidden = false;
+    upload.started = true;
+    upload.done = 0;
+    sendNext(upload);
+  });
+
+  function progress(u, loaded) {
+    var done = u.done + loaded;
+    $('upload-bar').value = u.total > 0 ? Math.round(done * 1000 / u.total) : 0;
+    $('upload-bytes').textContent = formatBytes(done) + ' of ' + formatBytes(u.total)
+      + (u.total > 0 ? ' (' + Math.floor(done * 100 / u.total) + '%)' : '')
+      + ' \u00b7 file ' + Math.min(u.index + 1, u.items.length) + ' of ' + u.items.length;
+  }
+
+  function sendNext(u) {
+    if (upload !== u || u.settled) return;
+    if (u.index >= u.items.length) {
+      finish(u);
+      return;
+    }
+    var item = u.items[u.index];
+    $('upload-name').textContent = item.path;
+    progress(u, 0);
+    var xhr = new XMLHttpRequest();
+    u.xhr = xhr;
+    xhr.open('PUT', '/api/upload/file');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.setRequestHeader('X-ThothTerm-Upload', u.id);
+    xhr.setRequestHeader('X-ThothTerm-Path', item.path.split('/').map(encodeURIComponent).join('/'));
+    xhr.upload.onprogress = function (e) { if (upload === u) progress(u, e.loaded); };
+    xhr.onload = function () {
+      u.xhr = null;
+      var body = {};
+      try { body = JSON.parse(xhr.responseText); } catch (e) { /* not JSON */ }
+      if (upload !== u) return;
+      if (xhr.status !== 200) {
+        fail(u, explain(body.error, item.path));
+        return;
+      }
+      if (u.kind === 'files' && body.name !== item.path) u.names.push(body.name);
+      u.done += item.file.size;
+      u.index += 1;
+      sendNext(u);
+    };
+    xhr.onerror = function () {
+      u.xhr = null;
+      if (upload === u) fail(u, 'The connection to the phone was lost.');
+    };
+    // The browser streams the File from disk; it is never read into memory here.
+    xhr.send(item.file);
+  }
+
+  function fail(u, text) {
+    if (u.id) api('/api/upload/cancel', { upload: u.id }).catch(function () {});
+    settle(text + (u.kind === 'folder' ? ' Nothing was added.' : ''), true);
+  }
+
+  function finish(u) {
+    api('/api/upload/finish', { upload: u.id }).then(function (r) {
+      if (upload !== u) return;
+      if (r.status !== 200) {
+        settle(explain(r.error), true);
+        return;
+      }
+      $('upload-bar').value = 1000;
+      var where = $('upload-target').textContent;
+      if (u.kind === 'folder') {
+        settle('Uploaded \u201c' + r.name + '\u201d to ' + where + '.');
+      } else {
+        var text = 'Uploaded ' + plural(u.items.length, 'file', 'files') + ' to ' + where + '.';
+        if (u.names.length) text += ' Kept both, as: ' + u.names.join(', ') + '.';
+        settle(text);
+      }
+    }).catch(function () {
+      if (upload === u) settle('The phone did not answer. Is LAN Mode still on?', true);
+    });
+  }
+
+  /** Stop the upload in progress, if any; the phone removes what it had not finished. */
+  function abandonUpload(why) {
+    var u = upload;
+    if (!u || u.settled) return;
+    if (u.xhr) {
+      u.xhr.onerror = null;
+      u.xhr.abort();
+      u.xhr = null;
+    }
+    if (u.id && token) api('/api/upload/cancel', { upload: u.id }).catch(function () {});
+    settle(why, true);
+  }
+
+  $('upload-cancel').addEventListener('click', function () {
+    if (upload && !upload.settled && !upload.started) {
+      // Nothing was sent yet: just tell the phone and close.
+      if (upload.id) api('/api/upload/cancel', { upload: upload.id }).catch(function () {});
+      closeUpload();
+      return;
+    }
+    if (upload && !upload.settled) {
+      abandonUpload('Upload cancelled. Nothing partial was left behind.');
+      return;
+    }
+    closeUpload();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !$('upload').hidden) $('upload-cancel').click();
+  });
 
   // -------------------------------------------------------------- start
 

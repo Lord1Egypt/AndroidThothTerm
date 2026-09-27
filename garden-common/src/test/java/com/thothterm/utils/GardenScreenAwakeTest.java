@@ -104,8 +104,24 @@ public class GardenScreenAwakeTest {
                         "garden-common/src/test/java/com/thothterm/utils/ScreenAwakeTest.java"},
                 {"term-ubuntu/src/androidTest/java/com/thothterm/KeepScreenAwakeTest.java",
                         DEVICE_TEST_DIR + "/com/thothterm/KeepScreenAwakeTest.java"},
+                {"term-ubuntu/src/androidTest/java/com/thothterm/UploadFsDeviceTest.java",
+                        DEVICE_TEST_DIR + "/com/thothterm/UploadFsDeviceTest.java"},
+                {"term-ubuntu/src/main/java/com/thothterm/lan/LanUploads.java",
+                        "garden-common/src/main/java/com/thothterm/lan/LanUploads.java"},
+                {"term-ubuntu/patches/0005-keep-the-kernel-working-directory-in-step-with-the-guest.patch",
+                        "garden-common/patches/0005-keep-the-kernel-working-directory-in-step-with-the-guest.patch"},
         };
-        for (String[] pair : pairs) {
+        List<String[]> all = new ArrayList<>(java.util.Arrays.asList(pairs));
+        // The upload core too: one implementation, its tests included.
+        for (String set : new String[]{"src/main/java/com/thothterm/upload", "src/test/java/com/thothterm/upload"}) {
+            String[] names = new File(ROOT, "garden-common/" + set).list();
+            assertNotNull(names);
+            assertTrue(names.length >= 4);
+            for (String name : names) {
+                all.add(new String[]{"term-ubuntu/" + set + "/" + name, "garden-common/" + set + "/" + name});
+            }
+        }
+        for (String[] pair : all) {
             assertArrayEquals(pair[0] + " and " + pair[1] + " differ",
                     Files.readAllBytes(new File(ROOT, pair[0]).toPath()),
                     Files.readAllBytes(new File(ROOT, pair[1]).toPath()));

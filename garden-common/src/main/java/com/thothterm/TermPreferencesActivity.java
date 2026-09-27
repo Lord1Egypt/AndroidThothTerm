@@ -50,6 +50,9 @@ import jackpal.androidterm.util.TermSettings;
 
 public class TermPreferencesActivity extends AppCompatActivity
         implements SharedPreferences.OnSharedPreferenceChangeListener {
+    /** The key of a preference to scroll to when the screen opens. */
+    public static final String EXTRA_SHOW_PREFERENCE = "com.thothterm.show_preference";
+
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -140,6 +143,9 @@ public class TermPreferencesActivity extends AppCompatActivity
                 return windowInsets;
             });
             ViewCompat.requestApplyInsets(list);
+
+            String show = requireActivity().getIntent().getStringExtra(EXTRA_SHOW_PREFERENCE);
+            if (show != null && savedInstanceState == null) scrollToPreference(show);
         }
 
         @Override

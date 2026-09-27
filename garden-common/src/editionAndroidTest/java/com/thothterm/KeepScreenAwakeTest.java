@@ -58,8 +58,11 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * "Keep screen awake" against the real window, the real menu and the real
- * power manager.
+ * "Keep screen awake" -- by hand and while charging -- against the real
+ * window, the real menu and the real power manager.
+ * <p>
+ * Power is simulated through {@code dumpsys battery} (unplugged unless a test
+ * connects AC), and the real state is restored afterwards.
  * <p>
  * It reads menu labels, the activity's {@code Window} and {@code dumpsys}, and
  * names no app class, so the same file runs in every ThothTerm edition. It
@@ -72,6 +75,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class KeepScreenAwakeTest {
     private static final String KEEP_AWAKE = "Keep screen awake";
     private static final String ALLOW_SLEEP = "Allow screen to sleep";
+    private static final String WHILE_CHARGING = "Screen awake while charging";
+    private static final String CHARGING_SETTING = "keep_screen_on_while_charging";
     private static final String KEEP_WIFI = "Keep Wi-Fi on";
     private static final String ALLOW_WIFI_SLEEP = "Allow Wi-Fi to sleep";
     private static final long LAUNCH_TIMEOUT_MS = 40_000L;
@@ -112,6 +117,8 @@ public class KeepScreenAwakeTest {
         };
         instrumentation.addMonitor(batterySettings);
 
+        shell("dumpsys battery unplug");
+        preferences().edit().remove(CHARGING_SETTING).commit();
         bringToFront();
         choose(KEEP_WIFI, ALLOW_WIFI_SLEEP, false);
         choose(KEEP_AWAKE, ALLOW_SLEEP, false);
@@ -119,10 +126,13 @@ public class KeepScreenAwakeTest {
 
     @After
     public void restore() throws Exception {
+        shell("dumpsys battery unplug");
+        preferences().edit().remove(CHARGING_SETTING).commit();
         if (terminal() == null) bringToFront();
         choose(KEEP_WIFI, ALLOW_WIFI_SLEEP, false);
         choose(KEEP_AWAKE, ALLOW_SLEEP, false);
         instrumentation.removeMonitor(batterySettings);
+        shell("dumpsys battery reset");
     }
 
     @Test
@@ -219,7 +229,142 @@ public class KeepScreenAwakeTest {
         assertTrue("Wi-Fi toggle cleared the screen flag", keepScreenOn(terminal()));
     }
 
+    // --- while charging ------------------------------------------------------
+
+    @Test
+    public void chargingKeepsTheScreenOnByDefault() throws Exception {
+        assertFalse(keepScreenOn(terminal()));
+        connectPower();
+
+        assertTrue("FLAG_KEEP_SCREEN_ON missing while charging", waitForFlag(true));
+        assertTrue(waitFor(this::displayHeldForUs, true));
+        assertMenuShows(WHILE_CHARGING);
+        assertNoCpuWakeLock();
+        assertNoBatteryDetour();
+    }
+
+    @Test
+    public void unpluggingDropsTheChargingReasonAtOnce() throws Exception {
+        connectPower();
+        assertTrue(waitForFlag(true));
+
+        shell("dumpsys battery unplug");
+
+        assertTrue("flag still set after unplugging", waitForFlag(false));
+        assertTrue(waitFor(this::displayHeldForUs, false));
+        assertMenuShows(KEEP_AWAKE);
+    }
+
+    @Test
+    public void theSettingOffIgnoresCharging() throws Exception {
+        preferences().edit().putBoolean(CHARGING_SETTING, false).commit();
+        connectPower();
+        SystemClock.sleep(1500);
+
+        assertFalse("charging kept the screen on with the setting off", keepScreenOn(terminal()));
+        assertMenuShows(KEEP_AWAKE);
+
+        preferences().edit().putBoolean(CHARGING_SETTING, true).commit();
+        assertTrue("turning the setting on did not apply at once", waitForFlag(true));
+    }
+
+    @Test
+    public void manualWorksUnpluggedAndCoexistsWithCharging() throws Exception {
+        choose(KEEP_AWAKE, ALLOW_SLEEP, true);
+        assertTrue(keepScreenOn(terminal()));
+
+        connectPower();
+        SystemClock.sleep(1000);
+        assertTrue(keepScreenOn(terminal()));
+        assertMenuShows(ALLOW_SLEEP);
+
+        shell("dumpsys battery unplug");
+        SystemClock.sleep(1000);
+        assertTrue("unplugging cleared the manual choice", keepScreenOn(terminal()));
+    }
+
+    @Test
+    public void turningManualOffWhileChargingKeepsTheScreenOn() throws Exception {
+        choose(KEEP_AWAKE, ALLOW_SLEEP, true);
+        connectPower();
+        SystemClock.sleep(1000);
+
+        choose(KEEP_AWAKE, ALLOW_SLEEP, false);
+
+        assertTrue("manual off defeated the charging reason", keepScreenOn(terminal()));
+        assertMenuShows(WHILE_CHARGING);
+    }
+
+    @Test
+    public void theChargingItemLeadsToTheSetting() throws Exception {
+        connectPower();
+        assertTrue(waitForFlag(true));
+        openMenu();
+        device.findObject(By.text(WHILE_CHARGING)).click();
+        assertTrue("the setting did not open where it can be changed",
+                device.wait(Until.hasObject(By.text("Keep screen awake while charging")), UI_TIMEOUT_MS));
+        device.pressBack();
+        device.waitForIdle();
+        bringToFront();
+        assertTrue(keepScreenOn(terminal()));
+    }
+
+    @Test
+    public void chargingBehindAnotherAppHoldsNothingAndResumes() throws Exception {
+        connectPower();
+        assertTrue(waitFor(this::displayHeldForUs, true));
+
+        device.pressHome();
+
+        assertTrue("screen held by a terminal in the background",
+                waitFor(this::displayHeldForUs, false));
+        assertNoCpuWakeLock();
+
+        bringToFront();
+        assertTrue("charging did not apply again on return", waitForFlag(true));
+        assertTrue(waitFor(this::displayHeldForUs, true));
+    }
+
+    @Test
+    public void recreationWhileChargingReadsPowerAgain() throws Exception {
+        connectPower();
+        assertTrue(waitForFlag(true));
+        Activity before = terminal();
+
+        instrumentation.runOnMainSync(before::recreate);
+        Activity after = waitForNewTerminal(before);
+
+        assertTrue(keepScreenOn(after));
+        shell("dumpsys battery unplug");
+        assertTrue("recreated activity does not follow power", waitForFlag(false));
+    }
+
     // --- helpers -----------------------------------------------------------
+
+    private void connectPower() throws IOException {
+        shell("dumpsys battery set ac 1");
+    }
+
+    private android.content.SharedPreferences preferences() {
+        return androidx.preference.PreferenceManager.getDefaultSharedPreferences(context);
+    }
+
+    private boolean waitForFlag(boolean expected) throws IOException {
+        return waitFor(() -> keepScreenOn(terminal()), expected);
+    }
+
+    /** The screen item says {@code label}, and only that. */
+    private void assertMenuShows(String label) {
+        openMenu();
+        for (String other : new String[]{KEEP_AWAKE, ALLOW_SLEEP, WHILE_CHARGING}) {
+            if (other.equals(label)) {
+                assertNotNull("menu lacks " + other, device.findObject(By.text(other)));
+            } else {
+                assertNull("menu shows " + other, device.findObject(By.text(other)));
+            }
+        }
+        device.pressBack();
+    }
 
     private void bringToFront() throws Exception {
         Intent intent = context.getPackageManager().getLaunchIntentForPackage(pkg);

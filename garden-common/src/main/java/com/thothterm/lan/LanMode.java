@@ -27,8 +27,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * LAN Mode's on/off state, free of Android APIs.
  * <p>
- * OFF means nothing listens, no browser credential is valid and no browser
- * terminal exists. Every ON builds a new {@link LanAuth}, so credentials from
+ * OFF means nothing listens, no browser credential is valid, no browser
+ * terminal exists and no browser upload is under way. Every ON builds a new {@link LanAuth}, so credentials from
  * an earlier ON can never be valid again. Nothing is persisted: after the
  * process dies LAN Mode is simply off.
  */
@@ -63,6 +63,7 @@ final class LanMode {
     }
 
     private final Pty.Factory ptys;
+    private final LanUploads.Host uploadHost;
     private final LanServer.Assets assets;
     private final LanLog log;
     private final LanAuth.Clock clock;
@@ -70,13 +71,15 @@ final class LanMode {
 
     private LanAuth auth;
     private RemoteTerminals terminals;
+    private LanUploads uploads;
     private LanServer server;
     private ScheduledExecutorService sweeper;
     private Failure failure = Failure.NONE;
 
-    LanMode(Pty.Factory ptys, LanServer.Assets assets, LanLog log, LanAuth.Clock clock,
-            SecureRandom random) {
+    LanMode(Pty.Factory ptys, LanUploads.Host uploadHost, LanServer.Assets assets, LanLog log,
+            LanAuth.Clock clock, SecureRandom random) {
         this.ptys = ptys;
+        this.uploadHost = uploadHost;
         this.assets = assets;
         this.log = log;
         this.clock = clock;
@@ -95,7 +98,8 @@ final class LanMode {
         if (server != null) return true;
         LanAuth newAuth = new LanAuth(random, clock);
         RemoteTerminals newTerminals = new RemoteTerminals(ptys, clock, log, random);
-        LanServer newServer = new LanServer(newAuth, newTerminals, assets, log);
+        LanUploads newUploads = new LanUploads(uploadHost, clock, random, log);
+        LanServer newServer = new LanServer(newAuth, newTerminals, newUploads, assets, log);
         try {
             int port = newServer.start(address, firstPort, attempts);
             log.info("LAN Mode on; listening on port " + port);
@@ -111,6 +115,7 @@ final class LanMode {
         }
         auth = newAuth;
         terminals = newTerminals;
+        uploads = newUploads;
         server = newServer;
         failure = Failure.NONE;
         auth.newPin();
@@ -120,8 +125,11 @@ final class LanMode {
             return t;
         });
         final RemoteTerminals swept = terminals;
-        sweeper.scheduleWithFixedDelay(swept::sweep, SWEEP_PERIOD_MS, SWEEP_PERIOD_MS,
-                TimeUnit.MILLISECONDS);
+        final LanUploads sweptUploads = uploads;
+        sweeper.scheduleWithFixedDelay(() -> {
+            swept.sweep();
+            sweptUploads.sweep(swept);
+        }, SWEEP_PERIOD_MS, SWEEP_PERIOD_MS, TimeUnit.MILLISECONDS);
         return true;
     }
 
@@ -135,6 +143,7 @@ final class LanMode {
             if (why != Failure.NONE) failure = why;
             return;
         }
+        uploads.closeAll();
         server.stop();
         auth.revokeAll();
         terminals.closeAll();
@@ -142,6 +151,7 @@ final class LanMode {
         server = null;
         auth = null;
         terminals = null;
+        uploads = null;
         sweeper = null;
         failure = why;
         log.info("LAN Mode off" + (why == Failure.NONE ? "" : "; reason=" + why));

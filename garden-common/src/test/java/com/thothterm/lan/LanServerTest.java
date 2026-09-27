@@ -194,7 +194,7 @@ public class LanServerTest {
             FakePty pty = new FakePty(columns, rows);
             ptys.add(pty);
             return pty;
-        }, assets, log, now::get, new SecureRandom());
+        }, LanUploadTest.NO_UPLOADS, assets, log, now::get, new SecureRandom());
     }
 
     @After
