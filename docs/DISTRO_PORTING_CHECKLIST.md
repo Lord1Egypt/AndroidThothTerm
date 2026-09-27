@@ -93,6 +93,12 @@ These are engine behaviours; a port only has to confirm nothing regressed.
       `garden-common/src/editionAndroidTest/java` to its androidTest sources so
       `KeepScreenAwakeTest` runs against it (`GardenScreenAwakeTest` enforces
       both).
+- [ ] "Keep screen awake while charging" is garden-common's too: the setting
+      defaults on, and `KeepScreenAwakeTest` passes its charging cases.
+- [ ] Uploads are garden-common's (`com.thothterm.upload`, `LanUploads`, the
+      page). The edition's PRoot is built from `garden-common/patches`, so it
+      carries patch 0005; confirm on the device that `/proc/<bash>/cwd` follows
+      `cd` in a window and in a browser terminal (see `docs/garden/UPLOADS.md`).
 
 ---
 
@@ -136,6 +142,9 @@ in one column per distro; "n/a" needs a written reason.
 | 31 | Upgrade persistence | home, rootfs, prefs intact | PASS | | | |
 | 32 | Provenance recorded | every binary hashed and licensed | PASS | | | |
 | 33 | Keep screen awake | on: display stays on past 2× the timeout in front; off, or in the background: sleeps at the timeout; no partial wake lock, no battery prompt | PASS (0.2.1) | | | |
+| 34 | Keep screen awake while charging | on power with the setting on: display stays on past 3× the timeout in front; background or unplugged: sleeps at the timeout; no wake lock | | | | |
+| 35 | Upload from the phone | files and a nested Unicode folder land in the window's current directory, hashes equal, keep-both on collision, no staging left | | | | |
+| 36 | Upload from a browser | two tabs into two directories, folder, 150 MB, cancel, LAN off mid-transfer: hashes equal, nothing partial left | | | | |
 
 ---
 
@@ -154,5 +163,8 @@ Things a port must **not** do, each learned the hard way:
 - Do not implement "Keep screen awake" with a `PARTIAL_WAKE_LOCK` or a
   battery-optimization exemption: that keeps the CPU awake and lets the display
   sleep. Screen awake is the window's `FLAG_KEEP_SCREEN_ON`.
+- Do not find a terminal's current directory by reading the screen, parsing
+  the prompt or typing `pwd` into the shell, and never take a directory from a
+  browser: read the session's foreground process's `/proc/<pid>/cwd`.
 - Do not reset or re-extract a rootfs, or delete a home directory, without a
   proven invariant that requires it.

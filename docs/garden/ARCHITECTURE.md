@@ -29,7 +29,7 @@ release carries is therefore inherited, not re-implemented:
 
 | Ubuntu 0.2.0 fix | Where it lives now |
 |---|---|
-| PRoot patches 0001–0004: string.h, loader info without host tools, `/proc/self/exe` names the hard link, `--hangup-on-exit` + `PTRACE_O_EXITKILL` | `garden-common/patches/`, byte-identical to `term-ubuntu/patches/` (`ProotSourceBuildTest`) |
+| PRoot patches 0001–0004: string.h, loader info without host tools, `/proc/self/exe` names the hard link, `--hangup-on-exit` + `PTRACE_O_EXITKILL` (0005, the kernel working directory in step with the guest's, came with 0.2.0) | `garden-common/patches/`, byte-identical to `term-ubuntu/patches/` (`ProotSourceBuildTest`) |
 | Windows hang up like a terminal; `nohup` survives; nothing outlives PRoot | `GardenRuntime` argv, `ShellTermSession` (exit on EOF), `SessionHangup`, `libtermexec` SIGHUP reset |
 | Busy-window close, Exit cleanup, notification lifecycle | `Term`, `TermService`, `SessionProcesses` |
 | Safe extraction: traversal, symlink and hard-link checks, crash-safe staging, hard-link copy fallback | `TarballExtractor`, `SafeFileTree`, `RootfsManager` |
@@ -125,30 +125,55 @@ Both extract the same bytes; everything after extraction is the same code.
 
 ## Keep screen awake
 
-**Screen awake is not a CPU wake lock.** The menu action sets
-`FLAG_KEEP_SCREEN_ON` on the terminal's window (`com.thothterm.utils.ScreenAwake`)
-and clears it again; nothing else.
+**Screen awake is not a CPU wake lock.** It is `FLAG_KEEP_SCREEN_ON` on the
+terminal's window (`com.thothterm.utils.ScreenAwake`), for two reasons:
 
-- Android honours the flag only while the window is visible. A terminal in the
-  background never holds the display on, and returning to it needs no code: the
-  window still carries the flag.
-- The window flag is the only state, so the menu label is read from it and can
-  never disagree with it. The choice lives as long as the activity: it is saved
-  across recreation, and a new launch, including the one after Exit, starts
-  with it off.
-- No permission, no `PowerManager` wake lock and no battery-optimization
-  exemption are involved. Up to ubuntu-v0.2.0 and trixie-v0.1.0 the action took
-  a `PARTIAL_WAKE_LOCK` and offered battery settings; that kept the CPU running
-  while the display still slept at the normal timeout.
+- **manual** — the menu's *Keep screen awake*. It lives as long as the
+  activity: saved across recreation; a new launch, including the one after
+  Exit, starts with it off.
+- **charging** — *Keep screen awake while charging* (Settings, on by default)
+  while the device is on AC, USB, wireless or dock power.
+
+The flag is `manual || (setting && pluggedIn)`, computed from those three
+values and applied to the window whenever one changes; the window is never
+the record. Power is followed by a receiver for `ACTION_BATTERY_CHANGED`,
+registered at run time in `onStart` (never exported, never in the manifest)
+and dropped in `onStop`, when the charging reason is dropped too; `onStart`
+reads the current state from the sticky broadcast. Android honours the flag
+only while the window is visible, so a terminal behind another app never
+holds the display, and coming back while still charging keeps it on again.
+
+- The menu never contradicts the flag: *Keep screen awake* when nothing keeps
+  the screen on, *Allow screen to sleep* while the manual choice does, and
+  *Screen awake while charging* — which opens the setting — while only
+  charging does.
+- No permission, no `PowerManager` wake lock, no battery-optimization
+  exemption, and the system screen timeout is never touched. Up to
+  ubuntu-v0.2.0 and trixie-v0.1.0 the action took a `PARTIAL_WAKE_LOCK` and
+  offered battery settings; that kept the CPU running while the display still
+  slept at the normal timeout.
 - Keep Wi-Fi on is a separate `WifiLock` and keeps the `WAKE_LOCK` permission it
   needs.
 
 Every edition inherits this from garden-common's `Term` and runs
 `garden-common/src/editionAndroidTest/java/com/thothterm/KeepScreenAwakeTest.java`
 on the device, which checks the real window flag and WindowManager's display
-hold in `dumpsys power`. `GardenScreenAwakeTest` fails the build of any edition
-that brings its own implementation, a wake lock or a battery flow, or leaves
-the device test out.
+hold in `dumpsys power`, simulating power with `dumpsys battery`.
+`GardenScreenAwakeTest` fails the build of any edition that brings its own
+implementation, a wake lock or a battery flow, or leaves the device test out.
+
+## Uploads
+
+*Upload files* and *Upload folder* — on the phone through the Storage Access
+Framework, and in LAN Mode from a paired browser — copy into the **current
+working directory of one terminal session**, read from `/proc` (the PTY's
+foreground process group's working directory) and never from the browser.
+PRoot patch 0005 keeps each guest process's kernel working directory in step
+with its guest one, which makes that possible under PRoot. Uploads are staged,
+never overwrite (keep-both names), never follow existing links and never leave
+partial files. All of it — `com.thothterm.upload`, `LanUploads`, the
+`/api/upload/*` routes and the page — is garden-common's; an edition brings
+none. See `docs/garden/UPLOADS.md`.
 
 ## minSdk 26, arm64 only
 
