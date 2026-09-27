@@ -36,10 +36,10 @@ import java.util.List;
 import java.util.Set;
 
 /** {@link UploadFs} on java.nio.file, for JVM tests on a Linux host. */
-class NioUploadFs implements UploadFs {
+public class NioUploadFs implements UploadFs {
     /** Set to make every further write fail with ENOSPC after this many bytes. */
-    long spaceLeft = Long.MAX_VALUE;
-    long freeBytes = Long.MAX_VALUE / 2;
+    public long spaceLeft = Long.MAX_VALUE;
+    public long freeBytes = Long.MAX_VALUE / 2;
     final List<String> renames = new ArrayList<>();
 
     @Override

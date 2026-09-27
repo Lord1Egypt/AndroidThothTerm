@@ -240,6 +240,21 @@ final class RemoteTerminals {
         return new Attachment(terminal, true);
     }
 
+    /**
+     * Browser {@code browser}'s live terminal {@code id}, or null: another
+     * browser's terminal is never found, whatever id is presented.
+     */
+    synchronized Terminal find(String id, int browser) {
+        if (id == null || closed) return null;
+        Terminal t = terminals.get(id);
+        return t != null && t.browser == browser ? t : null;
+    }
+
+    /** Whether {@code terminal} still exists. */
+    synchronized boolean isLive(Terminal terminal) {
+        return !closed && terminals.get(terminal.id) == terminal;
+    }
+
     static final class Attachment {
         final Terminal terminal;
         final boolean created;

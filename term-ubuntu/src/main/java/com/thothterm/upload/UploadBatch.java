@@ -154,6 +154,19 @@ public final class UploadBatch {
         return state == State.OPEN;
     }
 
+    /** NO_SPACE unless {@code bytes} more fit in the target, beyond the reserve. */
+    public void ensureSpace(long bytes) throws UploadError {
+        try {
+            if (fs.freeBytes(target.hostPath) - RESERVE_BYTES < bytes) {
+                throw new UploadError(UploadError.Code.NO_SPACE, "not enough space");
+            }
+        } catch (UploadError e) {
+            throw e;
+        } catch (IOException e) {
+            throw map(e);
+        }
+    }
+
     /**
      * Stream one file in. For FILES, {@code path} is its single name and the
      * returned name is the one it was given in the target ("a (1).txt" if
