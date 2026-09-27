@@ -16,6 +16,8 @@
 
 package com.thothterm.upload;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,6 +37,7 @@ import java.util.Set;
  * half-written upload is left behind in anyone's directory. Only paths this
  * journal wrote, whose name is a staging name, are ever removed.
  */
+@RequiresApi(21)
 public final class StagingJournal {
     private final File file;
     private final Set<String> paths = new LinkedHashSet<>();

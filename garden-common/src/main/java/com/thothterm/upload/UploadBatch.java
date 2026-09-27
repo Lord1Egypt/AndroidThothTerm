@@ -16,6 +16,8 @@
 
 package com.thothterm.upload;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,6 +41,7 @@ import java.util.List;
  * {@link #cancel()} from any thread, abandons the batch and removes its
  * staging directory; files already moved into place stay, complete.
  */
+@RequiresApi(21)
 public final class UploadBatch {
     public enum Kind { FILES, FOLDER }
 

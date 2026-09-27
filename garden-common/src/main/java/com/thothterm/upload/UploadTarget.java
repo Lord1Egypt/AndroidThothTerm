@@ -16,10 +16,13 @@
 
 package com.thothterm.upload;
 
+import androidx.annotation.RequiresApi;
+
 /**
  * The directory an upload goes to, fixed when the upload begins: a later
  * {@code cd} in the terminal does not move an upload that is under way.
  */
+@RequiresApi(21)
 public final class UploadTarget {
     /** The directory as the app reaches it. */
     public final String hostPath;
