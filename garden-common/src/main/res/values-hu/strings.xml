@@ -17,7 +17,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Beállítások</string>
     <string name="new_window">Új ablak</string>
     <string name="close_window">Ablak bezárása</string>
@@ -43,7 +42,6 @@
 
     <string name="window_title">Ablak %1$d</string>
 
-    <string name="service_notify_text">Aktív munkamenet</string>
 
     <string name="process_exit_message">A munkamenet befejeződött</string>
 

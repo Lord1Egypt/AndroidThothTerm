@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Налаштування</string>
     <string name="new_window">Нове вікно</string>
     <string name="close_window">Закрити вікно</string>
@@ -22,7 +21,6 @@
     <string name="send_control_key">Відіслати кнопкою Control</string>
     <string name="send_fn_key">Відіслати кнопкою Fn</string>
     <string name="window_title">Вікно %1$d</string>
-    <string name="service_notify_text">Термінальний сеанс запущений</string>
     <string name="process_exit_message">Термінальний сеанс завершений</string>
     <string name="screen_preferences">Екран</string>
     <string name="title_statusbar_preference">Статус бар</string>

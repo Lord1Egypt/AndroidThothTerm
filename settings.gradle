@@ -29,6 +29,8 @@ dependencyResolutionManagement {
 
 include ':term'
 include ':term-ubuntu'
+include ':garden-common'
+include ':garden-debian'
 include ':libtermexec'
 include ':emulatorview'
 //include ':samples:addon'

@@ -16,7 +16,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">設定</string>
     <string name="reset">結束</string>
     <string name="toggle_soft_keyboard">顯示／隱藏鍵盤</string>
@@ -31,7 +30,6 @@
     <string name="copy_all">全部複製</string>
     <string name="paste">貼上</string>
 
-    <string name="service_notify_text">終端機工作階段執行中</string>
 
     <!-- Preference dialog -->
     <string name="screen_preferences">螢幕</string>

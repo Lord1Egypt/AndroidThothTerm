@@ -135,7 +135,7 @@ public class TerminalZoomTest {
                 "src/main/res/values/arraysNoLocalize.xml");
         if (!arrays.isFile()) {
             arrays = new java.io.File(
-                    "term-ubuntu/src/main/res/values/arraysNoLocalize.xml");
+                    "garden-common/src/main/res/values/arraysNoLocalize.xml");
         }
         assertTrue("arrays resource is missing", arrays.isFile());
         String xml = new String(java.nio.file.Files.readAllBytes(arrays.toPath()),

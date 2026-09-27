@@ -43,10 +43,13 @@ public class ThothfetchTest {
     private static final int MARK_WIDTH = 10;
     private static final int NARROW_THRESHOLD = 44;
 
+    private static final String EDITION = "ThothTerm Garden Test";
+    private static final String PRETTY_NAME = "Garden GNU/Linux 1 (test)";
+
     private static final String[] WIDE_INFO = {
-            "ThothTerm Ubuntu",
-            "Ubuntu 26.04.1 LTS",
-            "Architecture  aarch64",
+            EDITION,
+            PRETTY_NAME,
+            "Architecture  ",
             "Shell         Bash",
             "Home          /home/thoth",
             "User          thoth",
@@ -55,10 +58,28 @@ public class ThothfetchTest {
     private static File script() {
         File direct = new File("src/main/assets/linux/thothfetch");
         if (direct.isFile()) return direct;
-        return new File("term-ubuntu/src/main/assets/linux/thothfetch");
+        return new File("garden-common/src/main/assets/linux/thothfetch");
+    }
+
+    /** A guest /etc with the two files thothfetch reads. */
+    private static File fakeRoot(String edition, String osRelease) throws Exception {
+        File root = Files.createTempDirectory("thothfetch").toFile();
+        File etc = new File(root, "etc/thothterm");
+        assertTrue(etc.mkdirs());
+        Files.write(new File(etc, "edition").toPath(),
+                (edition + "\n").getBytes(StandardCharsets.UTF_8));
+        Files.write(new File(root, "etc/os-release").toPath(),
+                osRelease.getBytes(StandardCharsets.UTF_8));
+        return root;
     }
 
     private static List<String> render(int columns) throws Exception {
+        return render(columns, fakeRoot(EDITION,
+                "NAME=Garden\nPRETTY_NAME=\"" + PRETTY_NAME + "\"\nID=garden\n"), true);
+    }
+
+    private static List<String> render(int columns, File root, boolean stripAnsi)
+            throws Exception {
         assumeTrue("bash is required to exercise the banner",
                 new File("/bin/bash").canExecute());
         File script = script();
@@ -67,6 +88,7 @@ public class ThothfetchTest {
 
         ProcessBuilder builder = new ProcessBuilder("bash", script.getAbsolutePath());
         builder.environment().put("COLUMNS", Integer.toString(columns));
+        builder.environment().put("THOTHFETCH_ROOT", root.getAbsolutePath());
         builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
         builder.redirectErrorStream(true);
         Process process = builder.start();
@@ -76,7 +98,7 @@ public class ThothfetchTest {
                 new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                lines.add(ANSI.matcher(line).replaceAll(""));
+                lines.add(stripAnsi ? ANSI.matcher(line).replaceAll("") : line);
             }
         }
         assertEquals("thothfetch exit code", 0, process.waitFor());
@@ -130,26 +152,22 @@ public class ThothfetchTest {
     @Test
     public void wideValuesStartAtAFixedColumn() throws Exception {
         List<String> lines = render(80);
-        String[][] fields = {
-                {"Architecture", "aarch64"},
-                {"Shell", "Bash"},
-                {"Home", "/home/thoth"},
-                {"User", "thoth"},
-        };
+        String[] labels = {"Architecture", "Shell", "Home", "User"};
         int seen = 0;
         for (String line : lines) {
             if (line.length() <= WIDE_INFO_COLUMN) continue;
             String info = line.substring(WIDE_INFO_COLUMN);
-            for (String[] field : fields) {
-                if (info.startsWith(field[0])) {
-                    assertEquals("value column for " + field[0],
-                            WIDE_INFO_COLUMN * 2, line.indexOf(field[1], WIDE_INFO_COLUMN));
+            for (String label : labels) {
+                if (info.startsWith(label)) {
+                    int value = WIDE_INFO_COLUMN * 2;
+                    assertTrue("value column for " + label, line.length() > value
+                            && line.charAt(value - 1) == ' ' && line.charAt(value) != ' ');
                     seen++;
                     break;
                 }
             }
         }
-        assertEquals("every label/value row must render", fields.length, seen);
+        assertEquals("every label/value row must render", labels.length, seen);
     }
 
     @Test
@@ -188,30 +206,44 @@ public class ThothfetchTest {
         }
         assertFalse("narrow layout must drop the wide-only details",
                 lines.stream().anyMatch(l -> l.contains("Architecture")));
-        assertTrue(lines.contains("ThothTerm Ubuntu"));
+        assertTrue(lines.contains(EDITION));
+        assertTrue(lines.contains(PRETTY_NAME));
         assertTrue(lines.contains("User  thoth"));
         assertTrue(lines.contains("Home  /home/thoth"));
     }
 
     @Test
     public void colourSequencesDoNotChangeWidth() throws Exception {
-        assumeTrue(new File("/bin/bash").canExecute());
-        File script = script();
-        ProcessBuilder builder = new ProcessBuilder("bash", script.getAbsolutePath());
-        builder.environment().put("COLUMNS", "80");
-        builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
-        builder.redirectErrorStream(true);
-        Process process = builder.start();
-        List<String> raw = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) raw.add(line);
-        }
-        assertEquals(0, process.waitFor());
+        List<String> raw = render(80, fakeRoot(EDITION,
+                "PRETTY_NAME=\"" + PRETTY_NAME + "\"\n"), false);
         assertTrue("expected ANSI colour in the banner",
                 raw.stream().anyMatch(l -> l.contains("\u001b[")));
         assertEquals(render(80), raw.stream().map(l -> ANSI.matcher(l).replaceAll(""))
                 .collect(java.util.stream.Collectors.toList()));
+    }
+
+    @Test
+    public void guestFilesAreDataNeverCodeOrTerminalControls() throws Exception {
+        File marker = new File(Files.createTempDirectory("thothfetch-marker").toFile(), "ran");
+        String hostile = "PRETTY_NAME=\"x\u001b]0;pwned\u0007 $(touch " + marker + ") `touch "
+                + marker + "`\"\n";
+        List<String> raw = render(80, fakeRoot("Ed\u001b[2Jition", hostile), false);
+        assertFalse("os-release must not be executed", marker.exists());
+        for (String line : raw) {
+            String visible = ANSI.matcher(line).replaceAll("");
+            assertFalse("control characters must be stripped: " + line,
+                    visible.chars().anyMatch(c -> c < 0x20 || c == 0x7f));
+            assertTrue("wide layout must stay within its threshold: " + visible,
+                    visible.length() <= NARROW_THRESHOLD);
+        }
+        assertTrue(raw.stream().anyMatch(l -> l.contains("Ed[2Jition")));
+    }
+
+    @Test
+    public void missingGuestFilesFallBack() throws Exception {
+        File empty = Files.createTempDirectory("thothfetch-empty").toFile();
+        List<String> lines = render(30, empty, true);
+        assertTrue(lines.contains("ThothTerm"));
+        assertTrue(lines.contains("Linux"));
     }
 }

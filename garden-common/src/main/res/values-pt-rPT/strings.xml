@@ -16,7 +16,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Preferências</string>
     <string name="reset">Reset terminal</string>
     <string name="toggle_soft_keyboard">Abrir teclado</string>

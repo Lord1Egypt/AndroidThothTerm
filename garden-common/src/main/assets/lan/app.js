@@ -1,5 +1,5 @@
 /*
- * ThothTerm Ubuntu -- LAN Terminal page.
+ * ThothTerm Garden -- LAN Terminal page.
  *
  * Copyright (C) 2026 ThothTerm. Licensed under the Apache License, Version 2.0.
  *

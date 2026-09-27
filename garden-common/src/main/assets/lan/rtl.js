@@ -1,5 +1,5 @@
 /*
- * ThothTerm Ubuntu -- LAN Terminal: right-to-left text on terminal rows.
+ * ThothTerm Garden -- LAN Terminal: right-to-left text on terminal rows.
  *
  * Copyright (C) 2026 ThothTerm. Licensed under the Apache License, Version 2.0.
  *

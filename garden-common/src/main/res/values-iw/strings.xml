@@ -17,7 +17,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">העדפות</string>
     <string name="new_window">חלון חדש</string>
     <string name="close_window">סגור חלון</string>
@@ -38,7 +37,6 @@
     <string name="send_control_key">שלח CTRL</string>
     <string name="send_fn_key">שלח FN</string>
     <string name="window_title">חלון %1$d</string>
-    <string name="service_notify_text">מסוף פועל</string>
     <string name="process_exit_message">מסוף הסתיים</string>
     <string name="screen_preferences">מסך</string>
     <string name="title_statusbar_preference">שורת מצב</string>

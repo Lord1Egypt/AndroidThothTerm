@@ -27,7 +27,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Minimal, safe tar (ustar/GNU/pax) extractor used for the embedded Ubuntu
+ * Minimal, safe tar (ustar/GNU/pax) extractor used for the Garden
  * rootfs. It preserves directories, regular files, symlinks, hardlinks and
  * permission bits, and refuses path-traversal attempts. Device/fifo entries
  * are skipped. Setuid/setgid/sticky bits are dropped by {@link FileOps}.

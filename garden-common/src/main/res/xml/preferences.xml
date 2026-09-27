@@ -81,10 +81,10 @@
         android:title="@string/linux_preferences">
 
         <androidx.preference.SwitchPreferenceCompat
-            android:defaultValue="@bool/pref_ubuntu_welcome_default"
-            android:key="ubuntu_show_welcome"
-            android:summary="@string/summary_ubuntu_show_welcome"
-            android:title="@string/title_ubuntu_show_welcome"/>
+            android:defaultValue="@bool/pref_garden_welcome_default"
+            android:key="garden_show_welcome"
+            android:summary="@string/summary_garden_show_welcome"
+            android:title="@string/title_garden_show_welcome"/>
 
     </PreferenceCategory>
 

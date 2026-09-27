@@ -129,7 +129,11 @@ public class LanModeActivity extends AppCompatActivity implements LanController.
         TextView problem = findViewById(R.id.lan_problem);
         int problemText = problemText(state.problem);
         problem.setVisibility(problemText == 0 ? View.GONE : View.VISIBLE);
-        if (problemText != 0) problem.setText(problemText);
+        if (problemText == R.string.lan_problem_port_in_use) {
+            problem.setText(getString(problemText, lan.firstPort(), lan.lastPort()));
+        } else if (problemText != 0) {
+            problem.setText(problemText);
+        }
 
         findViewById(R.id.lan_active).setVisibility(state.on ? View.VISIBLE : View.GONE);
         TextView help = findViewById(R.id.lan_help);

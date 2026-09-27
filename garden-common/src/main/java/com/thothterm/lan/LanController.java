@@ -27,6 +27,8 @@ import android.net.NetworkRequest;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.thothterm.linux.DistroInfo;
+import com.thothterm.linux.RootfsManager;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 
@@ -88,6 +90,8 @@ public final class LanController {
 
     private final ConnectivityManager connectivity;
     private final LanMode mode;
+    /** The edition's first-choice port; LAN Mode moves up from it on a collision. */
+    private final int port;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
     private boolean hostRunning;
@@ -99,7 +103,13 @@ public final class LanController {
         Context app = context.getApplicationContext();
         connectivity = (ConnectivityManager) app.getSystemService(Context.CONNECTIVITY_SERVICE);
         AssetManager assetManager = app.getAssets();
-        LanServer.Assets assets = name -> read(assetManager, "lan/" + name);
+        DistroInfo distro = RootfsManager.get().image();
+        String edition = distro != null ? distro.editionName() : "ThothTerm";
+        this.port = distro != null ? distro.lanPort() : 0;
+        LanServer.Assets assets = name -> {
+            byte[] body = read(assetManager, "lan/" + name);
+            return "index.html".equals(name) ? PageBranding.apply(body, edition) : body;
+        };
         LanLog log = new LanLog() {
             @Override
             public void info(String message) {
@@ -111,7 +121,7 @@ public final class LanController {
                 ThothLog.w(LogCategory.SECURITY, message);
             }
         };
-        mode = new LanMode(UbuntuPty.FACTORY, assets, log, System::currentTimeMillis,
+        mode = new LanMode(GardenPty.FACTORY, assets, log, System::currentTimeMillis,
                 new SecureRandom());
     }
 
@@ -171,7 +181,13 @@ public final class LanController {
             notifyChanged();
             return false;
         }
-        boolean on = mode.start(lan.address, LanMode.DEFAULT_PORT, LanMode.PORT_ATTEMPTS);
+        if (port == 0) {
+            ThothLog.w(LogCategory.WEB, "LAN Mode not started: the edition has no LAN port");
+            mode.fail(LanMode.Failure.START_FAILED);
+            notifyChanged();
+            return false;
+        }
+        boolean on = mode.start(lan.address, port, LanMode.PORT_ATTEMPTS);
         if (on) {
             boundNetwork = (Network) lan.network;
             boundAddress = lan.address;
@@ -179,6 +195,15 @@ public final class LanController {
         }
         notifyChanged();
         return on;
+    }
+
+    /** The range of ports LAN Mode tries, for the "all in use" message. */
+    public int firstPort() {
+        return port;
+    }
+
+    public int lastPort() {
+        return port + LanMode.PORT_ATTEMPTS - 1;
     }
 
     /** Turn LAN Mode off; the phone's own windows are not touched. */

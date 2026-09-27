@@ -43,7 +43,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.LogExporter;
 import com.thothterm.logging.ThothLog;
-import com.thothterm.utils.ConsoleStartupScript;
 import com.thothterm.utils.ThemeManager;
 
 import jackpal.androidterm.util.TermSettings;
@@ -153,17 +152,6 @@ public class TermPreferencesActivity extends AppCompatActivity
                 if (pref != null)
                     pref.setOnPreferenceClickListener(
                             preference -> TypefaceSetting.chose(getActivity()));
-            }
-
-            Context context = getContext();
-            if (context != null) {
-                TermSettings settings = new TermSettings(context);
-                String homedir = settings.getHomePath();
-
-                String pref_shellrc = getString(R.string.key_shellrc_preference);
-                EditTextPreference pref = findPreference(pref_shellrc);
-                if (pref != null)
-                    pref.setText(ConsoleStartupScript.read(homedir));
             }
 
             {

@@ -50,7 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Einstellungen</string>
     <string name="new_window">Neues Fenster</string>
     <string name="close_window">Fenster schließen</string>
@@ -89,7 +88,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Miscellaneous -->
     <string name="window_title">Fenster %1$d</string>
 
-    <string name="service_notify_text">Terminalsitzung wird ausgeführt</string>
 
     <string name="process_exit_message">Terminalsitzung beendet</string>
 

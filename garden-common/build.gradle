@@ -1,0 +1,50 @@
+plugins {
+    id 'com.android.library'
+}
+
+// The Garden layer shared by every ThothTerm distribution edition: the
+// terminal app layer, the PRoot Linux runtime, first-run setup and LAN Mode,
+// taken from ThothTerm Ubuntu 0.2.0 (ubuntu-v0.2.0). An edition is a thin
+// application module on top that supplies its identity, branding and
+// assets/garden/distro.properties. See docs/garden/ARCHITECTURE.md.
+android {
+    namespace = "com.thothterm"
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    defaultConfig {
+        // PRoot and its runtime are built for API 26.
+        minSdkVersion 26
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        vectorDrawables.useSupportLibrary = true
+
+        // The JNI keep rules travel with the classes that need them, so every
+        // edition's R8 pass gets them and needs no rules of its own.
+        consumerProguardFiles 'consumer-rules.pro'
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildFeatures {
+        buildConfig = true
+    }
+}
+
+dependencies {
+    api project(':emulatorview')
+    api project(':libtermexec')
+
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.preference
+    implementation libs.annotation
+
+    testImplementation 'junit:junit:4.13.2'
+}

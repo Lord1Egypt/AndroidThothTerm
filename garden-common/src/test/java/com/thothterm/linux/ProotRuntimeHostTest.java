@@ -22,9 +22,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class ProotRuntimeHostTest {
     private static final String PATCH =
-            "term-ubuntu/patches/0003-link2symlink-name-proc-self-exe-after-the-faked-hard-link.patch";
+            "garden-common/patches/0003-link2symlink-name-proc-self-exe-after-the-faked-hard-link.patch";
     private static final String HANGUP_PATCH =
-            "term-ubuntu/patches/0004-hang-up-the-session-on-command-exit-and-never-outlive-proot.patch";
+            "garden-common/patches/0004-hang-up-the-session-on-command-exit-and-never-outlive-proot.patch";
 
     private static File repoRoot() {
         File here = new File("").getAbsoluteFile();
@@ -55,11 +55,12 @@ public class ProotRuntimeHostTest {
     public void nativeRuntimeKeepsKernelSemantics() throws Exception {
         Assume.assumeTrue("needs a Linux host", new File("/proc/self/exe").exists());
         File script = new File(repoRoot(), "tests/proot-runtime/host-test.sh");
-        File work = new File(repoRoot(), "term-ubuntu/build/proot-runtime-host-test");
+        File work = new File(repoRoot(), "garden-common/build/proot-runtime-host-test");
 
-        Process process = new ProcessBuilder("sh", script.getPath(), work.getPath())
-                .redirectErrorStream(true)
-                .start();
+        ProcessBuilder builder = new ProcessBuilder("sh", script.getPath(), work.getPath())
+                .redirectErrorStream(true);
+        builder.environment().put("THOTHTERM_PATCH_MODULE", "garden-common");
+        Process process = builder.start();
         String output = readAll(process.getInputStream());
         assertTrue("host test timed out", process.waitFor(10, TimeUnit.MINUTES));
         int status = process.exitValue();

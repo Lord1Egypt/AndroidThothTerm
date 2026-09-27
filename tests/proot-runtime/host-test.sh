@@ -8,8 +8,10 @@
 #    (docs/garden/SESSION_LIFECYCLE.md).
 #
 # Builds PRoot natively for this Linux host from third_party/proot plus
-# term-ubuntu/patches/*.patch -- the same sources the app ships -- and runs
+# <module>/patches/*.patch -- the same sources the app ships -- and runs
 # executables under --link2symlink. Needs a Linux host with cc, make and ar.
+# The module is term-ubuntu unless THOTHTERM_PATCH_MODULE names another, such
+# as garden-common.
 #
 #   tests/proot-runtime/host-test.sh [WORK_DIR]
 #
@@ -17,6 +19,8 @@
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
+MODULE="${THOTHTERM_PATCH_MODULE:-term-ubuntu}"
+[ -d "$REPO/$MODULE/patches" ] || { echo "SKIP: $MODULE/patches not found"; exit 2; }
 WORK="${1:-$(mktemp -d)}"
 mkdir -p "$WORK"
 WORK="$(cd "$WORK" && pwd)"
@@ -28,7 +32,7 @@ done
 
 # ------------------------------------------------------------------ build
 # Rebuild only when the sources or patches change.
-STAMP="$(cat "$REPO"/term-ubuntu/patches/*.patch "$REPO/third_party/talloc/talloc.c" \
+STAMP="$(cat "$REPO/$MODULE"/patches/*.patch "$REPO/third_party/talloc/talloc.c" \
          | cksum | cut -d' ' -f1)-$(git -C "$REPO/third_party/proot" rev-parse HEAD 2>/dev/null)"
 PROOT="$WORK/proot/src/proot"
 if [ ! -x "$PROOT" ] || [ "$(cat "$WORK/stamp" 2>/dev/null)" != "$STAMP" ]; then
@@ -36,12 +40,12 @@ if [ ! -x "$PROOT" ] || [ "$(cat "$WORK/stamp" 2>/dev/null)" != "$STAMP" ]; then
     mkdir -p "$WORK/include" "$WORK/lib"
     cp -r "$REPO/third_party/proot" "$WORK/proot"
     rm -rf "$WORK/proot/.git"
-    for p in "$REPO"/term-ubuntu/patches/*.patch; do
+    for p in "$REPO/$MODULE"/patches/*.patch; do
         (cd "$WORK/proot" && patch -p1 --batch --silent < "$p") || { echo "FAIL: $(basename "$p") does not apply"; exit 1; }
     done
     # The same minimal replace.h build-proot.sh gives talloc.
     sed -n '/^cat > "\$BUILD_DIR\/include\/replace.h" <<.REPLACE_H.$/,/^REPLACE_H$/p' \
-        "$REPO/term-ubuntu/tools/build-proot.sh" | sed '1d;$d' > "$WORK/include/replace.h"
+        "$REPO/$MODULE/tools/build-proot.sh" | sed '1d;$d' > "$WORK/include/replace.h"
     cc -c "$REPO/third_party/talloc/talloc.c" -o "$WORK/talloc.o" -O2 -fPIC \
         -I"$WORK/include" -I"$REPO/third_party/talloc" \
         -DHAVE_VA_COPY -DHAVE_STDBOOL_H -DHAVE_STDINT_H -DHAVE_CONSTRUCTOR_ATTRIBUTE \

@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Preferences</string>
     <string name="new_window">New window</string>
     <string name="close_window">Close window</string>
@@ -59,7 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <string name="window_title">Window %1$d</string>
 
-    <string name="service_notify_text">Terminal session is running</string>
 
     <string name="process_exit_message">Terminal session finished</string>
 

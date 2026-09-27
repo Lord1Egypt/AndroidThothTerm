@@ -17,7 +17,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Innstillinger</string>
     <string name="new_window">Nytt vindu</string>
     <string name="close_window">Lukk vindu</string>
@@ -43,7 +42,6 @@
 
     <string name="window_title">Vindu %1$d</string>
 
-    <string name="service_notify_text">Terminaløkt kjører</string>
 
     <string name="process_exit_message">Terminaløkt ferdig</string>
 

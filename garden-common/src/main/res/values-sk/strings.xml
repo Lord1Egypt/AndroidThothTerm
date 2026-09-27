@@ -17,7 +17,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Nastavenia</string>
     <string name="new_window">Nové okno</string>
     <string name="close_window">Zavrieť okno</string>
@@ -43,7 +42,6 @@
 
     <string name="window_title">Okno %1$d</string>
 
-    <string name="service_notify_text">Terminálová relácia je spustená</string>
 
     <string name="process_exit_message">Terminálová relácia bola ukončená</string>
 

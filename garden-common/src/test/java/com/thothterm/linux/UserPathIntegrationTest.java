@@ -35,7 +35,7 @@ import java.util.List;
 
 /**
  * Locks the user-local PATH contract of the managed
- * {@code /etc/profile.d/thothterm-ubuntu.sh} block.
+ * {@code /etc/profile.d/thothterm-garden.sh} block.
  *
  * <p>ThothTerm runs bash through {@code su -m}, a non-login shell, so neither
  * {@code /etc/profile} nor {@code ~/.profile} executes and PAM's pam_env resets
@@ -63,9 +63,9 @@ public class UserPathIntegrationTest {
     public final TemporaryFolder temp = new TemporaryFolder();
 
     private static File script() {
-        File direct = new File("src/main/assets/linux/thothterm-ubuntu.sh");
+        File direct = new File("src/main/assets/linux/thothterm-garden.sh");
         if (direct.isFile()) return direct;
-        return new File("term-ubuntu/src/main/assets/linux/thothterm-ubuntu.sh");
+        return new File("garden-common/src/main/assets/linux/thothterm-garden.sh");
     }
 
     private static String source() throws Exception {
@@ -82,7 +82,7 @@ public class UserPathIntegrationTest {
                 raw.contains("export HOME=/home/thoth"));
         String patched = raw.replace("export HOME=/home/thoth",
                 "export HOME=" + home.getAbsolutePath());
-        File copy = new File(temp.newFolder(), "thothterm-ubuntu.sh");
+        File copy = new File(temp.newFolder(), "thothterm-garden.sh");
         Files.write(copy.toPath(), patched.getBytes(StandardCharsets.UTF_8));
         return copy;
     }

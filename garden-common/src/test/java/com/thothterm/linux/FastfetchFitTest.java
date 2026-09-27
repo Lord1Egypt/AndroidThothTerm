@@ -49,7 +49,7 @@ public class FastfetchFitTest {
     private static File script() {
         File direct = new File("src/main/assets/linux/fastfetch-fit");
         if (direct.isFile()) return direct;
-        return new File("term-ubuntu/src/main/assets/linux/fastfetch-fit");
+        return new File("garden-common/src/main/assets/linux/fastfetch-fit");
     }
 
     /**

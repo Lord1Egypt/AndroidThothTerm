@@ -20,28 +20,29 @@
     tools:keep="@string/edit_text,@string/select_text,@string/paste">
     <string name="application_site" translatable="false">https://github.com/Lord1Egypt/AndroidThothTerm</string>
 
-    <string name="application_terminal">ThothTerm Ubuntu</string>
-    <string name="application_positioning">Ubuntu 26.04 LTS ARM64 on Android</string>
+    <!-- Every string that names the product or the distribution is a neutral
+         default here; each edition overrides it in its own module. -->
+    <string name="application_terminal">ThothTerm Garden</string>
+    <string name="application_positioning">Linux on Android</string>
 
-    <!-- Ubuntu edition setup -->
-    <string name="ubuntu_welcome">Welcome to ThothTerm Ubuntu</string>
-    <string name="ubuntu_preparing">Preparing your Linux environment\u2026</string>
-    <string name="ubuntu_prepare_once">This happens only once.</string>
-    <string name="ubuntu_extracting_percent">Extracting Ubuntu\u2026 %1$d%%</string>
-    <string name="ubuntu_downloading">Downloading Ubuntu\u2026</string>
-    <string name="ubuntu_consent_title">Ubuntu needs to be downloaded</string>
-    <string name="ubuntu_consent_body">ThothTerm Ubuntu runs a real Ubuntu %1$s userland. This build does not include it, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n\u2022 This downloads executable software onto your device after installation.\n\u2022 That software is published by Canonical, not by ThothTerm.\n\u2022 It is not part of this app\u2019s package and was not built or verified by F\u2011Droid.\n\u2022 ThothTerm checks the download against a SHA\u2011256 checksum that is fixed in this app\u2019s source, and refuses it if it does not match.\n\nNothing is downloaded unless you choose Download Ubuntu.</string>
-    <string name="ubuntu_consent_accept">Download Ubuntu</string>
-    <string name="ubuntu_consent_decline">Not now</string>
-    <string name="ubuntu_consent_declined">Ubuntu was not downloaded. You can start the download whenever you want.</string>
-    <string name="ubuntu_consent_start">Set up Ubuntu</string>
-    <string name="ubuntu_prepare_failed">Linux environment could not be prepared.</string>
-    <string name="ubuntu_prepare_failed_hint">Preparation failed. Retry or view diagnostics for details.</string>
-    <string name="ubuntu_retry">Continue setup</string>
-    <string name="ubuntu_view_logs">View logs</string>
+    <!-- Garden edition setup -->
+    <string name="garden_welcome">Welcome to ThothTerm Garden</string>
+    <string name="garden_preparing">Preparing your Linux environment\u2026</string>
+    <string name="garden_prepare_once">This happens only once.</string>
+    <string name="garden_extracting_percent">Extracting Linux\u2026 %1$d%%</string>
+    <string name="garden_downloading">Downloading Linux\u2026</string>
+    <string name="garden_consent_title">Linux needs to be downloaded</string>
+    <string name="garden_consent_body">This build does not include its Linux %1$s userland, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n\u2022 This downloads executable software onto your device after installation.\n\u2022 It is not part of this app\u2019s package and was not built or verified by F\u2011Droid.\n\u2022 ThothTerm checks the download against a SHA\u2011256 checksum that is fixed in this app\u2019s source, and refuses it if it does not match.\n\nNothing is downloaded unless you choose Download.</string>
+    <string name="garden_consent_accept">Download</string>
+    <string name="garden_consent_decline">Not now</string>
+    <string name="garden_consent_declined">Linux was not downloaded. You can start the download whenever you want.</string>
+    <string name="garden_prepare_failed">Linux environment could not be prepared.</string>
+    <string name="garden_prepare_failed_hint">Preparation failed. Retry or view diagnostics for details.</string>
+    <string name="garden_retry">Continue setup</string>
+    <string name="garden_view_logs">View logs</string>
     <string name="linux_preferences">Linux</string>
-    <string name="title_ubuntu_show_welcome">Show welcome banner</string>
-    <string name="summary_ubuntu_show_welcome">Show ThothTerm system information in each new window.</string>
+    <string name="title_garden_show_welcome">Show welcome banner</string>
+    <string name="summary_garden_show_welcome">Show ThothTerm system information in each new window.</string>
     <string name="preferences">Settings</string>
     <string name="new_window">New window</string>
     <string name="close_window">Close window</string>
@@ -101,8 +102,8 @@
         It is essential to deliver reliable, and uninterrupted session that application users rely on, and that ensures a seamless user experience.
         The application request only necessary permissions and this texts provides detailed information on data usage.
     </string>
-    <string name="notification_channel_sessions_description">Shown while an Ubuntu terminal session is running</string>
-    <string name="service_notify_text">ThothTerm Ubuntu is running</string>
+    <string name="notification_channel_sessions_description">Shown while a terminal session is running</string>
+    <string name="service_notify_text">ThothTerm Garden is running</string>
     <string name="service_timeout_text">System terminates long-running terminal sessions</string>
 
     <string name="process_exit_message">Terminal session finished</string>
@@ -263,8 +264,10 @@
     <string name="diagnostics_auto_scroll">Auto-scroll</string>
 
     <string name="about">About</string>
-    <string name="about_title">About ThothTerm Ubuntu</string>
+    <string name="about_title">About ThothTerm Garden</string>
     <string name="about_version">Version %1$s</string>
+    <!-- An edition's trademark or affiliation notice, shown in About; none by default. -->
+    <string name="about_notice" translatable="false"></string>
     <string name="about_site">Project site</string>
     <string name="activity_term_here_title">Term here</string>
     <!-- BEGIN SHORTCUT RELATED STRINGS -->

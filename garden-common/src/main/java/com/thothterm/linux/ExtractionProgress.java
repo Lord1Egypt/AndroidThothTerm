@@ -4,7 +4,7 @@
  */
 package com.thothterm.linux;
 
-/** Pure progress math for the pinned, compressed Ubuntu archive. */
+/** Pure progress math for the pinned, compressed rootfs archive. */
 final class ExtractionProgress {
     private ExtractionProgress() {
     }

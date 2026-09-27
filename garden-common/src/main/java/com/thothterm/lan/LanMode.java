@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
  * process dies LAN Mode is simply off.
  */
 final class LanMode {
-    static final int DEFAULT_PORT = 7681;
     static final int PORT_ATTEMPTS = 10;
     static final long SWEEP_PERIOD_MS = 2_000;
 

@@ -22,7 +22,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 
-import com.thothterm.Application;
 import com.thothterm.Process;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
@@ -32,10 +31,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import jackpal.androidterm.util.TermSettings;
 
@@ -43,26 +39,23 @@ import jackpal.androidterm.util.TermSettings;
 /**
  * A terminal session, controlling the process attached to the session (usually
  * a shell). It keeps track of process PID and destroys it's process group
- * upon stopping.
+ * upon stopping. Subclasses say what to run; there is no host-shell fallback.
  */
-public class ShellTermSession extends GenericTermSession {
+public abstract class ShellTermSession extends GenericTermSession {
     private static final int PROCESS_EXITED = 1;
 
-    private final String mInitialCommand;
     private final int mProcId;
     private final Thread mWatcherThread;
     /** Set once waitExit() has reaped the shell. */
     private volatile boolean mExited;
 
 
-    public ShellTermSession(TermSettings settings, String initialCommand) throws IOException {
+    public ShellTermSession(TermSettings settings) throws IOException {
         // exitOnEOF: the window closes when nothing holds its terminal any more
         // -- the shell exited and PRoot hung up the rest of its session --
         // even while PRoot keeps running for a nohup'd job.
         super(ParcelFileDescriptor.open(new File("/dev/ptmx"), ParcelFileDescriptor.MODE_READ_WRITE),
                 settings, true);
-
-        mInitialCommand = initialCommand;
 
         mProcId = createShellProcess(settings);
         ThothLog.i(LogCategory.SHELL, "Shell process started pid=" + mProcId);
@@ -81,47 +74,23 @@ public class ShellTermSession extends GenericTermSession {
         super.initializeEmulator(columns, rows);
 
         mWatcherThread.start();
-        sendInitialCommand();
-    }
-
-    private void sendInitialCommand() {
-        if (mInitialCommand.length() == 0) return;
-
-        // wait display of shell prompt (speculative)
-        // before to enter initial commands
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                write(mInitialCommand + '\r');
-            }
-        }, 500);
     }
 
     protected int createShellProcess(TermSettings settings) throws IOException {
-        ArrayList<String> argList;
-        String arg0;
-        String[] args;
-
-        try {
-            argList = buildArgv(settings);
-            arg0 = argList.get(0);
-            File file = new File(arg0);
-            if (!file.exists()) {
-                ThothLog.e(LogCategory.SHELL,
-                        "Shell executable not found: " + new File(arg0).getName());
-                throw new FileNotFoundException(arg0);
-            } else if (!file.canExecute()) {
-                ThothLog.e(LogCategory.SHELL,
-                        "Shell executable not executable: " + new File(arg0).getName());
-                throw new FileNotFoundException(arg0);
-            }
-            args = argList.toArray(new String[0]);
-        } catch (Exception e) {
-            argList = parse(settings.getFailsafeShell());
-            arg0 = argList.get(0);
-            args = argList.toArray(new String[0]);
+        ArrayList<String> argList = buildArgv(settings);
+        String arg0 = argList.get(0);
+        File file = new File(arg0);
+        if (!file.exists()) {
+            ThothLog.e(LogCategory.SHELL,
+                    "Shell executable not found: " + file.getName());
+            throw new FileNotFoundException(arg0);
+        } else if (!file.canExecute()) {
+            ThothLog.e(LogCategory.SHELL,
+                    "Shell executable not executable: " + file.getName());
+            throw new FileNotFoundException(arg0);
         }
-        ThothLog.d(LogCategory.SHELL, "Shell executable name=" + new File(arg0).getName());
+        String[] args = argList.toArray(new String[0]);
+        ThothLog.d(LogCategory.SHELL, "Shell executable name=" + file.getName());
 
         Map<String, String> map = buildEnvironment(settings);
 
@@ -133,67 +102,9 @@ public class ShellTermSession extends GenericTermSession {
         return Process.createSubprocess(mTermFd, arg0, args, env);
     }
 
-    protected ArrayList<String> buildArgv(TermSettings settings) {
-        return parse(settings.getShell());
-    }
+    protected abstract ArrayList<String> buildArgv(TermSettings settings);
 
-    protected Map<String, String> buildEnvironment(TermSettings settings) {
-        Map<String, String> map = new HashMap<>(System.getenv());
-        map.put("TERM", settings.getTermType());
-        map.put("PATH", Application.buildPATH());
-        map.put("HOME", settings.getHomePath());
-        map.put("TMPDIR", Application.getTmpPath());
-        map.put("ENV", Application.getScriptFilePath());
-        return map;
-    }
-
-    private ArrayList<String> parse(String cmd) {
-        final int PLAIN = 0;
-        final int WHITESPACE = 1;
-        final int INQUOTE = 2;
-        int state = WHITESPACE;
-        ArrayList<String> result = new ArrayList<>();
-        int cmdLen = cmd.length();
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < cmdLen; i++) {
-            char c = cmd.charAt(i);
-            if (state == PLAIN) {
-                if (Character.isWhitespace(c)) {
-                    result.add(builder.toString());
-                    builder.delete(0, builder.length());
-                    state = WHITESPACE;
-                } else if (c == '"') {
-                    state = INQUOTE;
-                } else {
-                    builder.append(c);
-                }
-            } else if (state == WHITESPACE) {
-                if (Character.isWhitespace(c)) {
-                    // do nothing
-                } else if (c == '"') {
-                    state = INQUOTE;
-                } else {
-                    state = PLAIN;
-                    builder.append(c);
-                }
-            } else if (state == INQUOTE) {
-                if (c == '\\') {
-                    if (i + 1 < cmdLen) {
-                        i += 1;
-                        builder.append(cmd.charAt(i));
-                    }
-                } else if (c == '"') {
-                    state = PLAIN;
-                } else {
-                    builder.append(c);
-                }
-            }
-        }
-        if (builder.length() > 0) {
-            result.add(builder.toString());
-        }
-        return result;
-    }
+    protected abstract Map<String, String> buildEnvironment(TermSettings settings);
 
     private void onProcessExit(int result) {
         if (result == 0)

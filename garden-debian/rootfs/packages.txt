@@ -1,0 +1,11 @@
+# Packages added on top of debootstrap's minbase variant, which already carries
+# apt, dpkg, bash, coreutils, util-linux (su), passwd/login and the rest of
+# Debian's Essential and Required sets, and glibc's built-in C.UTF-8 locale.
+# Kept deliberately small: no compilers, desktop, ssh or web servers. Users
+# install the rest with apt.
+sudo
+ca-certificates
+curl
+# /etc/services, /etc/protocols and friends; the resolver itself is glibc's.
+netbase
+procps

@@ -1,0 +1,113 @@
+/*
+ * Copyright (C) 2026 ThothTerm.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.thothterm.linux;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+public class DistroInfoTest {
+    static final String SHA = "d88047a5c2a4b8d6e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b071d1";
+
+    /** A complete, valid distro.properties; tests override single keys. */
+    static String valid(String... overrides) {
+        java.util.LinkedHashMap<String, String> map = new java.util.LinkedHashMap<>();
+        map.put("editionName", "ThothTerm Garden Test");
+        map.put("distroName", "Garden");
+        map.put("distroVersion", "1 (test)");
+        map.put("distroDir", "garden-test");
+        map.put("imageId", "garden-test-arm64-d88047a5c2a4");
+        map.put("architecture", "aarch64");
+        map.put("sourceUrl", "https://example.org/garden-test-arm64-rootfs-d88047a5c2a4.tar.gz");
+        map.put("assetName", "garden-test-arm64-rootfs-d88047a5c2a4.tar.gz");
+        map.put("sha256", SHA);
+        map.put("compressedSize", "63775639");
+        map.put("uncompressedSize", "210000000");
+        map.put("schemaVersion", "1");
+        map.put("lanPort", "7699");
+        map.put("sudoBinary", "usr/bin/sudo");
+        for (int i = 0; i < overrides.length; i += 2) {
+            if (overrides[i + 1] == null) map.remove(overrides[i]);
+            else map.put(overrides[i], overrides[i + 1]);
+        }
+        StringBuilder text = new StringBuilder();
+        for (java.util.Map.Entry<String, String> e : map.entrySet()) {
+            text.append(e.getKey()).append('=').append(e.getValue()).append('\n');
+        }
+        return text.toString();
+    }
+
+    static DistroInfo load(String text) throws IOException {
+        return DistroInfo.load(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    public void parsesAnEdition() throws Exception {
+        DistroInfo info = load(valid());
+
+        assertEquals("ThothTerm Garden Test", info.editionName());
+        assertEquals("Garden", info.distroName());
+        assertEquals("1 (test)", info.distroVersion());
+        assertEquals("garden-test", info.distroDir());
+        assertEquals("garden-test-arm64-d88047a5c2a4", info.imageId());
+        assertEquals("aarch64", info.architecture());
+        assertEquals("garden-test-arm64-rootfs-d88047a5c2a4.tar.gz", info.assetName());
+        assertEquals(SHA, info.sha256());
+        assertEquals(63775639L, info.compressedSize());
+        assertEquals(210000000L, info.uncompressedSize());
+        assertEquals(1, info.schemaVersion());
+        assertEquals(7699, info.lanPort());
+        assertEquals("usr/bin/sudo", info.sudoBinary());
+    }
+
+    @Test
+    public void digestIsNormalizedToLowerCase() throws Exception {
+        assertEquals(SHA, load(valid("sha256", SHA.toUpperCase(java.util.Locale.ROOT))).sha256());
+    }
+
+    /** Anything the download check or the filesystem relies on must be present and sane. */
+    @Test
+    public void refusesIncompleteOrUnsafeMetadata() {
+        String[][] bad = {
+                {"sha256", null}, {"sha256", "abc"}, {"sha256", SHA + "0"},
+                {"compressedSize", null}, {"compressedSize", "0"}, {"compressedSize", "-5"},
+                {"uncompressedSize", "x"},
+                {"sourceUrl", "http://example.org/rootfs.tar.gz"}, {"sourceUrl", null},
+                {"distroDir", "../escape"}, {"distroDir", "a/b"}, {"distroDir", ""},
+                {"assetName", "../../x.tar.gz"}, {"assetName", "a/b.tar.gz"},
+                {"imageId", null},
+                {"editionName", null}, {"editionName", "Two\\nlines"},
+                {"distroVersion", "red\\u001b[31m"}, {"distroName", "a\\u0007b"},
+                {"lanPort", "80"}, {"lanPort", "70000"}, {"lanPort", null},
+                {"sudoBinary", "/usr/bin/sudo"}, {"sudoBinary", "usr/../../etc/passwd"},
+        };
+        for (String[] override : bad) {
+            try {
+                load(valid(override[0], override[1]));
+                fail("accepted " + override[0] + "=" + override[1]);
+            } catch (IOException expected) {
+                // fail closed
+            }
+        }
+    }
+}

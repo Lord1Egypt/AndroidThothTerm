@@ -17,7 +17,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Preferências</string>
     <string name="new_window">Nova janela</string>
     <string name="close_window">Fechar janela</string>
@@ -43,7 +42,6 @@
 
     <string name="window_title">Janela %1$d</string>
 
-    <string name="service_notify_text">A sessão do Terminal está em execução</string>
 
     <string name="process_exit_message">A sessão do Terminal terminou</string>
 

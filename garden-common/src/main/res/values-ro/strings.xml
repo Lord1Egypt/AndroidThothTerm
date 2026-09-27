@@ -17,7 +17,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Preferinţe</string>
     <string name="new_window">Fereastră nouă</string>
     <string name="close_window">Închideţi fereastra</string>
@@ -38,7 +37,6 @@
 
     <string name="window_title">Fereastră %1$d</string>
 
-    <string name="service_notify_text">Sesiune de terminal se execută</string>
 
     <string name="process_exit_message">Sesiune de terminal finisată</string>
 

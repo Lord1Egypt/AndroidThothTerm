@@ -17,7 +17,7 @@
 package com.thothterm.linux;
 
 /**
- * Pure, idempotent text transforms for the guest Ubuntu account and managed
+ * Pure, idempotent text transforms for the guest account and managed
  * configuration. No Android APIs so every rule is unit-testable.
  *
  * <p>All transforms append or edit only the lines they own. Unrelated entries
@@ -117,7 +117,7 @@ final class GuestConfig {
 
     /**
      * Ensures the loopback entries sudo and local tools require in
-     * {@code /etc/hosts}. Ubuntu Base ships the file empty, and sudo fails with
+     * {@code /etc/hosts}. A minimal base image can ship it empty, and sudo fails with
      * "unable to resolve host" when its own host name is missing. Only missing
      * managed lines are appended; user entries are preserved and rerunning the
      * transform returns the same text.
@@ -135,7 +135,7 @@ final class GuestConfig {
     /**
      * Ensures the guest can name the Android supplementary groups its processes
      * already carry. An app's threads run with the fixed AIDs {@code inet} and
-     * {@code everybody} plus two derived from its own uid, and Ubuntu Base has
+     * {@code everybody} plus two derived from its own uid, and a base image has
      * no entry for any of them, so {@code id}, {@code ls -l} and {@code ps}
      * print "cannot find name for group ID" instead of a name.
      *
@@ -184,7 +184,7 @@ final class GuestConfig {
     }
 
     /**
-     * Reverts the runtime-config-v2 {@code su} PAM customization. Real Ubuntu
+     * Reverts the runtime-config-v2 {@code su} PAM customization. The real
      * {@code sudo} is now the only elevation path, so {@code su} must go back to
      * its stock policy ({@code auth sufficient pam_rootok.so}) and must not offer
      * a passwordless route to root. Only the exact managed line is removed.

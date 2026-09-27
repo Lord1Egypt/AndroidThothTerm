@@ -1,4 +1,4 @@
-// Builds term-ubuntu/src/main/assets/lan/{xterm.js,xterm.css,fonts.css,
+// Builds garden-common/src/main/assets/lan/{xterm.js,xterm.css,fonts.css,
 // fonts/*.woff2,licenses.txt} from the npm packages pinned (with integrity
 // hashes) in package-lock.json.
 //
@@ -30,7 +30,7 @@ const banner = `/*!
  * xterm.js ${pinned['@xterm/xterm']} and @xterm/addon-fit ${pinned['@xterm/addon-fit']}
  * (https://github.com/xtermjs/xterm.js, tag ${pinned['@xterm/xterm']}) and
  * bidi-js ${pinned['bidi-js']} (https://github.com/lojjic/bidi-js),
- * bundled unminified from their sources by term-ubuntu/lan-web/build.mjs
+ * bundled unminified from their sources by garden-common/lan-web/build.mjs
  * with esbuild ${pinned.esbuild}. MIT licensed: the xterm.js authors,
  * SourceLair, Christopher Jeffrey, Microsoft Corporation (src/vs) and
  * Jason Johnston (bidi-js). Full notices in licenses.txt.
@@ -60,7 +60,7 @@ const result = await esbuild.build({
 
 const read = (p) => readFileSync(p, 'utf8');
 const licenses = [
-  'Third-party software in ThothTerm Ubuntu\'s LAN Mode web terminal',
+  'Third-party software in the ThothTerm Garden LAN Mode web terminal',
   '=================================================================',
   '',
   `xterm.js ${pinned['@xterm/xterm']} -- https://github.com/xtermjs/xterm.js (MIT)`,

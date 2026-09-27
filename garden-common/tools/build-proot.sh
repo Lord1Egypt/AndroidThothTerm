@@ -9,15 +9,17 @@
 #   third_party/proot              termux/proot @ 7266fb3e (tag v5.1.107.92), GPL-2.0
 #   third_party/libandroid-shmem   termux/libandroid-shmem @ 7f0bd7e2 (tag v0.7), BSD-3-Clause
 #   third_party/talloc             talloc 2.4.3 talloc.c/talloc.h, verbatim, LGPL-3.0
-#   term-ubuntu/patches/*.patch    applied to third_party/proot, in listed order
+#   garden-common/patches/*.patch  applied to third_party/proot, in listed order
 #
-# Outputs:
-#   src/main/jniLibs/arm64-v8a/libproot.so         (the proot executable)
-#   src/main/jniLibs/arm64-v8a/libproot_loader.so  (the PRoot loader)
-#   src/main/assets/runtime/arm64-v8a/libtalloc.so.2
-#   src/main/assets/runtime/arm64-v8a/libandroid-shmem.so
+# Outputs (in the edition module's build/garden, or THOTHTERM_JNI_DIR and
+# THOTHTERM_RUNTIME_ASSETS):
+#   jniLibs/arm64-v8a/libproot.so         (the proot executable)
+#   jniLibs/arm64-v8a/libproot_loader.so  (the PRoot loader)
+#   assets/runtime/arm64-v8a/libtalloc.so.2
+#   assets/runtime/arm64-v8a/libandroid-shmem.so
 #
-# Run from the term-ubuntu module directory. Requires ANDROID_NDK_HOME (or
+# Run from the Garden edition module directory with THOTHTERM_APPLICATION_ID
+# set to its application id. Requires ANDROID_NDK_HOME (or
 # ANDROID_SDK_ROOT/ANDROID_HOME with an ndk/<version> directory).
 set -eu
 
@@ -38,19 +40,21 @@ SHMEM_COMMIT="7f0bd7e25dbdd146265aff7c6a890029e374622d"
 
 # Where the guest runtime keeps its scratch space. libandroid-shmem compiles
 # this in, and PRoot is told where to find its unbundled loader.
-APP_ID="${THOTHTERM_APPLICATION_ID:-com.thothterm.ubuntu}"
+APP_ID="${THOTHTERM_APPLICATION_ID:?set THOTHTERM_APPLICATION_ID to the Garden edition's application id}"
 RUNTIME_DIR="/data/data/${APP_ID}/files/linux/runtime"
 
-REPO_ROOT="$(cd .. && pwd)"
+# The Garden edition module being built; outputs land in its build directory.
 MODULE_DIR="$(pwd)"
+GARDEN_COMMON="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$GARDEN_COMMON/.." && pwd)"
 PROOT_SRC="$REPO_ROOT/third_party/proot"
 SHMEM_SRC="$REPO_ROOT/third_party/libandroid-shmem"
 TALLOC_SRC="$REPO_ROOT/third_party/talloc"
-PATCH_DIR="$MODULE_DIR/patches"
+PATCH_DIR="$GARDEN_COMMON/patches"
 
 BUILD_DIR="${THOTHTERM_PROOT_BUILD_DIR:-$MODULE_DIR/build/proot-src}"
-JNI_DIR="$MODULE_DIR/src/main/jniLibs/$ABI"
-RUNTIME_ASSETS="$MODULE_DIR/src/main/assets/runtime/$ABI"
+JNI_DIR="${THOTHTERM_JNI_DIR:-$MODULE_DIR/build/garden/jniLibs}/$ABI"
+RUNTIME_ASSETS="${THOTHTERM_RUNTIME_ASSETS:-$MODULE_DIR/build/garden/assets/runtime}/$ABI"
 
 log() { echo "build-proot: $*"; }
 die() { echo "build-proot: ERROR: $*" >&2; exit 1; }

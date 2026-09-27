@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
 /**
- * Owns the embedded Ubuntu image: state, first-run extraction, checksum
+ * Owns the edition's rootfs image: state, first-run extraction, checksum
  * verification, and readiness. Extraction is crash-safe (staging directory
  * renamed only after verification) and performed once.
  */
@@ -59,12 +59,9 @@ public final class RootfsManager {
     }
 
     private static final String LINUX_ROOT = "linux";
-    private static final String DISTRO_DIR = "ubuntu-26.04";
-    private static final String IMAGE_ASSET = "ubuntu/image.properties";
-    private static final String ROOTFS_ASSET_DIR = "ubuntu";
+    /** Only the full flavour packages an archive here; its presence is the switch. */
+    private static final String ROOTFS_ASSET_DIR = "garden/rootfs";
     private static final String RUNTIME_ASSET_DIR = "runtime/arm64-v8a";
-    private static final String SUDO_ASSET_DIR = "sudo";
-    private static final String SUDO_STAGE_DIR = "var/cache/thothterm/packages";
     private static final long PROVISION_TIMEOUT_SECONDS = 180;
     /** PRoot's fake_id0 elevates only on the setuid bit; force it on the real binary. */
     private static final int SUDO_SETUID_MODE = 04755;
@@ -97,7 +94,8 @@ public final class RootfsManager {
     private final File nativeLibDir;
     private final FileOps fileOps = new AndroidFileOps();
 
-    private ImageInfo image;
+    private final DistroInfo image;
+    private final boolean embeddedRootfs;
     private volatile Listener listener;
     private volatile boolean running;
     private volatile boolean failed;
@@ -109,17 +107,21 @@ public final class RootfsManager {
     private RootfsManager(Context context) {
         this.appContext = context.getApplicationContext();
         File filesDir = appContext.getFilesDir();
-        this.linuxDir = new File(new File(filesDir, LINUX_ROOT), DISTRO_DIR);
+        this.image = loadImage();
+        this.embeddedRootfs = image != null && hasEmbeddedArchive(image);
+        // Without valid metadata nothing is ever extracted; the directory only
+        // has to be one no edition uses.
+        this.linuxDir = new File(new File(filesDir, LINUX_ROOT),
+                image != null ? image.distroDir() : "unconfigured");
         this.rootfsDir = new File(linuxDir, "rootfs");
         this.prootRootfsPath = canonicalPath(rootfsDir);
         this.stagingDir = new File(linuxDir, "rootfs.staging");
-        this.downloadedImage = new File(linuxDir, "ubuntu-base.tar.gz");
+        this.downloadedImage = new File(linuxDir, "rootfs.tar.gz");
         this.stateFile = new File(linuxDir, "state.properties");
         this.runtimeDir = new File(new File(filesDir, LINUX_ROOT), "runtime");
         this.runtimeLibDir = new File(runtimeDir, "lib");
         this.prootTmpDir = new File(runtimeDir, "tmp");
         this.nativeLibDir = new File(appContext.getApplicationInfo().nativeLibraryDir);
-        this.image = loadImage();
     }
 
     public static void init(Context context) {
@@ -136,6 +138,11 @@ public final class RootfsManager {
             throw new IllegalStateException("RootfsManager not initialized");
         }
         return manager;
+    }
+
+    /** True when this APK carries the rootfs archive (the full flavour). */
+    public boolean isRootfsEmbedded() {
+        return embeddedRootfs;
     }
 
     public boolean isSupportedDevice() {
@@ -188,7 +195,7 @@ public final class RootfsManager {
         return new File(nativeLibDir, "libproot_loader.so").getAbsolutePath();
     }
 
-    public ImageInfo image() {
+    public DistroInfo image() {
         return image;
     }
 
@@ -221,7 +228,7 @@ public final class RootfsManager {
      * so the user must be asked before anything is downloaded.
      */
     public boolean needsImageDownload() {
-        if (com.thothterm.BuildConfig.EMBEDDED_ROOTFS) return false;
+        if (embeddedRootfs) return false;
         if (isReady()) return false;
         return image != null && !new RootfsDownloader(downloadedImage, image).isVerified();
     }
@@ -238,7 +245,7 @@ public final class RootfsManager {
     }
 
     public String imageVersion() {
-        return image == null ? "" : image.ubuntuVersion();
+        return image == null ? "" : image.distroVersion();
     }
 
     public void start() {
@@ -255,7 +262,7 @@ public final class RootfsManager {
         percent = 0;
         entries = 0;
         message = "";
-        new Thread(this::runPrepare, "ThothTerm-ubuntu-rootfs").start();
+        new Thread(this::runPrepare, "ThothTerm-rootfs").start();
     }
 
     /**
@@ -264,19 +271,19 @@ public final class RootfsManager {
      * file is promoted, so nothing unverified ever reaches the extractor.
      */
     private InputStream openImageStream() throws IOException {
-        if (com.thothterm.BuildConfig.EMBEDDED_ROOTFS) {
+        if (embeddedRootfs) {
             return appContext.getAssets().open(ROOTFS_ASSET_DIR + "/" + image.assetName());
         }
         RootfsDownloader downloader = new RootfsDownloader(downloadedImage, image);
         if (!downloader.isVerified()) {
-            publish(appContext.getString(R.string.ubuntu_downloading));
+            publish(appContext.getString(R.string.garden_downloading));
             final long expected = image.compressedSize();
             downloader.download((done, total) ->
                     publishProgress(done, expected > 0 ? expected : total, 0));
             // Extraction reports its own 0..100; without this the monotonic
             // guard in publishProgress would swallow all of it.
             percent = 0;
-            publish(appContext.getString(R.string.ubuntu_preparing));
+            publish(appContext.getString(R.string.garden_preparing));
         }
         return new java.io.FileInputStream(downloadedImage);
     }
@@ -298,7 +305,7 @@ public final class RootfsManager {
                 ThothLog.e(LogCategory.RUNTIME, "ARM64 compatibility check failed supportedAbis="
                         + DeviceArchitecture.describe(supportedAbis)
                         + " osArch=" + osArch);
-                throw new IOException("ThothTerm Ubuntu requires an arm64 device");
+                throw new IOException(image.editionName() + " requires an arm64 device");
             }
             ThothLog.i(LogCategory.RUNTIME, "ARM64 compatibility verified");
 
@@ -361,7 +368,7 @@ public final class RootfsManager {
 
     private void extractRootfs() throws Exception {
         ThothLog.i(LogCategory.ROOTFS, "Extraction started image=" + image.imageId()
-                + " version=" + image.ubuntuVersion());
+                + " version=" + image.distroVersion());
 
         ThothLog.d(LogCategory.ROOTFS, "Staging cleanup started");
         SafeFileTree.deleteTree(fileOps, linuxDir, stagingDir);
@@ -372,8 +379,9 @@ public final class RootfsManager {
 
         long usable = usableSpace();
         if (!StorageSpace.isSufficient(usable, image.uncompressedSize())) {
-            ThothLog.w(LogCategory.STORAGE, "Insufficient storage for Ubuntu extraction");
-            throw new IOException("Not enough free storage to prepare Ubuntu");
+            ThothLog.w(LogCategory.STORAGE, "Insufficient storage for rootfs extraction");
+            throw new IOException("Not enough free storage to prepare "
+                    + image.distroName());
         }
 
         if (!stagingDir.mkdirs()) {
@@ -400,9 +408,9 @@ public final class RootfsManager {
         }
 
         String actualSha = toHex(digest.digest());
-        if (!actualSha.equalsIgnoreCase(image.upstreamSha256())) {
-            ThothLog.w(LogCategory.SECURITY, "Ubuntu rootfs checksum mismatch");
-            throw new IOException("Ubuntu rootfs checksum mismatch");
+        if (!actualSha.equalsIgnoreCase(image.sha256())) {
+            ThothLog.w(LogCategory.SECURITY, "Rootfs checksum mismatch");
+            throw new IOException("Rootfs checksum mismatch");
         }
         publishProgress(expectedSize, expectedSize, extractor.extractedEntries());
         ThothLog.d(LogCategory.ROOTFS, "Archive entries processed count="
@@ -479,8 +487,8 @@ public final class RootfsManager {
         setupDebconfFrontend(root);
         writeRuntimeConfigVersion(root);
 
-        copyManagedAsset("linux/thothterm-ubuntu.sh",
-                new File(profileDir, "thothterm-ubuntu.sh"));
+        copyManagedAsset("linux/thothterm-garden.sh",
+                new File(profileDir, "thothterm-garden.sh"));
 
         File binDir = new File(root, "usr/local/bin");
         if (!binDir.exists() && !binDir.mkdirs()) {
@@ -498,9 +506,11 @@ public final class RootfsManager {
         if (!managedDir.exists() && !managedDir.mkdirs()) {
             throw new IOException("Cannot create managed configuration directory");
         }
+        // Read by thothfetch; the edition name is validated metadata, one line.
+        writeTextIfChanged(new File(managedDir, "edition"), image.editionName() + "\n");
         File welcomeEnabled = new File(managedDir, "welcome-enabled");
         boolean showWelcome = PreferenceManager.getDefaultSharedPreferences(appContext)
-                .getBoolean("ubuntu_show_welcome", true);
+                .getBoolean("garden_show_welcome", true);
         if (showWelcome) {
             writeTextIfChanged(welcomeEnabled, "enabled\n");
         } else if (welcomeEnabled.exists() && !welcomeEnabled.delete()) {
@@ -561,7 +571,7 @@ public final class RootfsManager {
             fileOps.setMode(sudoersReadme, 0440);
         }
 
-        // Real Ubuntu sudo is the only elevation path; drop the v2 passwordless
+        // The real sudo is the only elevation path; drop the v2 passwordless
         // su customization so su returns to its stock policy.
         File pamSu = new File(root, "etc/pam.d/su");
         if (pamSu.isFile()) {
@@ -626,11 +636,12 @@ public final class RootfsManager {
     }
 
     /**
-     * Ensures the genuine Ubuntu {@code sudo} package is installed from the
-     * bundled offline packages and that PRoot's setuid-bit elevation can work.
-     * The embedded Canonical rootfs is never modified; this is a post-extraction
-     * layer. Best effort: any failure is logged and retried on the next session,
-     * and it never blocks the terminal from opening.
+     * Ensures the distribution's own {@code sudo} package is installed and that
+     * PRoot's setuid-bit elevation can work. A Garden rootfs ships sudo, so this
+     * normally only restores the setuid bit that extraction masks; a missing
+     * sudo is installed from the distribution's archive. Best effort: any
+     * failure is logged and retried on the next session, and it never blocks
+     * the terminal from opening.
      */
     private synchronized void ensureRealSudo(File root) {
         GuestConfig.PackageState state = sudoState(root);
@@ -655,16 +666,10 @@ public final class RootfsManager {
             return;
         }
         try {
-            if (com.thothterm.BuildConfig.EMBEDDED_ROOTFS) {
-                stageSudoPackages(root);
-                runProvisioning(root, sudoInstallScript());
-            } else {
-                // No bundled .deb payload in this build: install sudo from
-                // Ubuntu's own archive, so apt verifies it with the
-                // distribution's signing keys rather than us re-implementing
-                // that check.
-                runProvisioning(root, sudoAptInstallScript());
-            }
+            // Installed from the distribution's own archive, so apt verifies
+            // it with the distribution's signing keys rather than us
+            // re-implementing that check.
+            runProvisioning(root, sudoAptInstallScript());
             boolean setuid = forceSudoSetuid(root);
             String report = runProvisioning(root, sudoVerifyScript());
             ThothLog.i(LogCategory.ROOTFS, "sudo provisioning complete setuid="
@@ -687,46 +692,8 @@ public final class RootfsManager {
         }
     }
 
-    private void stageSudoPackages(File root) throws IOException {
-        File stage = new File(root, SUDO_STAGE_DIR);
-        if (!stage.exists() && !stage.mkdirs()) {
-            throw new IOException("Cannot create sudo package staging directory");
-        }
-        String[] assets = appContext.getAssets().list(SUDO_ASSET_DIR);
-        int count = 0;
-        if (assets != null) {
-            for (String name : assets) {
-                if (!name.endsWith(".deb")) continue;
-                InputStream in = null;
-                OutputStream out = null;
-                try {
-                    in = appContext.getAssets().open(SUDO_ASSET_DIR + "/" + name);
-                    out = new FileOutputStream(new File(stage, name));
-                    copyStream(in, out);
-                    count++;
-                } finally {
-                    closeQuietly(out);
-                    closeQuietly(in);
-                }
-            }
-        }
-        if (count == 0) throw new IOException("No bundled admin packages");
-        ThothLog.i(LogCategory.INSTALLER, "Staged admin packages count=" + count);
-    }
-
-    private String sudoInstallScript() {
-        String stage = "/" + SUDO_STAGE_DIR;
-        return "set -e\n"
-                + PATH_EXPORT + "\n"
-                + "cd /\n"
-                + "dpkg --force-confold -i " + stage + "/libapparmor1_*.deb\n"
-                + "dpkg --force-confold -i " + stage + "/sudo-common_*.deb\n"
-                + "dpkg --force-confold -i " + stage + "/sudo_*.deb\n"
-                + "dpkg --configure -a\n";
-    }
-
     /**
-     * Installs sudo from the configured Ubuntu archive. apt checks the release
+     * Installs sudo from the configured distribution archive. apt checks the release
      * file's signature against the keyring already present in the base image,
      * which is a stronger guarantee than a checksum we pin ourselves, and it
      * resolves the dependency closure instead of assuming it.
@@ -768,19 +735,20 @@ public final class RootfsManager {
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 
     /**
-     * Forces the real setuid bit on {@code /usr/bin/sudo.ws} from Java, bypassing
-     * PRoot's chmod shim. PRoot's fake_id0 extension grants fake euid 0 only when
-     * the executed binary carries S_ISUID, and the Android-side extraction masks
-     * setuid bits, so this explicit chmod is the required PRoot adjustment.
+     * Forces the real setuid bit on the edition's sudo binary from Java,
+     * bypassing PRoot's chmod shim. PRoot's fake_id0 extension grants fake euid
+     * 0 only when the executed binary carries S_ISUID, and the Android-side
+     * extraction masks setuid bits, so this explicit chmod is the required
+     * PRoot adjustment.
      */
     private boolean forceSudoSetuid(File root) {
-        File sudo = new File(root, "usr/bin/sudo.ws");
+        File sudo = new File(root, image.sudoBinary());
         if (!sudo.isFile()) return false;
         try {
             Os.chmod(sudo.getAbsolutePath(), SUDO_SETUID_MODE);
         } catch (ErrnoException e) {
             ThothLog.w(LogCategory.ROOTFS,
-                    "Cannot chmod /usr/bin/sudo.ws: " + e.getMessage());
+                    "Cannot chmod the sudo binary: " + e.getMessage());
         }
         try {
             return (Os.stat(sudo.getAbsolutePath()).st_mode & OsConstants.S_ISUID) != 0;
@@ -791,7 +759,7 @@ public final class RootfsManager {
 
     /** Runs a one-shot fake-root PRoot command for offline provisioning. */
     private String runProvisioning(File root, String script) throws IOException {
-        UbuntuRuntime runtime = UbuntuRuntime.from(this, "xterm-256color");
+        GardenRuntime runtime = GardenRuntime.from(this, "xterm-256color");
         List<String> argv = runtime.buildProvisioningArgv(
                 Arrays.asList("/bin/sh", "-c", script));
         Map<String, String> env = runtime.buildProvisioningEnvironment();
@@ -847,25 +815,34 @@ public final class RootfsManager {
     private void writeState() throws IOException {
         RootfsState state = new RootfsState();
         state.imageId = image.imageId();
-        state.ubuntuVersion = image.ubuntuVersion();
+        state.distroVersion = image.distroVersion();
         state.architecture = image.architecture();
-        state.imageSha256 = image.upstreamSha256();
+        state.imageSha256 = image.sha256();
         state.schemaVersion = image.schemaVersion();
         state.installedAt = System.currentTimeMillis();
         state.complete = true;
         state.write(stateFile);
     }
 
-    private ImageInfo loadImage() {
+    private DistroInfo loadImage() {
         InputStream in = null;
         try {
-            in = appContext.getAssets().open(IMAGE_ASSET);
-            return ImageInfo.load(in);
+            in = appContext.getAssets().open(DistroInfo.ASSET);
+            return DistroInfo.load(in);
         } catch (Exception e) {
-            ThothLog.e(LogCategory.ROOTFS, "Cannot read embedded image metadata", e);
+            ThothLog.e(LogCategory.ROOTFS, "Cannot read the edition's distro metadata", e);
             return null;
         } finally {
             closeQuietly(in);
+        }
+    }
+
+    private boolean hasEmbeddedArchive(DistroInfo info) {
+        try {
+            String[] names = appContext.getAssets().list(ROOTFS_ASSET_DIR);
+            return names != null && Arrays.asList(names).contains(info.assetName());
+        } catch (IOException e) {
+            return false;
         }
     }
 

@@ -30,14 +30,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * Fetches the pinned Ubuntu base image for builds that do not embed it.
+ * Fetches the pinned rootfs archive for builds that do not embed it.
  *
  * <p>The archive is written to a {@code .part} file and is only promoted to its
  * final name once its SHA-256 matches the pinned digest, so an interrupted or
  * corrupted transfer can never be mistaken for a complete one. Nothing is
  * extracted from a file that has not been verified first.
  *
- * <p>The URL, size and digest all come from the same {@code image.properties}
+ * <p>The URL, size and digest all come from the same {@code distro.properties}
  * the embedded build is pinned to, so both flavours install byte-identical
  * userlands.
  */
@@ -54,9 +54,9 @@ final class RootfsDownloader {
     }
 
     private final File target;
-    private final ImageInfo image;
+    private final DistroInfo image;
 
-    RootfsDownloader(File target, ImageInfo image) {
+    RootfsDownloader(File target, DistroInfo image) {
         this.target = target;
         this.image = image;
     }
@@ -66,11 +66,11 @@ final class RootfsDownloader {
         if (!target.isFile()) return false;
         try {
             String actual = sha256Of(target);
-            if (actual.equalsIgnoreCase(image.upstreamSha256())) return true;
+            if (actual.equalsIgnoreCase(image.sha256())) return true;
             ThothLog.w(LogCategory.SECURITY,
-                    "Cached Ubuntu archive failed verification; discarding it");
+                    "Cached rootfs archive failed verification; discarding it");
         } catch (IOException e) {
-            ThothLog.w(LogCategory.STORAGE, "Cannot read cached Ubuntu archive: " + e);
+            ThothLog.w(LogCategory.STORAGE, "Cannot read cached rootfs archive: " + e);
         }
         // A file that does not verify is never kept: leaving it would turn one
         // bad download into a permanently broken install.
@@ -103,7 +103,7 @@ final class RootfsDownloader {
             long expected = image.compressedSize();
             long reported = connection.getContentLengthLong();
             if (reported > 0 && expected > 0 && reported != expected) {
-                throw new IOException("Ubuntu archive is " + reported
+                throw new IOException("rootfs archive is " + reported
                         + " bytes, expected " + expected);
             }
 
@@ -118,7 +118,7 @@ final class RootfsDownloader {
                     digest.update(buffer, 0, read);
                     total += read;
                     if (expected > 0 && total > expected) {
-                        throw new IOException("Ubuntu archive is larger than expected");
+                        throw new IOException("rootfs archive is larger than expected");
                     }
                     if (progress != null) progress.onBytes(total, expected);
                 }
@@ -129,21 +129,21 @@ final class RootfsDownloader {
             }
 
             if (expected > 0 && total != expected) {
-                throw new IOException("Ubuntu archive ended early at " + total
+                throw new IOException("rootfs archive ended early at " + total
                         + " of " + expected + " bytes");
             }
 
             String actual = RootfsManager.toHex(digest.digest());
-            if (!actual.equalsIgnoreCase(image.upstreamSha256())) {
-                ThothLog.w(LogCategory.SECURITY, "Downloaded Ubuntu archive checksum mismatch");
-                throw new IOException("Downloaded Ubuntu archive failed verification");
+            if (!actual.equalsIgnoreCase(image.sha256())) {
+                ThothLog.w(LogCategory.SECURITY, "Downloaded rootfs archive checksum mismatch");
+                throw new IOException("Downloaded rootfs archive failed verification");
             }
 
             deleteQuietly(target);
             if (!partial.renameTo(target)) {
-                throw new IOException("Cannot store the verified Ubuntu archive");
+                throw new IOException("Cannot store the verified rootfs archive");
             }
-            ThothLog.i(LogCategory.ROOTFS, "Ubuntu archive downloaded and verified bytes=" + total);
+            ThothLog.i(LogCategory.ROOTFS, "rootfs archive downloaded and verified bytes=" + total);
         } catch (IOException e) {
             deleteQuietly(partial);
             throw e;
@@ -181,11 +181,11 @@ final class RootfsDownloader {
             }
             if (status != HttpURLConnection.HTTP_OK) {
                 connection.disconnect();
-                throw new IOException("Ubuntu archive request failed with HTTP " + status);
+                throw new IOException("rootfs archive request failed with HTTP " + status);
             }
             return connection;
         }
-        throw new IOException("Too many redirects fetching the Ubuntu archive");
+        throw new IOException("Too many redirects fetching the rootfs archive");
     }
 
     private static String sha256Of(File file) throws IOException {

@@ -47,11 +47,8 @@ public class TermSettings {
     private int mControlKeyId;
     private int mFnKeyId;
     private int mUseCookedIME;
-    private String mShell;
-    private String mFailsafeShell;
     private String mTermType;
     private boolean mCloseOnExit;
-    private String mHomePath;
 
     private boolean mAltSendsEsc;
 
@@ -115,11 +112,8 @@ public class TermSettings {
         mControlKeyId = Integer.parseInt(res.getString(R.string.pref_controlkey_default));
         mFnKeyId = Integer.parseInt(res.getString(R.string.pref_fnkey_default));
         mUseCookedIME = Integer.parseInt(res.getString(R.string.pref_ime_default));
-        mFailsafeShell = res.getString(R.string.pref_shell_default);
-        mShell = mFailsafeShell;
         mTermType = res.getString(R.string.pref_termtype_default);
         mCloseOnExit = res.getBoolean(R.bool.pref_close_window_on_process_exit_default);
-        // the mHomePath default is set dynamically in readPrefs()
         mAltSendsEsc = res.getBoolean(R.bool.pref_alt_sends_esc_default);
         mMouseTracking = res.getBoolean(R.bool.pref_mouse_tracking_default);
         mUseKeyboardShortcuts = res.getBoolean(R.bool.pref_use_keyboard_shortcuts_default);
@@ -141,10 +135,8 @@ public class TermSettings {
         mFnKeyId = readIntPref("fnkey", mFnKeyId,
                 FN_KEY_SCHEMES.length - 1);
         mUseCookedIME = readIntPref("ime", mUseCookedIME, 1);
-        mShell = readStringPref("shell", mShell);
         mTermType = readStringPref("termtype", mTermType);
         mCloseOnExit = readBooleanPref("close_window_on_process_exit", mCloseOnExit);
-        mHomePath = readStringPref(context.getString(R.string.key_home_path_preference), mHomePath);
         mAltSendsEsc = readBooleanPref("alt_sends_esc", mAltSendsEsc);
         mMouseTracking = readBooleanPref("mouse_tracking", mMouseTracking);
         mUseKeyboardShortcuts = readBooleanPref("use_keyboard_shortcuts",
@@ -252,27 +244,11 @@ public class TermSettings {
         return (mUseCookedIME != 0);
     }
 
-    public String getShell() {
-        return mShell;
-    }
-
-    public String getFailsafeShell() {
-        return mFailsafeShell;
-    }
-
     public String getTermType() {
         return mTermType;
     }
 
     public boolean closeWindowOnProcessExit() {
         return mCloseOnExit;
-    }
-
-    public void setHomePath(String homePath) {
-        mHomePath = homePath;
-    }
-
-    public String getHomePath() {
-        return mHomePath;
     }
 }

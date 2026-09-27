@@ -17,7 +17,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">首选项</string>
     <string name="new_window">新窗口</string>
     <string name="close_window">关闭窗口</string>
@@ -43,7 +42,6 @@
 
     <string name="window_title">窗口 %1$d</string>
 
-    <string name="service_notify_text">会话正在运行</string>
 
     <string name="process_exit_message">会话已结束</string>
 

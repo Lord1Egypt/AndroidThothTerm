@@ -24,8 +24,8 @@ final class ShellIntegration {
         }
         if (updated.indexOf(BEGIN) < 0) {
             updated.append(BEGIN).append('\n')
-                    .append("[ -r /etc/profile.d/thothterm-ubuntu.sh ] && "
-                            + ". /etc/profile.d/thothterm-ubuntu.sh\n")
+                    .append("[ -r /etc/profile.d/thothterm-garden.sh ] && "
+                            + ". /etc/profile.d/thothterm-garden.sh\n")
                     .append(END).append('\n');
         }
         return updated.toString();

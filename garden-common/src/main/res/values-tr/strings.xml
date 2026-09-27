@@ -16,7 +16,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Tercihler</string>
     <string name="reset">Terminali yeniden başlat</string>
     <string name="toggle_soft_keyboard">Ekran klavyesine geç</string>

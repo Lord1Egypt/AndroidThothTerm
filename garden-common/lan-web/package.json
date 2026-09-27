@@ -2,7 +2,7 @@
   "name": "thothterm-lan-web",
   "version": "0.2.0",
   "private": true,
-  "description": "Builds ThothTerm Ubuntu's LAN Mode browser terminal assets from pinned xterm.js sources.",
+  "description": "Builds the ThothTerm Garden LAN Mode browser terminal assets from pinned xterm.js sources.",
   "license": "Apache-2.0",
   "scripts": {
     "build": "node build.mjs",

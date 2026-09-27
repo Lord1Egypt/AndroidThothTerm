@@ -1,6 +1,6 @@
 # LAN Mode web terminal — sources and provenance
 
-LAN Mode serves the page in `term-ubuntu/src/main/assets/lan/`. Nothing there
+LAN Mode serves the page in `garden-common/src/main/assets/lan/`. Nothing there
 comes from a CDN and nothing is fetched at runtime.
 
 ## Files

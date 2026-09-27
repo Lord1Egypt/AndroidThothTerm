@@ -16,7 +16,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Hobespenak</string>
     <string name="new_window">Leiho berria</string>
     <string name="close_window">Leihoa itxi</string>
@@ -42,7 +41,6 @@
 
     <string name="window_title">%1$d leihoa</string>
 
-    <string name="service_notify_text">Terminal saioa martxan dago</string>
 
     <string name="process_exit_message">Terminal saioa amaituta</string>
 

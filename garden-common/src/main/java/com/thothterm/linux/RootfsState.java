@@ -32,7 +32,7 @@ public final class RootfsState {
     public static final int SCHEMA_VERSION = 1;
 
     public String imageId = "";
-    public String ubuntuVersion = "";
+    public String distroVersion = "";
     public String architecture = "";
     public String imageSha256 = "";
     public int schemaVersion = SCHEMA_VERSION;
@@ -55,7 +55,7 @@ public final class RootfsState {
         }
 
         state.imageId = properties.getProperty("imageId", "");
-        state.ubuntuVersion = properties.getProperty("ubuntuVersion", "");
+        state.distroVersion = properties.getProperty("distroVersion", "");
         state.architecture = properties.getProperty("architecture", "");
         state.imageSha256 = properties.getProperty("imageSha256", "");
         state.schemaVersion = parse(properties.getProperty("schemaVersion"), SCHEMA_VERSION);
@@ -67,7 +67,7 @@ public final class RootfsState {
     public void write(File file) throws IOException {
         Properties properties = new Properties();
         properties.setProperty("imageId", imageId);
-        properties.setProperty("ubuntuVersion", ubuntuVersion);
+        properties.setProperty("distroVersion", distroVersion);
         properties.setProperty("architecture", architecture);
         properties.setProperty("imageSha256", imageSha256);
         properties.setProperty("schemaVersion", Integer.toString(schemaVersion));
@@ -81,17 +81,17 @@ public final class RootfsState {
 
         OutputStream out = new FileOutputStream(file);
         try {
-            properties.store(out, "ThothTerm Ubuntu rootfs state");
+            properties.store(out, "ThothTerm Garden rootfs state");
         } finally {
             out.close();
         }
     }
 
-    public boolean matches(ImageInfo image) {
+    public boolean matches(DistroInfo image) {
         return complete
                 && schemaVersion == image.schemaVersion()
                 && imageId.equals(image.imageId())
-                && imageSha256.equals(image.upstreamSha256());
+                && imageSha256.equals(image.sha256());
     }
 
     private static int parse(String value, int def) {

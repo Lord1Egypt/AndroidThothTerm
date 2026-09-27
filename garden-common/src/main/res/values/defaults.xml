@@ -28,5 +28,5 @@
     <bool name="pref_extra_keys_symbols_default">true</bool>
     <string name="pref_log_level_default" translatable="false">INFO</string>
     <bool name="pref_developer_logging_default">false</bool>
-    <bool name="pref_ubuntu_welcome_default">true</bool>
+    <bool name="pref_garden_welcome_default">true</bool>
 </resources>

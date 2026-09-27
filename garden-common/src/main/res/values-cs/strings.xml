@@ -16,7 +16,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Nastavení</string>
     <string name="new_window">Nové okno</string>
     <string name="close_window">Zavřít okno</string>
@@ -42,7 +41,6 @@
 
     <string name="window_title">Okno %1$d</string>
 
-    <string name="service_notify_text">Terminál je spuštěný</string>
 
     <string name="process_exit_message">Terminál je ukončen</string>
 

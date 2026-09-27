@@ -54,8 +54,6 @@ public class Settings {
     private int font_source;
     @Orientation
     private int orientation;
-    private String initial_command;
-    private boolean source_sys_shrc;
 
 
     public Settings(Context context) {
@@ -73,28 +71,13 @@ public class Settings {
         orientation = parseInteger(preferences,
                 r.getString(R.string.key_orientation_preference),
                 r.getInteger(R.integer.pref_orientation_default));
-        initial_command = parseString(preferences,
-                r.getString(R.string.key_initialcommand_preference),
-                r.getString(R.string.pref_initialcommand_default));
-        source_sys_shrc = parseBoolean(preferences,
-                r.getString(R.string.key_source_sys_shrc_preference),
-                r.getBoolean(R.bool.pref_source_sys_shrc_default));
-    }
-
-    @NonNull
-    public static String prepareInitialCommand(Context context, String extraCommand) {
-        // Ubuntu already starts in /home/thoth and is configured through
-        // profile files. Only an explicitly requested external command is sent.
-        return TextUtils.isEmpty(extraCommand) ? "" : extraCommand;
     }
 
     public void parsePreference(Context context, SharedPreferences preferences, String key) {
         if (TextUtils.isEmpty(key)) return;
 
         if (parseFontSource(context, preferences, key)) return;
-        if (parseOrientation(context, preferences, key)) return;
-        if (parseInitialCommand(context, preferences, key)) return;
-        parseSourceSysRC(context, preferences, key);
+        parseOrientation(context, preferences, key);
     }
 
     @FontSource
@@ -105,10 +88,6 @@ public class Settings {
     @Orientation
     public int getOrientation() {
         return orientation;
-    }
-
-    public boolean sourceSystemShellStartupFile() {
-        return source_sys_shrc;
     }
 
     private boolean parseBoolean(SharedPreferences preferences, String key, boolean def) {
@@ -165,25 +144,6 @@ public class Settings {
                 orientation = r.getInteger(R.integer.pref_orientation_default);
         }
         return true;
-    }
-
-    private boolean parseInitialCommand(Context context, SharedPreferences preferences, String key) {
-        String pref = context.getString(R.string.key_initialcommand_preference);
-        if (!key.equals(pref)) return false;
-
-        initial_command = parseString(preferences, key, initial_command);
-        return true;
-    }
-
-    private void parseSourceSysRC(Context context, SharedPreferences preferences, String key) {
-        String pref = context.getString(R.string.key_source_sys_shrc_preference);
-        if (!key.equals(pref)) return;
-
-        boolean value = parseBoolean(preferences, key, source_sys_shrc);
-        if (value != source_sys_shrc) {
-            source_sys_shrc = value;
-            Installer.installAppScriptFile();
-        }
     }
 
     @IntDef({

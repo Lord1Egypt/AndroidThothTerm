@@ -17,7 +17,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Impostazioni</string>
     <string name="new_window">Nuova finestra</string>
     <string name="close_window">Chiudi finestra</string>
@@ -43,7 +42,6 @@
 
     <string name="window_title">Finestra %1$d</string>
 
-    <string name="service_notify_text">Terminale in esecuzione</string>
 
     <string name="process_exit_message">Terminale arrestato</string>
 

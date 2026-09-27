@@ -24,55 +24,45 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.nio.charset.Charset;
 
 public class RootfsStateTest {
-    private static final Charset ASCII = Charset.forName("US-ASCII");
-
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private static ImageInfo image(String id, String sha) throws Exception {
-        String text = "imageId=" + id + "\n"
-                + "ubuntuVersion=26.04.1\n"
-                + "architecture=aarch64\n"
-                + "upstreamSha256=" + sha + "\n"
-                + "compressedSize=35092106\n"
-                + "schemaVersion=1\n";
-        return ImageInfo.load(new ByteArrayInputStream(text.getBytes(ASCII)));
+    private static DistroInfo image(String id, String sha) throws Exception {
+        return DistroInfoTest.load(DistroInfoTest.valid("imageId", id, "sha256", sha));
     }
 
     @Test
     public void roundTripsAndMatches() throws Exception {
         File stateFile = new File(temporaryFolder.newFolder("linux"), "state.properties");
-        ImageInfo info = image("ubuntu-26.04.1-base-arm64", "5a19");
+        DistroInfo info = image("garden-test-arm64-d88047a5c2a4", DistroInfoTest.SHA);
 
         RootfsState state = new RootfsState();
         state.imageId = info.imageId();
-        state.ubuntuVersion = info.ubuntuVersion();
+        state.distroVersion = info.distroVersion();
         state.architecture = info.architecture();
-        state.imageSha256 = info.upstreamSha256();
+        state.imageSha256 = info.sha256();
         state.schemaVersion = info.schemaVersion();
         state.complete = true;
         state.write(stateFile);
 
         RootfsState read = RootfsState.read(stateFile);
         assertTrue(read.complete);
-        assertEquals("ubuntu-26.04.1-base-arm64", read.imageId);
-        assertEquals("5a19", read.imageSha256);
+        assertEquals("garden-test-arm64-d88047a5c2a4", read.imageId);
+        assertEquals(DistroInfoTest.SHA, read.imageSha256);
         assertTrue(read.matches(info));
     }
 
     @Test
     public void incompleteOrMismatchedStateNeverMatches() throws Exception {
         File stateFile = new File(temporaryFolder.newFolder("linux2"), "state.properties");
-        ImageInfo info = image("ubuntu-26.04.1-base-arm64", "5a19");
+        DistroInfo info = image("garden-test-arm64-d88047a5c2a4", DistroInfoTest.SHA);
 
         RootfsState incomplete = new RootfsState();
         incomplete.imageId = info.imageId();
-        incomplete.imageSha256 = info.upstreamSha256();
+        incomplete.imageSha256 = info.sha256();
         incomplete.complete = false;
         incomplete.write(stateFile);
         assertFalse(RootfsState.read(stateFile).matches(info));

@@ -19,7 +19,7 @@ package com.thothterm.linux;
 import java.util.Locale;
 
 /**
- * ARM64 detection for the Ubuntu edition.
+ * ARM64 detection for the Garden editions.
  *
  * <p>Android's ABI list ({@code android.os.Build.SUPPORTED_ABIS}) is the
  * authoritative compatibility gate and uses ABI names such as

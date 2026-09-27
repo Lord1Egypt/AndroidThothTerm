@@ -22,7 +22,7 @@ import java.io.OutputStream;
 
 /**
  * A real pseudo-terminal with a shell on its slave side. The Android
- * implementation starts the same PRoot + Ubuntu command line as a local
+ * implementation starts the same PRoot + Garden rootfs command line as a local
  * window; tests substitute an in-memory one.
  */
 interface Pty {

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Настройки</string>
     <string name="new_window">Новое окно</string>
     <string name="close_window">Закрыть окно</string>
@@ -27,7 +26,6 @@
 
     <string name="window_title">Окно %1$d</string>
 
-    <string name="service_notify_text">Запущен терминальный сеанс</string>
 
     <string name="process_exit_message">Терминальный сеанс завершён</string>
 

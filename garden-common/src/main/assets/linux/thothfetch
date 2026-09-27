@@ -7,8 +7,44 @@
 #  - ANSI color sequences wrap whole fields and never contribute a column.
 #  - No tabs; alignment never depends on trailing whitespace.
 #  - The layout is chosen from the real PTY width, not bash's unexported COLUMNS.
+#
+# The product name comes from /etc/thothterm/edition, which the app writes, and
+# the system name from PRETTY_NAME in /etc/os-release, so an upgrade to a new
+# point release shows up here without an app update. Both files are read as
+# data, never sourced, and stripped of control characters before printing.
 amber=$'\033[38;5;214m'; teal=$'\033[38;5;44m'
 white=$'\033[38;5;252m'; muted=$'\033[38;5;246m'; reset=$'\033[0m'
+
+root=${THOTHFETCH_ROOT-}
+
+# Printable text only, at most $2 characters.
+clean() {
+  local text=${1//[[:cntrl:]]/}
+  printf '%s' "${text:0:$2}"
+}
+
+edition=
+if [ -r "$root/etc/thothterm/edition" ]; then
+  IFS= read -r edition < "$root/etc/thothterm/edition"
+fi
+[ -n "$edition" ] || edition=ThothTerm
+
+os=
+if [ -r "$root/etc/os-release" ]; then
+  while IFS= read -r line; do
+    case $line in
+      PRETTY_NAME=*)
+        os=${line#PRETTY_NAME=}
+        case $os in
+          \"*\") os=${os#\"}; os=${os%\"} ;;
+          \'*\') os=${os#\'}; os=${os%\'} ;;
+        esac
+        os=${os//\\\"/\"}; os=${os//\\\\/\\}
+        break ;;
+    esac
+  done < "$root/etc/os-release"
+fi
+[ -n "$os" ] || os=Linux
 
 cols=
 size=$(stty size 2>/dev/null)
@@ -20,7 +56,11 @@ case "${cols:-}" in
   ''|*[!0-9]*) cols=80 ;;
 esac
 
+arch=${HOSTTYPE:-aarch64}
+
 if [ "$cols" -lt 44 ]; then
+  edition=$(clean "$edition" "$cols")
+  os=$(clean "$os" "$cols")
   printf '%s\n' "${amber}    /\\${reset}"
   printf '%s\n' "${amber} __/  \\__${reset}"
   printf '%s\n' "${teal}/  \\  /  \\${reset}"
@@ -29,14 +69,16 @@ if [ "$cols" -lt 44 ]; then
   printf '%s\n' "${amber}    \\/${reset}"
   printf '%s\n' "${teal}    >_${reset}"
   printf '\n'
-  printf '%s\n' "${white}ThothTerm Ubuntu${reset}"
-  printf '%s\n' "${muted}Ubuntu 26.04.1 LTS${reset}"
+  printf '%s\n' "${white}${edition}${reset}"
+  printf '%s\n' "${muted}${os}${reset}"
   printf '%s\n' "${muted}User  thoth${reset}"
   printf '%s\n' "${muted}Home  /home/thoth${reset}"
 else
-  printf '%s\n' "${amber}    /\\${reset}        ${white}ThothTerm Ubuntu${reset}"
-  printf '%s\n' "${amber} __/  \\__${reset}     ${muted}Ubuntu 26.04.1 LTS${reset}"
-  printf '%s\n' "${teal}/  \\  /  \\${reset}    ${muted}Architecture  aarch64${reset}"
+  edition=$(clean "$edition" 30)
+  os=$(clean "$os" 30)
+  printf '%s\n' "${amber}    /\\${reset}        ${white}${edition}${reset}"
+  printf '%s\n' "${amber} __/  \\__${reset}     ${muted}${os}${reset}"
+  printf '%s\n' "${teal}/  \\  /  \\${reset}    ${muted}Architecture  $(clean "$arch" 16)${reset}"
   printf '%s\n' "${teal}\\   \\/   /${reset}    ${muted}Shell         Bash${reset}"
   printf '%s\n' "${amber} \\  /\\  /${reset}     ${muted}Home          /home/thoth${reset}"
   printf '%s\n' "${amber}    \\/${reset}        ${muted}User          thoth${reset}"

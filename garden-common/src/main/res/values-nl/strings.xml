@@ -17,7 +17,6 @@
 -->
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Instellingen</string>
     <string name="new_window">Nieuw venster</string>
     <string name="close_window">Venster sluiten</string>
@@ -37,7 +36,6 @@
     <string name="copy_all">Alles kopiëren</string>
     <string name="paste">Plakken</string>
 
-    <string name="service_notify_text">Terminalsessie is actief</string>
 
     <!-- Preference dialog -->
     <string name="screen_preferences">Scherm</string>

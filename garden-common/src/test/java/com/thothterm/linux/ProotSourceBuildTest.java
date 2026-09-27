@@ -60,7 +60,7 @@ public class ProotSourceBuildTest {
         assertTrue("proot must come from termux/proot",
                 modules.contains("termux/proot.git"));
 
-        String script = read("term-ubuntu/tools/build-proot.sh");
+        String script = read("garden-common/tools/build-proot.sh");
         assertTrue("build script must pin the proot commit",
                 script.contains(PROOT_COMMIT));
         assertTrue("build script must pin the libandroid-shmem commit",
@@ -81,7 +81,7 @@ public class ProotSourceBuildTest {
 
     @Test
     public void theProotBuildDownloadsNothing() throws Exception {
-        String script = read("term-ubuntu/tools/build-proot.sh");
+        String script = read("garden-common/tools/build-proot.sh");
         for (String forbidden : new String[]{"curl ", "wget ", "git clone", "git fetch"}) {
             assertFalse("the PRoot build must not fetch anything: " + forbidden,
                     script.contains(forbidden));
@@ -90,7 +90,7 @@ public class ProotSourceBuildTest {
 
     @Test
     public void everyPatchIsDocumented() throws Exception {
-        File patches = new File(repoRoot(), "term-ubuntu/patches");
+        File patches = new File(repoRoot(), "garden-common/patches");
         File[] files = patches.listFiles((dir, name) -> name.endsWith(".patch"));
         assertTrue("patch directory is missing", files != null);
         for (File patch : files) {
@@ -103,46 +103,35 @@ public class ProotSourceBuildTest {
         }
     }
 
+    /**
+     * garden-common carries its own copy of the PRoot patches so that
+     * ThothTerm Ubuntu, which has not moved onto garden-common yet, keeps
+     * building exactly what it released. The two copies must not drift: a
+     * PRoot fix belongs to every edition.
+     */
     @Test
-    public void theUbuntuPayloadStagesOutsideTheSharedSourceSet() throws Exception {
-        // Anything under src/main reaches every flavour, including fdroid.
-        String script = read("term-ubuntu/tools/prepare-assets.sh");
-        assertTrue("the rootfs must stage into the full flavour",
-                script.contains("src/full/assets/ubuntu"));
-        assertTrue("the admin packages must stage into the full flavour",
-                script.contains("src/full/assets/sudo"));
-        assertFalse("no distribution payload may stage into src/main",
-                script.contains("src/main/assets/sudo"));
-        assertFalse("the rootfs archive must not stage into src/main",
-                script.contains("src/main/assets/ubuntu/ubuntu-base"));
+    public void patchesMatchThoseThothTermUbuntuShips() throws Exception {
+        File garden = new File(repoRoot(), "garden-common/patches");
+        File ubuntu = new File(repoRoot(), "term-ubuntu/patches");
+        String[] names = garden.list((dir, name) -> name.endsWith(".patch"));
+        String[] theirs = ubuntu.list((dir, name) -> name.endsWith(".patch"));
+        assertTrue(names != null && theirs != null);
+        java.util.Arrays.sort(names);
+        java.util.Arrays.sort(theirs);
+        org.junit.Assert.assertArrayEquals(theirs, names);
+        for (String name : names) {
+            org.junit.Assert.assertArrayEquals(name + " differs from term-ubuntu's copy",
+                    Files.readAllBytes(new File(ubuntu, name).toPath()),
+                    Files.readAllBytes(new File(garden, name).toPath()));
+        }
     }
 
     @Test
-    public void prepareAssetsNoLongerFetchesAPrebuiltRuntime() throws Exception {
-        String script = read("term-ubuntu/tools/prepare-assets.sh");
-        assertFalse("the prebuilt PRoot bundle must no longer be fetched",
-                script.contains("ProotX-Assets-Support"));
-    }
-
-    @Test
-    public void everyPinnedDownloadIsChecksummedAndFailsClosed() throws Exception {
-        String script = read("term-ubuntu/tools/prepare-assets.sh");
-        assertTrue("downloads must be checksum verified",
-                script.contains("checksum mismatch"));
-        assertFalse("no floating 'latest' URL may be used",
-                script.contains("/latest/"));
-        assertTrue("the Ubuntu URL must be pinned to an exact release",
-                script.contains("releases/26.04/release/ubuntu-base-26.04.1-base-arm64.tar.gz"));
-        assertTrue("the Ubuntu archive must have a pinned sha256",
-                script.contains("UBUNTU_SHA=\""));
-
-        // The runtime reads the same pin, so the two must agree or the fdroid
-        // flavour would download something the full flavour never embedded.
-        String properties = read("term-ubuntu/src/main/assets/ubuntu/image.properties");
-        assertTrue("image.properties must carry the same source URL",
-                properties.contains(
-                        "releases/26.04/release/ubuntu-base-26.04.1-base-arm64.tar.gz"));
-        assertTrue("image.properties must carry the upstream sha256",
-                properties.contains("upstreamSha256="));
+    public void theBuildNamesTheEditionItIsFor() throws Exception {
+        // The loader path is compiled into PRoot, so it must be the edition's.
+        String script = read("garden-common/tools/build-proot.sh");
+        assertTrue(script.contains("THOTHTERM_APPLICATION_ID:?"));
+        assertFalse("garden-common must not hardcode an edition",
+                script.matches("(?s).*com\\.thothterm\\.(ubuntu|debian).*"));
     }
 }

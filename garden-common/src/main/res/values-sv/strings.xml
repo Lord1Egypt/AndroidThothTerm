@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-    <string name="application_terminal">ThothTerm</string>
     <string name="preferences">Inställningar</string>
     <string name="reset">Återställ terminal</string>
     <string name="toggle_soft_keyboard">Växla till virtuellt tangentbord</string>
@@ -13,7 +12,6 @@
     <string name="select_text">Markera text</string>
     <string name="copy_all">Kopiera allt</string>
     <string name="paste">Klistra in</string>
-    <string name="service_notify_text">Terminalsessionen är igång</string>
     <string name="screen_preferences">Skärm</string>
     <string name="title_statusbar_preference">Statusfält</string>
     <string name="summary_statusbar_preference">Visa/Dölj statusfält</string>

@@ -13,7 +13,7 @@ public class ShellIntegrationTest {
         String result = ShellIntegration.updateBashrc(
                 "alias ll='ls -al'\nPS1='thoth@android:\\w\\$ '\n");
         assertTrue(result.contains("alias ll='ls -al'"));
-        assertTrue(result.contains("/etc/profile.d/thothterm-ubuntu.sh"));
+        assertTrue(result.contains("/etc/profile.d/thothterm-garden.sh"));
         assertFalse(result.contains("thoth@android"));
     }
 
