@@ -69,7 +69,7 @@ tarball: `talloc.c` sha256 `eeefb4b7545b7411d2fd0d7fdce4a2f0c3ebdb2153215dd1494e
 
 #### Local modifications
 
-Two patches, kept in `term-ubuntu/patches/` and applied in filename order:
+Five patches, kept in `term-ubuntu/patches/` and applied in filename order:
 
 | Patch | Applies to | What it does |
 |---|---|---|
@@ -78,6 +78,7 @@ Two patches, kept in `term-ubuntu/patches/` and applied in filename order:
 
 | `0003-link2symlink-name-proc-self-exe-after-the-faked-hard-link.patch` | `third_party/proot` | Makes `/proc/self/exe` name the hard link a program was started through, not link2symlink's hidden `.l2s.*` backing file, as Linux does. Ubuntu's rust-coreutils refuses to run otherwise, which broke every coreutils command after `apt full-upgrade`. See `docs/garden/HARDLINK_EXECUTABLES.md`. |
 | `0004-hang-up-the-session-on-command-exit-and-never-outlive-proot.patch` | `third_party/proot` | Adds `--hangup-on-exit`. When the main command exits, remaining tracees in proot's session get SIGHUP and SIGCONT, as on a terminal hangup, so nohup'd jobs survive. It also sets `PTRACE_O_EXITKILL`, so tracees never outlive proot. See `docs/garden/SESSION_LIFECYCLE.md`. |
+| `0005-keep-the-kernel-working-directory-in-step-with-the-guest.patch` | `third_party/proot` | `chdir(2)` and `fchdir(2)` are no longer only emulated: the kernel changes directory too, to the host path PRoot resolved, and PRoot records the guest path only if the kernel's change succeeded. The first tracee starts in the host directory behind `--cwd`. A guest process's `/proc/<pid>/cwd` therefore names its working directory, which is how the app finds a terminal's current directory for uploads. See `docs/garden/UPLOADS.md`. |
 
 No other upstream source is modified. `libandroid-shmem` is built unpatched,
 with `_PATH_TMP` defined at compile time to the app's runtime scratch directory.

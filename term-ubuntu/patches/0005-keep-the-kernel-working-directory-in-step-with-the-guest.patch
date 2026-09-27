@@ -1,0 +1,145 @@
+Subject: keep the kernel's working directory in step with the guest's
+
+PRoot emulated chdir(2) and fchdir(2) entirely: it recorded the guest's new
+working directory and voided the system call, so the kernel's working
+directory of every tracee stayed wherever proot had been started. Nothing
+outside PRoot could tell which directory a guest process was in --
+/proc/<pid>/cwd always named the same host directory.
+
+The kernel now changes directory as well, to the host path PRoot resolved
+(chdir) or through the same descriptor (fchdir), and PRoot records the
+guest path only if the kernel's change succeeded, so the two views never
+disagree and a kernel error reaches the tracee unchanged. The first tracee
+also starts in the host directory behind its initial working directory.
+Path translation still uses PRoot's own record, as before.
+
+/proc/<pid>/cwd of a guest process therefore names the host directory
+behind its guest working directory -- the rootfs path followed by the
+guest path, or a binding's host path -- which is how ThothTerm finds the
+current directory of a terminal session for uploads without reading the
+screen or typing into the shell.
+
+Tested natively (tests/proot-runtime/host-test.sh): after cd, pushd/popd,
+a relative cd, cd through a symlink and a subshell's cd, /proc/self/cwd
+names rootfs+guest path and getcwd(3) is unchanged; a failing cd leaves
+both unchanged with the kernel's errno; the first tracee starts in the
+host directory behind --cwd.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92)
+
+diff -ruN proot-d/src/syscall/enter.c proot-e/src/syscall/enter.c
+--- a/src/syscall/enter.c	2026-09-27 17:20:32.632184325 +0300
++++ b/src/syscall/enter.c	2026-09-27 17:20:57.203488595 +0300
+@@ -1886,7 +1886,7 @@
+ 	case PR_fchdir:
+ 	case PR_chdir: {
+ 		struct stat statl;
+-		char *tmp;
++		char host_path[PATH_MAX];
+ 
+ 		/* The ending "." ensures an error will be reported if
+ 		 * path does not exist or if it is not a directory.  */
+@@ -1918,6 +1918,8 @@
+ 		if ((statl.st_mode & S_IXUSR) == 0)
+ 			return -EACCES;
+ 
++		strcpy(host_path, path);
++
+ 		/* Sadly this method doesn't detranslate statefully,
+ 		 * this means that there's an ambiguity when several
+ 		 * bindings are from the same host path:
+@@ -1939,18 +1941,25 @@
+ 		/* Remove the trailing "/" or "/.".  */
+ 		chop_finality(path);
+ 
+-		tmp = talloc_strdup(tracee->fs, path);
+-		if (tmp == NULL) {
++		/* The kernel changes directory too, to the host path, so
++		 * the tracee's /proc/<pid>/cwd names the directory the
++		 * guest is in (see keep_kernel_cwd_in_step in exit.c).
++		 * fchdir(2) already names that directory by its
++		 * descriptor.  */
++		TALLOC_FREE(tracee->pending_cwd);
++		tracee->pending_cwd = talloc_strdup(tracee, path);
++		if (tracee->pending_cwd == NULL) {
+ 			status = -ENOMEM;
+ 			break;
+ 		}
+-		TALLOC_FREE(tracee->fs->cwd);
+-
+-		tracee->fs->cwd = tmp;
+-		talloc_set_name_const(tracee->fs->cwd, "$cwd");
+ 
+-		poke_reg(tracee, SYSARG_RESULT, 0);
+-		set_sysnum(tracee, PR_void);
++		if (syscall_number == PR_chdir) {
++			status = set_sysarg_path(tracee, host_path, SYSARG_1);
++			if (status < 0) {
++				TALLOC_FREE(tracee->pending_cwd);
++				break;
++			}
++		}
+ 		status = 0;
+ 		break;
+ 	}
+diff -ruN proot-d/src/syscall/exit.c proot-e/src/syscall/exit.c
+--- a/src/syscall/exit.c	2026-09-27 17:20:32.632242883 +0300
++++ b/src/syscall/exit.c	2026-09-27 17:20:57.203808885 +0300
+@@ -238,6 +238,21 @@
+ 
+ 	case PR_fchdir:
+ 	case PR_chdir:
++		/* keep_kernel_cwd_in_step: the guest's working directory
++		 * changes only if the kernel's did, so the two never
++		 * disagree and the kernel's error, if any, stands.  */
++		if (tracee->pending_cwd == NULL)
++			goto end;
++		if ((int) syscall_result == 0) {
++			TALLOC_FREE(tracee->fs->cwd);
++			tracee->fs->cwd = talloc_steal(tracee->fs, tracee->pending_cwd);
++			talloc_set_name_const(tracee->fs->cwd, "$cwd");
++			tracee->pending_cwd = NULL;
++		}
++		else
++			TALLOC_FREE(tracee->pending_cwd);
++		goto end;
++
+ 	/* These syscalls are voided in enter.c; make sure the
+ 	 * tracee always sees a 0 return value even on kernels where
+ 	 * the SYSCALL_AVOIDER trick leaks -ENOSYS through.  */
+diff -ruN proot-d/src/tracee/event.c proot-e/src/tracee/event.c
+--- a/src/tracee/event.c	2026-09-27 17:20:32.659287831 +0300
++++ b/src/tracee/event.c	2026-09-27 17:20:57.203937744 +0300
+@@ -114,6 +114,18 @@
+ 		 * system, like container runtimes do.  */
+ 		signal(SIGPIPE, SIG_DFL);
+ 
++		/* Start the guest in the host directory behind its
++		 * initial working directory, so its /proc/<pid>/cwd names
++		 * it from the first instruction on, as every chdir(2)
++		 * keeps it (see enter.c).  Failing that, the kernel's
++		 * directory stays wherever proot was started.  */
++		{
++			char host_cwd[PATH_MAX];
++			if (translate_path(tracee, host_cwd, AT_FDCWD, tracee->fs->cwd, true) < 0
++			    || chdir(host_cwd) < 0)
++				note(tracee, WARNING, SYSTEM, "can't enter the initial working directory");
++		}
++
+ 		/* Declare myself as ptraceable before executing the
+ 		 * requested program. */
+ 		status = ptrace(PTRACE_TRACEME, 0, NULL, NULL);
+diff -ruN proot-d/src/tracee/tracee.h proot-e/src/tracee/tracee.h
+--- a/src/tracee/tracee.h	2026-09-27 17:20:32.659606332 +0300
++++ b/src/tracee/tracee.h	2026-09-27 17:20:57.200657837 +0300
+@@ -100,6 +100,10 @@
+ 	/* Hang up the session when this tracee exits (--hangup-on-exit).  */
+ 	bool hangup_on_exit;
+ 
++	/* Guest working directory of the chdir(2)/fchdir(2) in progress,
++	 * committed to fs->cwd only if the kernel's own change succeeds.  */
++	char *pending_cwd;
++
+ 	/* Parent of this tracee, NULL if none.  */
+ 	struct tracee *parent;
+ 
