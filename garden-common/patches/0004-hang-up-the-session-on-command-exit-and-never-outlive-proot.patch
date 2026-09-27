@@ -1,0 +1,185 @@
+Subject: hang up the session on command exit (--hangup-on-exit), and never outlive proot
+
+Two changes that give a PRoot session the lifecycle of a real terminal.
+
+--hangup-on-exit. With --kill-on-exit, every tracee is SIGKILLed when the
+main command exits, so a nohup'd job can never outlive its terminal window.
+The new option does what the kernel does when a terminal hangs up instead:
+it sends SIGHUP, then SIGCONT, to every remaining tracee still in proot's
+session. proot is the session leader the terminal belongs to. proot then
+points its own stdin, stdout and stderr at /dev/null, so the terminal is
+released once the survivors do not hold it. A process that ignores SIGHUP
+(nohup) or left the session (setsid) keeps running, and proot keeps
+tracing it until it exits, then exits itself. --kill-on-exit is unchanged.
+
+PTRACE_O_EXITKILL. proot never set it, so a proot killed with SIGKILL left
+its tracees running untraced: their paths and syscalls were no longer
+translated, and they escaped any cleanup. The kernel now kills every tracee
+when proot dies. This matters as soon as a nohup'd job may keep a proot
+alive: SIGKILLing that proot (ThothTerm's Exit) must take the job with it.
+
+Tested natively (tests/proot-hardlink-identity/host-test.sh):
+- a background job dies, a nohup'd job and a setsid'd job survive;
+- proot's standard streams become /dev/null;
+- proot exits once the survivors end;
+- without this patch, a SIGKILLed proot left its tracee alive.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92)
+
+diff -ruN proot-b/src/cli/proot.c proot-c/src/cli/proot.c
+--- a/src/cli/proot.c	2026-09-26 08:48:36.014525589 +0300
++++ b/src/cli/proot.c	2026-09-26 17:05:26.937187372 +0300
+@@ -198,6 +198,12 @@
+ 	return 0;
+ }
+ 
++static int handle_option_hangup_on_exit(Tracee *tracee, const Cli *cli UNUSED, const char *value UNUSED)
++{
++	tracee->hangup_on_exit = true;
++	return 0;
++}
++
+ static int handle_option_v(Tracee *tracee, const Cli *cli UNUSED, const char *value)
+ {
+ 	int status;
+diff -ruN proot-b/src/cli/proot.h proot-c/src/cli/proot.h
+--- a/src/cli/proot.h	2026-09-26 08:48:36.015764057 +0300
++++ b/src/cli/proot.h	2026-09-26 17:05:26.936492987 +0300
+@@ -66,6 +66,7 @@
+ #endif /* defined(__ANDROID__) || defined(__BIONIC__) */
+ static int handle_option_sysvipc(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_kill_on_exit(Tracee *tracee, const Cli *cli, const char *value);
++static int handle_option_hangup_on_exit(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_L(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_H(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_p(Tracee *tracee, const Cli *cli, const char *value);
+@@ -164,6 +165,18 @@
+ 	},
+ 	{ .class = "Regular options",
+ 	  .arguments = {
++		{ .name = "--hangup-on-exit", .separator = '\0', .value = NULL },
++		{ .name = NULL, .separator = '\0', .value = NULL } },
++	  .handler = handle_option_hangup_on_exit,
++	  .description = "Hang up the session on command exit, like a terminal.",
++	  .detail = "\tWhen the main command exits, send SIGHUP and SIGCONT to every\n\
++\tremaining tracee still in proot's session, as the kernel does when a\n\
++\tterminal hangs up, and release proot's own standard streams.  Processes\n\
++\tthat ignore SIGHUP (nohup) or left the session (setsid) keep running,\n\
++\tand proot keeps tracing them until they exit.",
++	},
++	{ .class = "Regular options",
++	  .arguments = {
+ 		{ .name = "-v", .separator = ' ', .value = "value" },
+ 		{ .name = "--verbose", .separator = '=', .value = "value" },
+ 		{ .name = NULL, .separator = '\0', .value = NULL } },
+diff -ruN proot-b/src/tracee/event.c proot-c/src/tracee/event.c
+--- a/src/tracee/event.c	2026-09-26 08:48:36.049678663 +0300
++++ b/src/tracee/event.c	2026-09-26 17:05:26.939408245 +0300
+@@ -37,6 +37,10 @@
+ #include <inttypes.h>   /* PRI*, */
+ 
+ #include "tracee/event.h"
++
++#ifndef PTRACE_O_EXITKILL
++#define PTRACE_O_EXITKILL (1 << 20)
++#endif
+ #include "tracee/seccomp.h"
+ #include "tracee/mem.h"
+ #include "cli/note.h"
+@@ -507,7 +511,11 @@
+ 				PTRACE_O_TRACEVFORKDONE	|
+ 				PTRACE_O_TRACEEXEC	|
+ 				PTRACE_O_TRACECLONE	|
+-				PTRACE_O_TRACEEXIT);
++				PTRACE_O_TRACEEXIT	|
++				/* Tracees must not outlive proot: untraced,
++				 * their paths and syscalls would no longer be
++				 * translated.  */
++				PTRACE_O_EXITKILL);
+ 
+ 			/* Distinguish some events from others and
+ 			 * automatically trace each new process with
+diff -ruN proot-b/src/tracee/tracee.c proot-c/src/tracee/tracee.c
+--- a/src/tracee/tracee.c	2026-09-26 08:48:36.050508723 +0300
++++ b/src/tracee/tracee.c	2026-09-26 17:05:26.938882826 +0300
+@@ -32,6 +32,8 @@
+ #include <sys/ptrace.h> /* ptrace(2), PTRACE_*, */
+ #include <errno.h>      /* E*, */
+ #include <inttypes.h>   /* PRI*, */
++#include <fcntl.h>      /* open(2), O_RDWR, */
++#include <unistd.h>     /* getsid(2), dup2(2), close(2), */
+ 
+ #include "tracee/tracee.h"
+ #include "tracee/reg.h"
+@@ -355,6 +357,10 @@
+ 		VERBOSE(tracee, 1, "terminating all tracees on exit");
+ 		kill_all_tracees();
+ 	}
++	else if (tracee->hangup_on_exit) {
++		VERBOSE(tracee, 1, "hanging up the session on exit");
++		hangup_all_tracees(tracee);
++	}
+ }
+ 
+ /**
+@@ -700,6 +706,39 @@
+ 		kill(tracee->pid, SIGKILL);
+ }
+ 
++/**
++ * What a terminal hangup does when the window's command exits: SIGHUP,
++ * then SIGCONT so stopped jobs act on it, to every tracee still in
++ * proot's session -- proot is the session leader the terminal was given
++ * to.  A process that ignores SIGHUP (nohup) or left the session (setsid)
++ * keeps running, and proot keeps tracing it.  proot then lets go of the
++ * terminal, so it is released as soon as the survivors do not hold it.
++ */
++void hangup_all_tracees(const Tracee *exited)
++{
++	Tracee *tracee;
++	pid_t session = getsid(0);
++	int null_fd;
++
++	LIST_FOREACH(tracee, &tracees, link) {
++		if (tracee == exited || tracee->terminated)
++			continue;
++		if (getsid(tracee->pid) != session)
++			continue;
++		kill(tracee->pid, SIGHUP);
++		kill(tracee->pid, SIGCONT);
++	}
++
++	null_fd = open("/dev/null", O_RDWR);
++	if (null_fd >= 0) {
++		(void) dup2(null_fd, STDIN_FILENO);
++		(void) dup2(null_fd, STDOUT_FILENO);
++		(void) dup2(null_fd, STDERR_FILENO);
++		if (null_fd > STDERR_FILENO)
++			(void) close(null_fd);
++	}
++}
++
+ Tracees *get_tracees_list_head() {
+ 	return &tracees;
+ }
+diff -ruN proot-b/src/tracee/tracee.h proot-c/src/tracee/tracee.h
+--- a/src/tracee/tracee.h	2026-09-26 08:48:36.050606402 +0300
++++ b/src/tracee/tracee.h	2026-09-26 17:05:26.937783874 +0300
+@@ -97,6 +97,9 @@
+ 	 * of all tracees. */
+ 	bool killall_on_exit;
+ 
++	/* Hang up the session when this tracee exits (--hangup-on-exit).  */
++	bool hangup_on_exit;
++
+ 	/* Parent of this tracee, NULL if none.  */
+ 	struct tracee *parent;
+ 
+@@ -406,6 +409,7 @@
+ extern void free_terminated_tracees();
+ extern int swap_config(Tracee *tracee1, Tracee *tracee2);
+ extern void kill_all_tracees();
++extern void hangup_all_tracees(const Tracee *exited);
+ 
+ typedef LIST_HEAD(tracees, tracee) Tracees;
+ extern Tracees *get_tracees_list_head();

@@ -1,0 +1,77 @@
+Subject: loader-info: generate without host binutils or gawk
+
+The rule that produces loader/loader-info.c shells out to a bare `readelf`
+and feeds it to an awk script that uses two GNU awk extensions, strtonum()
+and the \y word boundary. Both assumptions hold on a normal Linux developer
+machine and neither holds on the F-Droid buildserver image, which ships no
+host binutils at all and whose awk is mawk:
+
+    /bin/sh: 1: readelf: not found
+    awk: loader/loader-info.awk: line 9: function strtonum never defined
+    make: *** [GNUmakefile:246: loader/loader-info.c] Error 2
+
+This is not cosmetic. offset_to_pokedata_workaround is read by
+tracee/mem.c, so a silently empty awk run would compute the offset from two
+unset variables and yield 0.
+
+The rule now uses $(READELF), defaulting to $(CROSS_COMPILE)readelf so the
+existing behaviour is unchanged, which lets a cross build pass the NDK's
+llvm-readelf. The awk script is rewritten in POSIX awk with a local hex
+conversion helper and exact field matches on the symbol name.
+
+Verified to produce the identical value (1028) for the same arm64 loader in
+all four combinations: GNU readelf or llvm-readelf, crossed with gawk or
+mawk.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92)
+Scope: build-time code generation only; no change to what is compiled.
+
+diff --git a/src/GNUmakefile b/src/GNUmakefile
+index 5ade279..9d80a96 100644
+--- a/src/GNUmakefile
++++ b/src/GNUmakefile
+@@ -13,6 +13,7 @@ LD       = $(CC)
+ STRIP    ?= $(CROSS_COMPILE)strip
+ OBJCOPY  ?= $(CROSS_COMPILE)objcopy
+ OBJDUMP  ?= $(CROSS_COMPILE)objdump
++READELF  ?= $(CROSS_COMPILE)readelf
+ 
+ CPPFLAGS += -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -I. -I$(VPATH)
+ CFLAGS   += -Wall -Wextra -O2
+@@ -243,7 +244,7 @@ $(eval $(call build_loader,-m32))
+ endif
+ 
+ loader/loader-info.c: loader/loader
+-	readelf -s $< | awk -f loader/loader-info.awk > $@
++	$(READELF) -s $< | awk -f loader/loader-info.awk > $@
+ 
+ ######################################################################
+ # Dependencies
+diff --git a/src/loader/loader-info.awk b/src/loader/loader-info.awk
+index 578c843..4bc2e8a 100644
+--- a/src/loader/loader-info.awk
++++ b/src/loader/loader-info.awk
+@@ -1,6 +1,21 @@
+ # Note: This file is included only for targets which have pokedata workaround
+-/\ypokedata_workaround\y/{pokedata_workaround=strtonum("0x" $2)}
+-/\y_start\y/{start=strtonum("0x" $2)}
++#
++# POSIX awk only: mawk and busybox awk are used on build hosts that do not
++# ship gawk, so neither strtonum() nor the \y word boundary can be used here.
++function hex2dec(s,    i, c, d, n) {
++	n = 0
++	s = tolower(s)
++	for (i = 1; i <= length(s); i++) {
++		c = substr(s, i, 1)
++		d = index("0123456789abcdef", c) - 1
++		if (d < 0)
++			return n
++		n = n * 16 + d
++	}
++	return n
++}
++$NF == "pokedata_workaround" {pokedata_workaround = hex2dec($2)}
++$NF == "_start" {start = hex2dec($2)}
+ END {
+ 	print "#include <unistd.h>"
+ 	print "const ssize_t offset_to_pokedata_workaround=" (pokedata_workaround-start) ";"
