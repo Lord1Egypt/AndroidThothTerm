@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app supports API 16; the test libraries start at 21. The device tests
+     only ever run on newer devices, so the test APK alone waives the gap. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-sdk tools:overrideLibrary="androidx.test.uiautomator, androidx.test.runner, androidx.test.core, androidx.test.monitor, androidx.test.services.storage, androidx.test.ext.junit, androidx.tracing" />
+</manifest>

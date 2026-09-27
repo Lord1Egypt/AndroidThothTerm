@@ -43,9 +43,8 @@
     <string name="exit_title">Exit ThothTerm?</string>
     <string name="exit_message">This will close all terminal sessions and stop running commands.</string>
 
-    <string name="enable_wakelock">Keep screen awake</string>
-    <string name="disable_wakelock">Allow screen to sleep</string>
-    <string name="ignore_battery_optimizations">Allow \"%1$s\" to ignore battery optimizations?</string>
+    <string name="enable_keep_screen_on">Keep screen awake</string>
+    <string name="disable_keep_screen_on">Allow screen to sleep</string>
     <string name="enable_wifilock">Keep Wi-Fi on</string>
     <string name="disable_wifilock">Allow Wi-Fi to sleep</string>
 

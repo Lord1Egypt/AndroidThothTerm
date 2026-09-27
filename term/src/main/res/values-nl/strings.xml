@@ -27,8 +27,8 @@
     <string name="reset">Herstellen</string>
     <string name="toggle_soft_keyboard">Toetsenbord aan/uit</string>
 
-    <string name="enable_wakelock">Slaapblokkering aan</string>
-    <string name="disable_wakelock">Slaapblokkering uit</string>
+    <string name="enable_keep_screen_on">Slaapblokkering aan</string>
+    <string name="disable_keep_screen_on">Slaapblokkering uit</string>
     <string name="enable_wifilock">Wifi-blokkering aan</string>
     <string name="disable_wifilock">Wifi-blokkering uit</string>
 
