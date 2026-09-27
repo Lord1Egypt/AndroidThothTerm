@@ -60,6 +60,39 @@
 
     <string name="enable_keep_screen_on">Keep screen awake</string>
     <string name="disable_keep_screen_on">Allow screen to sleep</string>
+    <string name="keep_screen_on_while_charging_active">Screen awake while charging</string>
+    <string name="title_keep_screen_on_while_charging_preference">Keep screen awake while charging</string>
+    <string name="summary_keep_screen_on_while_charging_preference">While the phone is connected to power, the screen stays on as long as a terminal is in front</string>
+    <string name="upload_files">Upload files</string>
+    <string name="upload_folder">Upload folder</string>
+    <string name="upload_start">Upload</string>
+    <string name="upload_preparing">Reading the selection…</string>
+    <string name="upload_confirm_message">%1$s\n\nUpload to:\n%2$s</string>
+    <string name="upload_confirm_folder">Folder %1$s — %2$s</string>
+    <string name="upload_progress_title">Uploading to %1$s</string>
+    <string name="upload_progress_bytes_of">%1$s of %2$s (%3$d%%)</string>
+    <string name="upload_progress_files">file %1$d of %2$d</string>
+    <string name="upload_done_folder">Uploaded %1$s to %2$s</string>
+    <string name="upload_cancelled">Upload cancelled. Nothing partial was left behind.</string>
+    <string name="upload_busy">Another upload is still running.</string>
+    <string name="upload_failed_title">Upload failed</string>
+    <string name="upload_error_no_directory">Cannot find the current folder of this terminal window.</string>
+    <string name="upload_error_outside">Uploads cannot go to this folder.</string>
+    <string name="upload_error_directory_gone">The current folder no longer exists.</string>
+    <string name="upload_error_not_writable">Cannot upload to this folder.</string>
+    <string name="upload_error_no_space">Not enough storage space.</string>
+    <string name="upload_error_bad_name">A file or folder name cannot be used.</string>
+    <string name="upload_error_bad_name_named">This name cannot be used: %1$s</string>
+    <string name="upload_error_conflict">Could not find a free name to keep both files.</string>
+    <string name="upload_error_io">The upload failed. Nothing partial was left behind.</string>
+    <plurals name="upload_file_count">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <plurals name="upload_done_files">
+        <item quantity="one">Uploaded %1$d file to %2$s</item>
+        <item quantity="other">Uploaded %1$d files to %2$s</item>
+    </plurals>
     <string name="enable_wifilock">Keep Wi-Fi on</string>
     <string name="disable_wifilock">Allow Wi-Fi to sleep</string>
 

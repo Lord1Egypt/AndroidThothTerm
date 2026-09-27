@@ -30,6 +30,10 @@ import java.util.Map;
  * LAN Mode serves a handful of fixed routes to one browser at a time, so
  * anything unusual -- oversized lines, too many headers, a repeated header,
  * chunked bodies -- is refused rather than interpreted.
+ * <p>
+ * An upload's body is the one exception to "small": for the streamed route it
+ * is left unread in the stream, so the request can be refused before a single
+ * byte of it is accepted.
  */
 final class HttpRequest {
     static final int MAX_LINE = 4096;
@@ -51,12 +55,16 @@ final class HttpRequest {
     final String path;
     private final Map<String, String> headers;
     final byte[] body;
+    /** The announced body length of a streamed request, whose body is still in the stream; -1 if none. */
+    final long streamLength;
 
-    private HttpRequest(String method, String path, Map<String, String> headers, byte[] body) {
+    private HttpRequest(String method, String path, Map<String, String> headers, byte[] body,
+                        long streamLength) {
         this.method = method;
         this.path = path;
         this.headers = headers;
         this.body = body;
+        this.streamLength = streamLength;
     }
 
     /** A header value, or null. Names are case-insensitive. */
@@ -76,6 +84,14 @@ final class HttpRequest {
 
     /** Parse one request, or return null if the peer closed before sending one. */
     static HttpRequest read(InputStream in) throws IOException {
+        return read(in, null);
+    }
+
+    /**
+     * As {@link #read(InputStream)}, but a request for {@code streamedPath}
+     * keeps its body, of any length, unread in {@code in}.
+     */
+    static HttpRequest read(InputStream in, String streamedPath) throws IOException {
         String requestLine = readLine(in, true);
         if (requestLine == null) return null;
         String[] parts = requestLine.split(" ", -1);
@@ -107,6 +123,14 @@ final class HttpRequest {
         }
         byte[] body = new byte[0];
         String length = headers.get("content-length");
+        if (path.equals(streamedPath)) {
+            long n = -1;
+            if (length != null) {
+                if (!length.matches("[0-9]{1,18}")) throw new BadRequest(400, "malformed content-length");
+                n = Long.parseLong(length);
+            }
+            return new HttpRequest(method, path, headers, body, n);
+        }
         if (length != null) {
             int n;
             try {
@@ -124,7 +148,7 @@ final class HttpRequest {
                 read += r;
             }
         }
-        return new HttpRequest(method, path, headers, body);
+        return new HttpRequest(method, path, headers, body, -1);
     }
 
     /**

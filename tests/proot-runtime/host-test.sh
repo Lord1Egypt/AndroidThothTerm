@@ -6,6 +6,9 @@
 #  - --hangup-on-exit must hang up the session like a terminal (nohup and
 #    setsid survive), and a SIGKILLed proot must take its tracees with it
 #    (docs/garden/SESSION_LIFECYCLE.md).
+#  - A guest process's /proc/<pid>/cwd, read from the host, must name the host
+#    directory behind its guest working directory after every chdir/fchdir,
+#    and a failed chdir must change neither view (docs/garden/UPLOADS.md).
 #
 # Builds PRoot natively for this Linux host from third_party/proot plus
 # <module>/patches/*.patch -- the same sources the app ships -- and runs
@@ -136,4 +139,77 @@ kill -9 "$PR"
 sleep 0.5
 result "a SIGKILLed proot takes its tracees with it (EXITKILL)" test -n "$TRACED" -a ! -d "/proc/$TRACED"
 kill "$TRACED" 2>/dev/null
+# ------------------------------------------------ working directory in step
+# Seen from outside PRoot, as ThothTerm reads it: /proc/<pid>/cwd of a guest
+# process must be the rootfs path followed by its guest working directory.
+R="$WORK/cwd-rootfs"
+rm -rf "$R"
+mkdir -p "$R/home/thoth/with space/مرحبا" "$R/home/thoth/real" "$R/tmp"
+ln -s real "$R/home/thoth/link"
+BINDS=""
+for dir in /bin /sbin /usr /lib /lib32 /lib64 /libx32 /etc /dev; do
+    [ -e "$dir" ] && BINDS="$BINDS -b $dir"
+done
+cat > "$R/tmp/steps.sh" <<'STEPS'
+report() { # report STEP PID
+    echo "$2|$(pwd -P)" > "/tmp/step.$1.tmp" && mv "/tmp/step.$1.tmp" "/tmp/step.$1"
+    n=0; while [ ! -e "/tmp/ack.$1" ] && [ $n -lt 200 ]; do sleep 0.05; n=$((n+1)); done
+}
+report 1 $$
+cd "with space" && report 2 $$
+cd "مرحبا" && report 3 $$
+cd /home/thoth/link && report 4 $$
+cd /does/not/exist 2>/dev/null; echo "$?" > /tmp/failed-cd; report 5 $$
+sh -c 'cd /tmp && . /tmp/report.sh && report 6 $$'
+report 7 $$
+cd /usr && report 8 $$
+cd - >/dev/null && report 9 $$
+STEPS
+sed -n '/^report()/,/^}/p' "$R/tmp/steps.sh" > "$R/tmp/report.sh"
+PROOT_TMP_DIR="$WORK" "$PROOT" -r "$R" $BINDS -w /home/thoth sh /tmp/steps.sh </dev/null >"$WORK/cwd.out" 2>&1 &
+CWD_PROOT=$!
+step() { # step N GUEST_PHYSICAL HOST_EXPECTED NAME
+    n=0; while [ ! -e "$R/tmp/step.$1" ] && [ $n -lt 100 ]; do sleep 0.05; n=$((n+1)); done
+    line="$(cat "$R/tmp/step.$1" 2>/dev/null)"
+    pid="${line%%|*}"; guest="${line#*|}"
+    host="$(readlink "/proc/$pid/cwd" 2>/dev/null)"
+    if [ -n "$pid" ] && [ "$guest" = "$2" ] && [ "$host" = "$3" ]; then
+        echo "PASS cwd: $4"
+    else
+        echo "FAIL cwd: $4: guest '$guest' (want '$2'), /proc/$pid/cwd '$host' (want '$3')"
+        fail=1
+    fi
+    touch "$R/tmp/ack.$1"
+}
+step 1 /home/thoth                    "$R/home/thoth"                    "the first tracee starts behind --cwd"
+step 2 "/home/thoth/with space"       "$R/home/thoth/with space"         "cd into a name with a space"
+step 3 "/home/thoth/with space/مرحبا" "$R/home/thoth/with space/مرحبا" "relative cd into a Unicode name"
+step 4 /home/thoth/real               "$R/home/thoth/real"               "cd through a symlink lands on its target"
+step 5 /home/thoth/real               "$R/home/thoth/real"               "a failed cd changes neither view"
+step 6 /tmp                           "$R/tmp"                           "a child's cd is its own"
+step 7 /home/thoth/real               "$R/home/thoth/real"               "the parent is unaffected by the child"
+step 8 /usr                           /usr                               "cd into a binding names the binding's host path"
+step 9 /home/thoth/real               "$R/home/thoth/real"               "cd - returns"
+result "cwd: the failed cd reported an error to the guest" test "$(cat "$R/tmp/failed-cd" 2>/dev/null)" != 0
+wait "$CWD_PROOT" 2>/dev/null
+if command -v python3 >/dev/null 2>&1; then
+    PROOT_TMP_DIR="$WORK" "$PROOT" -r "$R" $BINDS -w / python3 -c '
+import os, time
+fd = os.open("/home/thoth/with space", os.O_RDONLY | os.O_DIRECTORY)
+os.fchdir(fd)
+with open("/tmp/fchdir.tmp", "w") as f:
+    f.write("%d|%s" % (os.getpid(), os.getcwd()))
+os.rename("/tmp/fchdir.tmp", "/tmp/fchdir")
+time.sleep(1.5)
+' </dev/null >/dev/null 2>&1 &
+    FPROOT=$!
+    n=0; while [ ! -e "$R/tmp/fchdir" ] && [ $n -lt 100 ]; do sleep 0.05; n=$((n+1)); done
+    line="$(cat "$R/tmp/fchdir" 2>/dev/null)"
+    host="$(readlink "/proc/${line%%|*}/cwd" 2>/dev/null)"
+    result "cwd: fchdir keeps both views in step" \
+        test "${line#*|}" = "/home/thoth/with space" -a "$host" = "$R/home/thoth/with space"
+    wait "$FPROOT" 2>/dev/null
+else
+    echo "SKIP cwd: fchdir (no python3 on this host)"
+fi
 exit $fail

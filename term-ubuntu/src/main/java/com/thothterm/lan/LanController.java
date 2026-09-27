@@ -27,8 +27,17 @@ import android.net.NetworkRequest;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.thothterm.linux.RootfsManager;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
+import com.thothterm.upload.AndroidUploadFs;
+import com.thothterm.upload.LocalUpload;
+import com.thothterm.upload.ProcFiles;
+import com.thothterm.upload.SessionDirectory;
+import com.thothterm.upload.StagingJournal;
+import com.thothterm.upload.UploadError;
+import com.thothterm.upload.UploadFs;
+import com.thothterm.upload.UploadTarget;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -111,9 +120,34 @@ public final class LanController {
                 ThothLog.w(LogCategory.SECURITY, message);
             }
         };
-        mode = new LanMode(UbuntuPty.FACTORY, assets, log, System::currentTimeMillis,
+        LanUploads.Host uploads = new LanUploads.Host() {
+            private final UploadFs fs = new AndroidUploadFs();
+
+            @Override
+            public UploadTarget target(Pty pty) throws UploadError {
+                // The browser terminal's own PRoot session; never a browser-sent path.
+                // A new browser terminal's shell may still be starting: wait for it.
+                return SessionDirectory.resolveWhenReady(ProcFiles.SYSTEM,
+                        SessionDirectory.guestView(RootfsManager.get().prootRootfsPath()), pty.pid(), false,
+                        SHELL_START_MS, Thread::sleep);
+            }
+
+            @Override
+            public UploadFs fs() {
+                return fs;
+            }
+
+            @Override
+            public StagingJournal journal() {
+                return LocalUpload.journal(app);
+            }
+        };
+        mode = new LanMode(UbuntuPty.FACTORY, uploads, assets, log, System::currentTimeMillis,
                 new SecureRandom());
     }
+
+    /** How long an upload waits for a just-opened browser terminal's shell. */
+    private static final long SHELL_START_MS = 5_000;
 
     public static void init(Context context) {
         if (sInstance == null) {
