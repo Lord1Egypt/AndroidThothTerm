@@ -55,6 +55,8 @@ public final class LocalUpload {
     private static final long PROGRESS_INTERVAL_MS = 200;
     /** A folder with more entries than this is refused rather than listed forever. */
     static final int MAX_ENTRIES = 100_000;
+    /** A window opened a moment ago may still be starting its shell. */
+    private static final long SHELL_START_MS = 5_000;
 
     public enum Phase { PREPARING, CONFIRM, RUNNING, DONE, FAILED, CANCELLED }
 
@@ -158,7 +160,8 @@ public final class LocalUpload {
     private void prepareInBackground(List<Uri> sources, SessionDirectory.View view, int leaderPid,
                                      boolean leaderIsShell) {
         try {
-            target = SessionDirectory.resolve(ProcFiles.SYSTEM, view, leaderPid, leaderIsShell);
+            target = SessionDirectory.resolveWhenReady(ProcFiles.SYSTEM, view, leaderPid, leaderIsShell,
+                    SHELL_START_MS, Thread::sleep);
             List<Item> listed = folder ? listTree(sources.get(0)) : listDocuments(sources);
             long total = 0;
             int files = 0;

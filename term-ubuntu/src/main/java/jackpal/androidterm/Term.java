@@ -989,7 +989,9 @@ public class Term extends AppCompatActivity
     private void doToggleKeepScreenOn() {
         if (mScreenAwake.menu() == ScreenAwake.Menu.AWAKE_WHILE_CHARGING) {
             // Only charging keeps it on; the setting is where that changes.
-            doPreferences();
+            startActivity(new Intent(this, TermPreferencesActivity.class)
+                    .putExtra(TermPreferencesActivity.EXTRA_SHOW_PREFERENCE,
+                            ScreenAwake.PREF_WHILE_CHARGING));
             return;
         }
         mScreenAwake.toggleManual();

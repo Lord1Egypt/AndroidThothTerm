@@ -36,6 +36,9 @@ import java.util.Arrays;
  */
 public final class SessionDirectory {
     static final int DEFAULT_UMASK = 022;
+    /** How often {@link #resolveWhenReady} looks again while the guest shell starts. */
+    static final long POLL_MS = 200;
+    private static final String STARTING = "no guest process in front yet";
     private static final String DELETED = " (deleted)";
 
     /** Read access to /proc; tests substitute their own. */
@@ -59,7 +62,37 @@ public final class SessionDirectory {
         String display(String hostDirectory) throws UploadError;
     }
 
+    /** Waiting between attempts; tests substitute their own. */
+    public interface Sleeper {
+        void sleep(long ms) throws InterruptedException;
+    }
+
     private SessionDirectory() {
+    }
+
+    /**
+     * As {@link #resolve}, but a session whose guest shell has not yet taken
+     * the terminal -- PRoot itself still in front, as for a second or two
+     * after a browser terminal opens -- is looked at again until
+     * {@code timeoutMs} has passed.
+     */
+    public static UploadTarget resolveWhenReady(Proc proc, View view, int leader, boolean leaderIsShell,
+                                                long timeoutMs, Sleeper sleeper) throws UploadError {
+        long waited = 0;
+        while (true) {
+            try {
+                return resolve(proc, view, leader, leaderIsShell);
+            } catch (UploadError e) {
+                if (!STARTING.equals(e.getMessage()) || waited >= timeoutMs) throw e;
+            }
+            try {
+                sleeper.sleep(POLL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new UploadError(UploadError.Code.NO_DIRECTORY, "interrupted");
+            }
+            waited += POLL_MS;
+        }
     }
 
     /**
@@ -101,7 +134,7 @@ public final class SessionDirectory {
         }
         if (pid < 0) throw error(UploadError.Code.NO_DIRECTORY, "foreground group is gone");
         if (pid == leader && !leaderIsShell) {
-            throw error(UploadError.Code.NO_DIRECTORY, "no guest process in front");
+            throw error(UploadError.Code.NO_DIRECTORY, STARTING);
         }
 
         String cwd;

@@ -147,6 +147,48 @@ public class SessionDirectoryTest {
     }
 
     @Test
+    public void aShellStillStartingIsWaitedFor() throws Exception {
+        // PRoot is in front until bash takes the terminal a moment later.
+        FakeProc proc = new FakeProc().process(700, "proot", 700, 700, 700, "/");
+        int[] sleeps = {0};
+        UploadTarget t = SessionDirectory.resolveWhenReady(proc, SessionDirectory.guestView(ROOTFS), 700, false,
+                5000, ms -> {
+                    if (++sleeps[0] == 3) {
+                        proc.process(700, "proot", 700, 700, 712, "/")
+                                .process(712, "bash", 712, 700, 712, ROOTFS + "/home/thoth");
+                    }
+                });
+        assertEquals("/home/thoth", t.displayPath);
+        assertEquals(3, sleeps[0]);
+    }
+
+    @Test
+    public void waitingEndsAndOtherFailuresAreNotRetried() {
+        FakeProc starting = new FakeProc().process(700, "proot", 700, 700, 700, "/");
+        int[] sleeps = {0};
+        try {
+            SessionDirectory.resolveWhenReady(starting, SessionDirectory.guestView(ROOTFS), 700, false, 1000,
+                    ms -> ++sleeps[0]);
+            fail("resolved a session whose shell never started");
+        } catch (UploadError e) {
+            assertEquals(UploadError.Code.NO_DIRECTORY, e.code);
+        }
+        assertEquals(5, sleeps[0]);
+        FakeProc outside = new FakeProc()
+                .process(700, "proot", 700, 700, 712, "/")
+                .process(712, "bash", 712, 700, 712, "/proc");
+        sleeps[0] = 0;
+        try {
+            SessionDirectory.resolveWhenReady(outside, SessionDirectory.guestView(ROOTFS), 700, false, 1000,
+                    ms -> ++sleeps[0]);
+            fail("resolved /proc");
+        } catch (UploadError e) {
+            assertEquals(UploadError.Code.OUTSIDE, e.code);
+        }
+        assertEquals(0, sleeps[0]);
+    }
+
+    @Test
     public void aDeletedDirectoryIsReported() {
         FakeProc proc = new FakeProc().process(500, "sh", 500, 500, 500, "/data/x/gone (deleted)");
         expect(proc, SessionDirectory.hostView(), 500, true, UploadError.Code.DIRECTORY_GONE);

@@ -126,8 +126,10 @@ public final class LanController {
             @Override
             public UploadTarget target(Pty pty) throws UploadError {
                 // The browser terminal's own PRoot session; never a browser-sent path.
-                return SessionDirectory.resolve(ProcFiles.SYSTEM,
-                        SessionDirectory.guestView(RootfsManager.get().prootRootfsPath()), pty.pid(), false);
+                // A new browser terminal's shell may still be starting: wait for it.
+                return SessionDirectory.resolveWhenReady(ProcFiles.SYSTEM,
+                        SessionDirectory.guestView(RootfsManager.get().prootRootfsPath()), pty.pid(), false,
+                        SHELL_START_MS, Thread::sleep);
             }
 
             @Override
@@ -143,6 +145,9 @@ public final class LanController {
         mode = new LanMode(UbuntuPty.FACTORY, uploads, assets, log, System::currentTimeMillis,
                 new SecureRandom());
     }
+
+    /** How long an upload waits for a just-opened browser terminal's shell. */
+    private static final long SHELL_START_MS = 5_000;
 
     public static void init(Context context) {
         if (sInstance == null) {
