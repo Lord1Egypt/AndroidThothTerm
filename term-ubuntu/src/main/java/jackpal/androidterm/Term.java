@@ -62,8 +62,8 @@ import com.thothterm.logging.ThothLog;
 import com.thothterm.remote.CommandCollector;
 import com.thothterm.services.ServiceManager;
 import com.thothterm.utils.ConsoleStartupScript;
+import com.thothterm.utils.ScreenAwake;
 import com.thothterm.utils.SimpleClipboardManager;
-import com.thothterm.utils.WakeLock;
 import com.thothterm.utils.WifiLock;
 import com.thothterm.utils.WrapOpenURL;
 import com.thothterm.widget.ScreenMessage;
@@ -262,7 +262,7 @@ public class Term extends AppCompatActivity
 
         service_manager.onCreate(this);
 
-        WakeLock.create(this);
+        ScreenAwake.restore(getWindow(), icicle);
         WifiLock.create(this);
 
         mHaveFullHwKeyboard = checkHaveFullHwKeyboard(getResources().getConfiguration());
@@ -335,7 +335,12 @@ public class Term extends AppCompatActivity
             service_manager.onDestroy(this);
         mTermService = null;
         WifiLock.release();
-        WakeLock.release();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ScreenAwake.save(getWindow(), outState);
     }
 
     private TermSession createTermSession() throws IOException {
@@ -586,8 +591,8 @@ public class Term extends AppCompatActivity
             doExit();
         } else if (id == R.id.menu_toggle_soft_keyboard) {
             doToggleSoftKeyboard();
-        } else if (id == R.id.menu_toggle_wakelock) {
-            doToggleWakeLock();
+        } else if (id == R.id.menu_toggle_keep_screen_on) {
+            doToggleKeepScreenOn();
         } else if (id == R.id.menu_toggle_wifilock) {
             doToggleWifiLock();
         }
@@ -737,13 +742,9 @@ public class Term extends AppCompatActivity
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem wakeLockItem = menu.findItem(R.id.menu_toggle_wakelock);
+        menu.findItem(R.id.menu_toggle_keep_screen_on)
+                .setTitle(ScreenAwake.menuTitle(ScreenAwake.isOn(getWindow())));
         MenuItem wifiLockItem = menu.findItem(R.id.menu_toggle_wifilock);
-        if (WakeLock.isHeld()) {
-            wakeLockItem.setTitle(R.string.disable_wakelock);
-        } else {
-            wakeLockItem.setTitle(R.string.enable_wakelock);
-        }
         if (WifiLock.isHeld()) {
             wifiLockItem.setTitle(R.string.disable_wifilock);
         } else {
@@ -862,7 +863,6 @@ public class Term extends AppCompatActivity
         ThothLog.i(LogCategory.APP, "Exit requested; shutting down all sessions");
 
         WifiLock.release();
-        WakeLock.release();
 
         // Browser terminals too: shutdownAll() turns LAN Mode off, and their
         // proot groups get the same final sweep as the phone's windows.
@@ -946,8 +946,8 @@ public class Term extends AppCompatActivity
         SoftInputCompat.toggle(view);
     }
 
-    private void doToggleWakeLock() {
-        WakeLock.toggle(this);
+    private void doToggleKeepScreenOn() {
+        ScreenAwake.toggle(getWindow());
         invalidateOptionsMenu();
     }
 

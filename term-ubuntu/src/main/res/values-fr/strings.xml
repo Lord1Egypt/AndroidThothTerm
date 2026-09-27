@@ -62,8 +62,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <string name="reset_toast_notification">État de cette fenêtre par défaut.</string>
 
-    <string name="enable_wakelock">Bloquer la mise en veille</string>
-    <string name="disable_wakelock">Débloquer la mise en veille</string>
+    <string name="enable_keep_screen_on">Bloquer la mise en veille</string>
+    <string name="disable_keep_screen_on">Débloquer la mise en veille</string>
     <string name="enable_wifilock">Bloquer le WiFi</string>
     <string name="disable_wifilock">Débloquer le WiFi</string>
 

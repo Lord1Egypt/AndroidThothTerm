@@ -21,8 +21,6 @@
     <string name="reset">結束</string>
     <string name="toggle_soft_keyboard">顯示／隱藏鍵盤</string>
 
-    <string name="enable_wakelock">使用喚醒鎖定</string>
-    <string name="disable_wakelock">解除喚醒鎖定</string>
     <string name="enable_wifilock">使用 WiFi 鎖定</string>
     <string name="disable_wifilock">解除 WiFi 鎖定</string>
 

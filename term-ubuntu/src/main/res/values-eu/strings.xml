@@ -28,8 +28,6 @@
 
     <string name="reset_toast_notification">-Terminal leiho honen egoera berrezarri da.</string>
 
-    <string name="enable_wakelock">Gaitu WakeLock</string>
-    <string name="disable_wakelock">Desgaitu WakeLock</string>
     <string name="enable_wifilock">Gaitu WifiLock</string>
     <string name="disable_wifilock">Desgaitu WifiLock</string>
 
