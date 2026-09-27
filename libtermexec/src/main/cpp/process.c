@@ -29,7 +29,12 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/ioctl.h>
+#include <sys/syscall.h>
 #include <wait.h>
+
+#ifndef RENAME_NOREPLACE
+# define RENAME_NOREPLACE (1 << 0)
+#endif
 
 int android_grantpt(int fd);
 
@@ -281,13 +286,38 @@ process_kill_childs(
 }
 
 
+static jint
+process_rename_no_replace(
+        JNIEnv *env, jobject clazz,
+        jbyteArray from, jbyteArray to
+) {
+    char *old_path, *new_path;
+    jint result = 0;
+
+    (void) clazz;
+
+    old_path = dup_jbyteArray(env, from);
+    new_path = dup_jbyteArray(env, to);
+    if (old_path == NULL || new_path == NULL)
+        result = ENOMEM;
+    /* Called directly: bionic has no renameat2() wrapper before API 30. */
+    else if (syscall(__NR_renameat2, AT_FDCWD, old_path, AT_FDCWD, new_path,
+                     RENAME_NOREPLACE) != 0)
+        result = errno;
+    free(old_path);
+    free(new_path);
+    return result;
+}
+
+
 int
 register_process(JNIEnv *env) {
     static JNINativeMethod methods[] = {
             {"createSubprocess", "(I[B[[B[[B[B)I", (void *) jprocess_create_subprocess},
             {"waitExit",         "(I)I",         (void *) process_wait_exit},
             {"finishChilds",     "(I)V",         (void *) process_finish_childs},
-            {"killChilds",       "(I)V",         (void *) process_kill_childs}
+            {"killChilds",       "(I)V",         (void *) process_kill_childs},
+            {"renameNoReplace",  "([B[B)I",      (void *) process_rename_no_replace}
     };
     return register_native(
             env,
