@@ -373,6 +373,11 @@ public class Term extends AppCompatActivity
     private TermView createEmulatorView(TermSession session) {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         TermView emulatorView = new TermView(this, session, metrics);
+        // The terminal keeps focus for typing. Without this, Android draws its
+        // default focus highlight -- a translucent white wash over the whole
+        // terminal -- whenever key input leaves touch mode (a hardware keyboard,
+        // DeX, or adb input), greying out the terminal's own background.
+        emulatorView.setDefaultFocusHighlightEnabled(false);
 
         emulatorView.setExtGestureListener(new EmulatorViewGestureListener(emulatorView));
         emulatorView.setZoomListener(new EmulatorView.ZoomListener() {

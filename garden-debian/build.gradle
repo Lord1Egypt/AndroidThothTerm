@@ -24,6 +24,11 @@ android {
         versionCode 100
         versionName '0.1.0'
 
+        // Drives the real two-finger pinch only a device can produce; run with
+        // `am instrument` against the installed app, never connectedAndroidTest,
+        // which uninstalls it.
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+
         // Garden editions are ARM64 only.
         ndk {
             abiFilters 'arm64-v8a'
@@ -89,6 +94,9 @@ dependencies {
     implementation project(':garden-common')
 
     testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 }
 
 def distroFile = file('src/main/assets/garden/distro.properties')
