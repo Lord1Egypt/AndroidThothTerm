@@ -27,7 +27,6 @@ import android.app.Activity;
 import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.ParcelFileDescriptor;
@@ -56,6 +55,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * "Keep screen awake" against the real window, the real menu and the real
@@ -83,6 +83,7 @@ public class KeepScreenAwakeTest {
     private Context context;
     private String pkg;
     private int uid;
+    private final AtomicInteger batterySettingsStarts = new AtomicInteger();
     private Instrumentation.ActivityMonitor batterySettings;
 
     @Before
@@ -94,10 +95,22 @@ public class KeepScreenAwakeTest {
         uid = context.getApplicationInfo().uid;
 
         // Blocks and counts any attempt to send the user to battery settings.
-        IntentFilter battery = new IntentFilter(
-                Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
-        battery.addAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-        batterySettings = instrumentation.addMonitor(battery, null, true);
+        // Matched by action here, not by an IntentFilter: a filter with
+        // actions also matches every intent without one, which would swallow
+        // the app's own explicit activity starts.
+        batterySettings = new Instrumentation.ActivityMonitor() {
+            @Override
+            public Instrumentation.ActivityResult onStartActivity(Intent intent) {
+                String action = intent.getAction();
+                if (Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS.equals(action)
+                        || Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS.equals(action)) {
+                    batterySettingsStarts.incrementAndGet();
+                    return new Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null);
+                }
+                return null;
+            }
+        };
+        instrumentation.addMonitor(batterySettings);
 
         bringToFront();
         choose(KEEP_WIFI, ALLOW_WIFI_SLEEP, false);
@@ -211,8 +224,9 @@ public class KeepScreenAwakeTest {
     private void bringToFront() throws Exception {
         Intent intent = context.getPackageManager().getLaunchIntentForPackage(pkg);
         assertNotNull("no launch intent for " + pkg, intent);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(intent);
+        // Through the shell: Android blocks an activity start from an app in
+        // the background, which this app is whenever another one is in front.
+        shell("am start -n " + intent.getComponent().flattenToShortString());
         long deadline = SystemClock.uptimeMillis() + LAUNCH_TIMEOUT_MS;
         while (terminal() == null || !device.hasObject(By.res(pkg, "view_flipper"))) {
             assertTrue("terminal did not come to the front",
@@ -278,7 +292,7 @@ public class KeepScreenAwakeTest {
     }
 
     private void assertNoBatteryDetour() {
-        assertEquals("battery settings were opened", 0, batterySettings.getHits());
+        assertEquals("battery settings were opened", 0, batterySettingsStarts.get());
         assertFalse("a battery dialog appeared",
                 device.hasObject(By.textContains("battery")));
         assertEquals(pkg, device.getCurrentPackageName());
