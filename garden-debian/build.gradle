@@ -110,6 +110,12 @@ def buildProot = tasks.register('buildProotRuntime', Exec) {
     environment 'THOTHTERM_JNI_DIR', jniOut
     environment 'THOTHTERM_RUNTIME_ASSETS', assetsOut
     environment 'THOTHTERM_PROOT_BUILD_DIR', new File(gardenDir, 'proot-src')
+    // The NDK AGP resolved for ndkVersion -- from local.properties' sdk.dir as
+    // much as from the environment -- so PRoot and the CMake targets share one
+    // toolchain, and a clean checkout needs no ANDROID_NDK_HOME.
+    doFirst {
+        environment 'ANDROID_NDK_HOME', androidComponents.sdkComponents.ndkDirectory.get().asFile
+    }
     inputs.dir rootProject.file('third_party/proot')
     inputs.dir rootProject.file('third_party/talloc')
     inputs.dir rootProject.file('third_party/libandroid-shmem')
