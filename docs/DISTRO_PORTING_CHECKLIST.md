@@ -135,7 +135,7 @@ in one column per distro; "n/a" needs a written reason.
 | 30 | No crash / ANR | logcat clean across the run | PASS | | | |
 | 31 | Upgrade persistence | home, rootfs, prefs intact | PASS | | | |
 | 32 | Provenance recorded | every binary hashed and licensed | PASS | | | |
-| 33 | Keep screen awake | on: display stays on past 2× the timeout in front; off, or in the background: sleeps at the timeout; no partial wake lock, no battery prompt | | | | |
+| 33 | Keep screen awake | on: display stays on past 2× the timeout in front; off, or in the background: sleeps at the timeout; no partial wake lock, no battery prompt | pending (0.2.1) | | | |
 
 ---
 

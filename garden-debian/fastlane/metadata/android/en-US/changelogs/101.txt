@@ -1,0 +1,3 @@
+Fixed: "Keep screen awake" now really keeps the display on while the terminal is in front. It uses Android's foreground display flag instead of a CPU wake lock and no longer sends you to battery-optimization settings. The screen sleeps normally again after "Allow screen to sleep" or when another app is in front.
+
+Keep Wi-Fi on is unchanged.
