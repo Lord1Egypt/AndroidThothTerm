@@ -27,8 +27,8 @@
     <string name="reset">איפוס המונח</string>
     <string name="toggle_soft_keyboard">מתג מקלדת מסך</string>
     <string name="reset_toast_notification">מצב חלון המסוף אופס.</string>
-    <string name="enable_wakelock">אל תכבה מסך</string>
-    <string name="disable_wakelock">אפשר כיבוי מסך</string>
+    <string name="enable_keep_screen_on">אל תכבה מסך</string>
+    <string name="disable_keep_screen_on">אפשר כיבוי מסך</string>
     <string name="enable_wifilock">אל תכבה WiFi</string>
     <string name="disable_wifilock">אפשר כיבוי WiFi</string>
     <string name="edit_text">ערוך טקסט</string>

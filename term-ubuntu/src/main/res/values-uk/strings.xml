@@ -11,8 +11,6 @@
     <string name="reset">Скинути термінал</string>
     <string name="toggle_soft_keyboard">Екранна клавіатура</string>
     <string name="reset_toast_notification">Термінальний стан цього вікна було скинуто.</string>
-    <string name="enable_wakelock">Ввімкнути WakeLock</string>
-    <string name="disable_wakelock">Вимкнути WakeLock</string>
     <string name="enable_wifilock">Ввімкнути WifiLock</string>
     <string name="disable_wifilock">Вимкнути WifiLock</string>
     <string name="edit_text">Змінити</string>
