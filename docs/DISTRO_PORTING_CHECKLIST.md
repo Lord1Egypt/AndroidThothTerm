@@ -87,6 +87,12 @@ These are engine behaviours; a port only has to confirm nothing regressed.
 - [ ] `START_NOT_STICKY` intact.
 - [ ] Notification permission requested once; refusal does not crash.
 - [ ] Geometry chain intact; `stty size` matches the view at several font sizes.
+- [ ] "Keep screen awake" is garden-common's (`FLAG_KEEP_SCREEN_ON` on the
+      terminal window). The edition brings no `Term`, `ScreenAwake`, wake lock or
+      battery-optimization flow of its own, and its `build.gradle` adds
+      `garden-common/src/editionAndroidTest/java` to its androidTest sources so
+      `KeepScreenAwakeTest` runs against it (`GardenScreenAwakeTest` enforces
+      both).
 
 ---
 
@@ -129,6 +135,7 @@ in one column per distro; "n/a" needs a written reason.
 | 30 | No crash / ANR | logcat clean across the run | PASS | | | |
 | 31 | Upgrade persistence | home, rootfs, prefs intact | PASS | | | |
 | 32 | Provenance recorded | every binary hashed and licensed | PASS | | | |
+| 33 | Keep screen awake | on: display stays on past 2× the timeout in front; off, or in the background: sleeps at the timeout; no partial wake lock, no battery prompt | | | | |
 
 ---
 
@@ -144,5 +151,8 @@ Things a port must **not** do, each learned the hard way:
 - Do not replace, alias or patch an upstream binary to fix its presentation;
   add an optional helper beside it.
 - Do not revert `START_NOT_STICKY` to keep a notification alive.
+- Do not implement "Keep screen awake" with a `PARTIAL_WAKE_LOCK` or a
+  battery-optimization exemption: that keeps the CPU awake and lets the display
+  sleep. Screen awake is the window's `FLAG_KEEP_SCREEN_ON`.
 - Do not reset or re-extract a rootfs, or delete a home directory, without a
   proven invariant that requires it.

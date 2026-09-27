@@ -123,6 +123,33 @@ None is a Debian-specific workaround.
 
 Both extract the same bytes; everything after extraction is the same code.
 
+## Keep screen awake
+
+**Screen awake is not a CPU wake lock.** The menu action sets
+`FLAG_KEEP_SCREEN_ON` on the terminal's window (`com.thothterm.utils.ScreenAwake`)
+and clears it again; nothing else.
+
+- Android honours the flag only while the window is visible. A terminal in the
+  background never holds the display on, and returning to it needs no code: the
+  window still carries the flag.
+- The window flag is the only state, so the menu label is read from it and can
+  never disagree with it. The choice lives as long as the activity: it is saved
+  across recreation, and a new launch, including the one after Exit, starts
+  with it off.
+- No permission, no `PowerManager` wake lock and no battery-optimization
+  exemption are involved. Up to ubuntu-v0.2.0 and trixie-v0.1.0 the action took
+  a `PARTIAL_WAKE_LOCK` and offered battery settings; that kept the CPU running
+  while the display still slept at the normal timeout.
+- Keep Wi-Fi on is a separate `WifiLock` and keeps the `WAKE_LOCK` permission it
+  needs.
+
+Every edition inherits this from garden-common's `Term` and runs
+`garden-common/src/editionAndroidTest/java/com/thothterm/KeepScreenAwakeTest.java`
+on the device, which checks the real window flag and WindowManager's display
+hold in `dumpsys power`. `GardenScreenAwakeTest` fails the build of any edition
+that brings its own implementation, a wake lock or a battery flow, or leaves
+the device test out.
+
 ## minSdk 26, arm64 only
 
 PRoot and its runtime are compiled for `aarch64-linux-android26`, and

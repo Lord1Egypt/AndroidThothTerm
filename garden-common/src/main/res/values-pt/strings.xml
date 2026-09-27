@@ -28,8 +28,6 @@
 
     <string name="reset_toast_notification">O estado desta janela foi restaurado.</string>
 
-    <string name="enable_wakelock">Obter WakeLock</string>
-    <string name="disable_wakelock">Largar WakeLock</string>
     <string name="enable_wifilock">Obter WifiLock</string>
     <string name="disable_wifilock">Largar WifiLock</string>
 

@@ -28,8 +28,6 @@
 
     <string name="reset_toast_notification">Ventana de terminal reiniciada.</string>
 
-    <string name="enable_wakelock">Activar WakeLock</string>
-    <string name="disable_wakelock">Desactivar WakeLock</string>
     <string name="enable_wifilock">Activar WifiLock</string>
     <string name="disable_wifilock">Desactivar WifiLock</string>
 

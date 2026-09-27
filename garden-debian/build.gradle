@@ -24,9 +24,9 @@ android {
         versionCode 100
         versionName '0.1.0'
 
-        // Drives the real two-finger pinch only a device can produce; run with
-        // `am instrument` against the installed app, never connectedAndroidTest,
-        // which uninstalls it.
+        // Device tests (the pinch gesture and garden-common's shared tests);
+        // run with `am instrument` against the installed app, never
+        // connectedAndroidTest, which uninstalls it.
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
 
         // Garden editions are ARM64 only.
@@ -73,6 +73,10 @@ android {
         }
         full {
             assets.srcDirs += "$buildDir/garden/rootfs-assets"
+        }
+        // garden-common's device tests, which every edition runs.
+        androidTest {
+            java.srcDirs += rootProject.file('garden-common/src/editionAndroidTest/java')
         }
     }
     androidResources {

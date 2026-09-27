@@ -29,9 +29,6 @@
 
     <string name="reset_toast_notification">Stan tego okna terminala został zresetowany</string>
 
-    <string name="enable_wakelock">Weź WakeLock</string>
-    <string name="disable_wakelock">Zwolnij WakeLock</string>
-    <string name="ignore_battery_optimizations">Pozwolić \"%1$s\" na ignorowanie optymalizacji baterii?</string>
     <string name="enable_wifilock">Weź WifiLock</string>
     <string name="disable_wifilock">Zwolnij WifiLock</string>
 

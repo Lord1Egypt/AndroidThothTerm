@@ -28,8 +28,6 @@
 
     <string name="reset_toast_notification">이 창의 터미널 상태를 초기화하였습니다.</string>
 
-    <string name="enable_wakelock">WakeLock 활성화</string>
-    <string name="disable_wakelock">WakeLock 해제</string>
     <string name="enable_wifilock">Wi-Fi 잠금 활성화</string>
     <string name="disable_wifilock">Wi-Fi 잠금 해제</string>
 

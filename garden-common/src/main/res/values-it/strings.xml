@@ -28,8 +28,6 @@
 
     <string name="reset_toast_notification">Lo stato di questa finestra terminale è stato resettato.</string>
 
-    <string name="enable_wakelock">Attiva WakeLock</string>
-    <string name="disable_wakelock">Disattiva WakeLock</string>
     <string name="enable_wifilock">Attiva WifiLock</string>
     <string name="disable_wifilock">Disattiva WifiLock</string>
 

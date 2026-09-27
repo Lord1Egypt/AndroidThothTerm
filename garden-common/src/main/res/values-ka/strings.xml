@@ -28,8 +28,6 @@
 
     <string name="reset_toast_notification">ამ ტერმინალის მდგომარეობა საწყისზე დაბრუნდა.</string>
 
-    <string name="enable_wakelock">WakeLock-ის ჩართვა</string>
-    <string name="disable_wakelock">WakeLock-ის გამორთვა</string>
     <string name="enable_wifilock">WifiLock-ის ჩართვა</string>
     <string name="disable_wifilock">WifiLock-ის გამორთვა</string>
 

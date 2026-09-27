@@ -28,8 +28,6 @@
 
     <string name="reset_toast_notification">Стање терминала овог прозора је поново постављено.</string>
 
-    <string name="enable_wakelock">Узми блокаду буђења</string>
-    <string name="disable_wakelock">Отпусти блокаду буђења</string>
     <string name="enable_wifilock">Узми блокаду бежичног</string>
     <string name="disable_wifilock">Отпусти блокаду бежичног</string>
 

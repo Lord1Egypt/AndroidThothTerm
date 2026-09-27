@@ -61,9 +61,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <string name="reset_toast_notification">Zustand dieses Terminalfensters wurde zurückgesetzt</string>
 
-    <string name="enable_wakelock">Bildschirm nie abschalten</string>
-    <string name="disable_wakelock">Bildschirm-Abschaltung erlauben</string>
-    <string name="ignore_battery_optimizations">%1$s erlauben, die Akku-Optimierung zu ignorieren?</string>
+    <string name="enable_keep_screen_on">Bildschirm nie abschalten</string>
+    <string name="disable_keep_screen_on">Bildschirm-Abschaltung erlauben</string>
     <string name="enable_wifilock">WLAN nie abschalten</string>
     <string name="disable_wifilock">WLAN-Abschaltung erlauben</string>
 

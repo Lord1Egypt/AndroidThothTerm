@@ -28,8 +28,8 @@
 
     <string name="reset_toast_notification">Stav terminálu pre toto okno bol obnovený.</string>
 
-    <string name="enable_wakelock">Zabrániť uspaniu</string>
-    <string name="disable_wakelock">Povoliť uspanie</string>
+    <string name="enable_keep_screen_on">Zabrániť uspaniu</string>
+    <string name="disable_keep_screen_on">Povoliť uspanie</string>
     <string name="enable_wifilock">Zabrániť odpojeniu Wi-Fi</string>
     <string name="disable_wifilock">Povoliť odpojenie Wi-Fi</string>
 

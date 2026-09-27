@@ -11,8 +11,6 @@
 
     <string name="reset_toast_notification">Терминал перезапущен</string>
 
-    <string name="enable_wakelock">Включить WakeLock</string>
-    <string name="disable_wakelock">Выключить WakeLock</string>
 
     <string name="enable_wifilock">Включить WifiLock</string>
     <string name="disable_wifilock">Выключить WifiLock</string>
