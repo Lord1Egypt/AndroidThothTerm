@@ -1,6 +1,7 @@
-ThothTerm Debian gives your phone a Debian 13 "trixie" system for ARM64 and a
-terminal to work in it. There is no root, no virtual machine and no server
-somewhere else: the Debian userland runs on the phone itself, inside the app.
+ThothTerm Trixie is an independent Android application that provides a Debian
+GNU/Linux 13 (trixie) userspace under PRoot, and a terminal to work in it.
+There is no root, no virtual machine and no server somewhere else: the Debian
+userland runs on the phone itself, inside the app.
 
 The Debian side is ordinary Debian. apt and dpkg install from Debian's own
 archives (trixie, trixie-updates and trixie-security), sudo is Debian's sudo,
@@ -46,7 +47,7 @@ Requirements
 * About 185 MB for Debian right after setup (measured on a phone), plus
   what apt's package lists and the software you install add
 
-ThothTerm Debian is an independent application and is not affiliated with or
+ThothTerm Trixie is an independent application and is not affiliated with or
 endorsed by the Debian Project. Debian is a registered trademark owned by
 Software in the Public Interest, Inc.
 

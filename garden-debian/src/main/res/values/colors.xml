@@ -15,7 +15,7 @@
  * limitations under the License.
 -->
 
-<!-- ThothTerm Debian's app chrome, from the approved Debian sheet; the same
+<!-- ThothTerm Trixie's app chrome, from the approved Debian sheet; the same
      values as assets/garden/palette.properties where the roles meet
      (DebianPaletteTest). Sampling: docs/branding/debian/PALETTE.md. -->
 <resources>

@@ -1,5 +1,5 @@
 #!/bin/sh
-# ThothTerm Debian package-manager golden gate, on disposable rootfs copies.
+# ThothTerm Trixie package-manager golden gate, on disposable rootfs copies.
 # Runs as the adb shell user under /data/local/tmp/gd with the edition's own
 # PRoot build; the app and its data are never touched.
 #

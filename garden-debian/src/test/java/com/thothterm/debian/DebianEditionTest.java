@@ -48,7 +48,7 @@ public class DebianEditionTest {
     @Test
     public void identity() throws Exception {
         DistroInfo d = distro();
-        assertEquals("ThothTerm Debian", d.editionName());
+        assertEquals("ThothTerm Trixie", d.editionName());
         assertEquals("Debian", d.distroName());
         // The major release and codename only: the point release changes with
         // every apt upgrade, and the welcome banner reads it from the guest.
@@ -84,7 +84,7 @@ public class DebianEditionTest {
     public void theRootfsTagIsNotAnAppReleaseTag() throws Exception {
         Matcher m = Pattern.compile("/releases/download/([^/]+)/").matcher(distro().sourceUrl());
         assertTrue(m.find());
-        assertFalse(m.group(1).matches("^debian-v[0-9.]+$"));
+        assertFalse(m.group(1).matches("^trixie-v[0-9.]+$"));
     }
 
     /** A rootfs build recorded next to the source must agree with the pin. */
@@ -123,7 +123,7 @@ public class DebianEditionTest {
                 "garden-common/src/main/res/values/strings_lan.xml")));
         for (String key : EDITION_STRINGS) {
             assertTrue("garden-common no longer defines " + key, common.containsKey(key));
-            assertTrue("ThothTerm Debian must override " + key, own.containsKey(key));
+            assertTrue("ThothTerm Trixie must override " + key, own.containsKey(key));
         }
         for (java.util.Map.Entry<String, String> e : own.entrySet()) {
             assertFalse(e.getKey() + " names another edition", e.getValue().contains("Ubuntu"));
@@ -132,8 +132,8 @@ public class DebianEditionTest {
         for (String arg : new String[]{"%1$s", "%2$d", "%3$s"}) {
             assertTrue("consent text lost " + arg, consent.contains(arg));
         }
-        assertEquals("ThothTerm Debian", own.get("application_terminal"));
-        assertEquals("ThothTerm Debian is running", own.get("service_notify_text"));
+        assertEquals("ThothTerm Trixie", own.get("application_terminal"));
+        assertEquals("ThothTerm Trixie is running", own.get("service_notify_text"));
         assertTrue(own.get("about_notice").contains(
                 "not affiliated with or endorsed by the Debian Project"));
     }

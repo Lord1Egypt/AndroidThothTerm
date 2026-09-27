@@ -30,12 +30,12 @@ public class PageBrandingTest {
     @Test
     public void namesTheEditionEverywhereThePageAsks() throws Exception {
         byte[] page = Files.readAllBytes(new File("src/main/assets/lan/index.html").toPath());
-        String html = new String(PageBranding.apply(page, "ThothTerm Debian"), StandardCharsets.UTF_8);
+        String html = new String(PageBranding.apply(page, "ThothTerm Trixie"), StandardCharsets.UTF_8);
 
         assertFalse(html.contains(PageBranding.PLACEHOLDER));
         assertFalse("the shared page must not name a distribution",
                 new String(page, StandardCharsets.UTF_8).matches("(?s).*(Ubuntu|Debian).*"));
-        assertEquals(2, html.split("ThothTerm Debian", -1).length - 1);
+        assertEquals(2, html.split("ThothTerm Trixie", -1).length - 1);
     }
 
     @Test

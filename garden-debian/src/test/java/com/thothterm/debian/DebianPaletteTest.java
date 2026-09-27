@@ -40,7 +40,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** ThothTerm Debian's own colours, from its approved sheet, everywhere ThothTerm draws. */
+/** ThothTerm Trixie's own colours, from its approved sheet, everywhere ThothTerm draws. */
 public class DebianPaletteTest {
     /** The xterm-256 colours ThothTerm Ubuntu's banner and prompt use. */
     private static final Set<Integer> UBUNTU = new HashSet<>(Arrays.asList(214, 44, 252, 246, 39));
@@ -90,7 +90,7 @@ public class DebianPaletteTest {
         Map<String, String> own = colors(new File(DebianEditionTest.moduleDir(), "src/main/res/values/colors.xml"));
         assertTrue(common.size() >= 11);
         for (String name : common.keySet()) {
-            assertTrue("ThothTerm Debian must set " + name, own.containsKey(name));
+            assertTrue("ThothTerm Trixie must set " + name, own.containsKey(name));
             assertFalse(name + " is still garden-common's grey", own.get(name).equals(common.get(name)));
         }
         GardenPalette d = palette();
@@ -120,7 +120,7 @@ public class DebianPaletteTest {
         File root = Files.createTempDirectory("debian-guest").toFile();
         File managed = new File(root, "etc/thothterm");
         assertTrue(managed.mkdirs());
-        Files.write(new File(managed, "edition").toPath(), "ThothTerm Debian\n".getBytes(StandardCharsets.UTF_8));
+        Files.write(new File(managed, "edition").toPath(), "ThothTerm Trixie\n".getBytes(StandardCharsets.UTF_8));
         Files.write(new File(managed, "palette").toPath(), palette().guestFile().getBytes(StandardCharsets.UTF_8));
         Files.write(new File(root, "etc/os-release").toPath(),
                 "PRETTY_NAME=\"Debian GNU/Linux 13 (trixie)\"\n".getBytes(StandardCharsets.UTF_8));
@@ -136,7 +136,7 @@ public class DebianPaletteTest {
         String e = "\u001b[";
         assertTrue(out.contains(e + "38;5;204m    /\\"));
         assertTrue(out.contains(e + "38;5;217m    >_"));
-        assertTrue(out.contains(e + "38;5;211mThothTerm Debian" + e + "0m"));
+        assertTrue(out.contains(e + "38;5;211mThothTerm Trixie" + e + "0m"));
         assertTrue(out.contains(e + "38;5;255mDebian GNU/Linux 13 (trixie)" + e + "0m"));
         assertTrue(out.contains(e + "38;5;247mUser          " + e + "0m" + e + "38;5;255mthoth"));
         for (int u : UBUNTU) assertFalse("Ubuntu colour " + u, out.contains(e + "38;5;" + u + "m"));

@@ -1,1 +1,1 @@
-ThothTerm Debian
+ThothTerm Trixie

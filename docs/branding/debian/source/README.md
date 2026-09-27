@@ -1,6 +1,6 @@
-# ThothTerm Debian — master branding artwork
+# ThothTerm Trixie — master branding artwork
 
-Reference sources for the ThothTerm Debian runtime assets. Nothing under
+Reference sources for the ThothTerm Trixie runtime assets. Nothing under
 `docs/` is an Android source set, so none of these files reaches an APK. They
 are plain files in git (no LFS).
 

@@ -1,9 +1,9 @@
-# Third-party notices — ThothTerm Debian
+# Third-party notices — ThothTerm Trixie
 
-ThothTerm Debian is an independent application and is not affiliated with or
+ThothTerm Trixie is an independent application and is not affiliated with or
 endorsed by the Debian Project. Debian is a registered trademark owned by
-Software in the Public Interest, Inc. The name describes the userland the app
-installs; the app uses no Debian logo.
+Software in the Public Interest, Inc. "Debian GNU/Linux 13 (trixie)" is named
+only to describe the userland the app installs; the app uses no Debian logo.
 
 ## 1. Debian userland
 

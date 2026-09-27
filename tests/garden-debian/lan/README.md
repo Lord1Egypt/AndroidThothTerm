@@ -1,4 +1,4 @@
-# ThothTerm Debian — LAN Mode acceptance on a phone
+# ThothTerm Trixie — LAN Mode acceptance on a phone
 
 Playwright (Chromium) scripts run from a computer on the phone's network
 against the installed app with LAN Mode on. `PHONE` is the phone's address

@@ -2,7 +2,7 @@
 
 Garden is the family of ThothTerm distribution editions. Each edition is a
 separate app that runs a real Linux userland under PRoot inside its own
-app-private storage. ThothTerm Debian (`com.thothterm.debian`) is the first
+app-private storage. ThothTerm Trixie (`com.thothterm.debian`) is the first
 edition built on it.
 
 ```
@@ -12,7 +12,7 @@ emulatorview/   libtermexec/        terminal engine, shared with every app
          garden-common/             Garden layer (Android library)
                │                      terminal app layer, PRoot runtime,
                │                      first-run setup, LAN Mode
-         garden-debian/             ThothTerm Debian (application)
+         garden-debian/             ThothTerm Trixie (application)
                                       distro.properties, strings, branding,
                                       rootfs builder, PRoot build for its id
 ```

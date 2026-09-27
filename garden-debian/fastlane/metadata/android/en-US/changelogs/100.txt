@@ -1,4 +1,4 @@
-First release of ThothTerm Debian.
+First release of ThothTerm Trixie.
 
 * Debian 13 "trixie" for ARM64, with apt, dpkg and Debian's own sudo
 * Package sources: trixie, trixie-updates and trixie-security, main only

@@ -1,6 +1,6 @@
-# ThothTerm Debian — rootfs provenance
+# ThothTerm Trixie — rootfs provenance
 
-The Debian userland ThothTerm Debian installs is built by
+The Debian userland ThothTerm Trixie installs is built by
 `garden-debian/rootfs/build-rootfs.sh` from Debian's own archive. Debian
 publishes no minimal root-filesystem tarball, so the project assembles one
 with **debuerreotype**, the Debian tool behind the official Debian container
@@ -26,7 +26,7 @@ Debian binary package, verified against `debian-archive-keyring`
 
 The name carries the first 12 hex digits of the SHA-256, so a name can never
 stand for two different archives. The release tag does not match
-`^debian-v[0-9.]+$`, so F-Droid's update check never mistakes it for an app
+`^trixie-v[0-9.]+$`, so F-Droid's update check never mistakes it for an app
 release.
 
 ## How it was built

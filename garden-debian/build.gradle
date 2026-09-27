@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// ThothTerm Debian: a thin Garden edition on top of garden-common. What makes
+// ThothTerm Trixie: a thin Garden edition on top of garden-common. What makes
 // it Debian is data -- src/main/assets/garden/distro.properties -- plus its
 // branding, its strings and the PRoot runtime built for its application id.
 // No Java toolchain is requested, for the reason given in term-ubuntu's build.

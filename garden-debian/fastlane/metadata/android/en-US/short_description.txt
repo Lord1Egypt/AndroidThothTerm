@@ -1,1 +1,1 @@
-Debian 13 trixie in a terminal on your phone. No root needed.
+A Debian GNU/Linux 13 (trixie) terminal on your phone. No root needed.

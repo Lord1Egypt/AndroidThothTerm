@@ -36,7 +36,7 @@ with sync_playwright() as p:
     pg.on('pageerror', lambda e: errors.append(str(e)))
     pg.goto(ORIGIN + '/'); pg.wait_for_selector('#pin', state='visible', timeout=15000)
     check('pairing page first, no shell before auth', pg.is_visible('#pin') and not pg.is_visible('.xterm-rows'))
-    check('page names the edition: ThothTerm Debian / LAN Terminal', pg.title() == 'ThothTerm Debian — LAN Terminal' and pg.inner_text('.brand') == 'ThothTerm Debian' and pg.inner_text('.sub') == 'LAN Terminal', (pg.title(), pg.inner_text('.brand')))
+    check('page names the edition: ThothTerm Trixie / LAN Terminal', pg.title() == 'ThothTerm Trixie — LAN Terminal' and pg.inner_text('.brand') == 'ThothTerm Trixie' and pg.inner_text('.sub') == 'LAN Terminal', (pg.title(), pg.inner_text('.brand')))
     pg.fill('#pin', '000000' if PIN != '000000' else '111111'); pg.click('#pair-form button'); pg.wait_for_timeout(1500)
     check('wrong PIN rejected', 'Wrong PIN' in pg.inner_text('#pair-error'), pg.inner_text('#pair-error'))
     pg.wait_for_timeout(1100); pg.fill('#pin', PIN); pg.click('#pair-form button'); wait_ok(pg)
@@ -56,7 +56,7 @@ with sync_playwright() as p:
     browser_tty = m.group(0) if m else ''
     s = run(pg, 'clear; echo "سلام عليكم"; echo -n "سلام" | od -An -tx1; echo UTFDONE', 'UTFDONE')
     check('Arabic round-trips through the PTY in logical UTF-8', 'd8 b3 d9 84 d8 a7 d9 85' in s)
-    strings = ['سلام عليكم', 'مرحبا بالعالم', 'ThothTerm Debian مرحبا', 'الإصدار 0.1.0', 'test (مرحبا) 123']
+    strings = ['سلام عليكم', 'مرحبا بالعالم', 'ThothTerm Trixie مرحبا', 'الإصدار 0.1.0', 'test (مرحبا) 123']
     for t in strings:
         k = strings.index(t)
         s = run(pg, 'clear; echo "%s"; echo -n "%s" | od -An -tx1 | tr -d " \\n"; echo; echo ARDONE-$((%d+100))' % (t, t, k), 'ARDONE-%d' % (k + 100))

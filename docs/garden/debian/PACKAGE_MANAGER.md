@@ -1,4 +1,4 @@
-# ThothTerm Debian — package manager
+# ThothTerm Trixie — package manager
 
 apt and dpkg are Debian's own, unmodified, and so is sudo. This page records
 what was verified before the 0.1.0 release and the one PRoot limitation users

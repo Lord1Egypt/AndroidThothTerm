@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Build the ThothTerm Debian arm64 root filesystem from Debian's own archive.
+# Build the ThothTerm Trixie arm64 root filesystem from Debian's own archive.
 #
 # Debian publishes no minimal rootfs tarball of its own, so the userland is
 # constructed here with debuerreotype -- Debian's reproducible-rootfs tool, the
@@ -128,7 +128,7 @@ mv "$WORK/rootfs.tar.gz" "$OUT_DIR/$NAME.tar.gz"
 mv "$WORK/packages.tsv" "$OUT_DIR/$NAME.packages.tsv"
 mv "$WORK/scan.txt" "$OUT_DIR/$NAME.scan.txt"
 {
-    echo "# ThothTerm Debian rootfs build manifest"
+    echo "# ThothTerm Trixie rootfs build manifest"
     echo "file: $NAME.tar.gz"
     echo "sha256: $SHA"
     echo "size: $SIZE"

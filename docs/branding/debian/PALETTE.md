@@ -1,4 +1,4 @@
-# ThothTerm Debian — edition palette
+# ThothTerm Trixie — edition palette
 
 Every colour ThothTerm itself draws in the Debian edition comes from the
 approved Debian sheet, `source/thothterm-debian-branding-sheet.png`
@@ -36,7 +36,7 @@ neutral 255: the cube has no warm off-white closer to it.
 
 | Surface | Roles |
 |---|---|
-| Welcome banner (`thothfetch`) | mark petals **primary**, mark centre and `>_` **secondary**, "ThothTerm Debian" **highlight**, the `PRETTY_NAME` line and values **foreground**, labels **muted** |
+| Welcome banner (`thothfetch`) | mark petals **primary**, mark centre and `>_` **secondary**, "ThothTerm Trixie" **highlight**, the `PRETTY_NAME` line and values **foreground**, labels **muted** |
 | Managed prompt `thoth@thothterm:~$` | user **primary**, host **secondary**, path **foreground**; punctuation default |
 | Phone terminal default scheme | text **foreground**, background **background**, cursor **primary** |
 | App chrome (`garden-debian/src/main/res/values/colors.xml`) | window/status bar **background**, app bar and drawer header **surface**, switches/progress/selected keys **primary**, extra-key fill **surface light**, muted text **muted** |

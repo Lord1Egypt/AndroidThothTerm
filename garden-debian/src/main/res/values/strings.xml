@@ -19,19 +19,19 @@
      garden-common's own translations never carry these, so no locale falls
      back to the neutral text. -->
 <resources>
-    <string name="application_terminal" translatable="false">ThothTerm Debian</string>
-    <string name="application_positioning">Debian 13 “trixie” ARM64 on Android</string>
-    <string name="about_title">About ThothTerm Debian</string>
-    <string name="about_notice">ThothTerm Debian is an independent application and is not affiliated with or endorsed by the Debian Project. Debian is a registered trademark owned by Software in the Public Interest, Inc.</string>
+    <string name="application_terminal" translatable="false">ThothTerm Trixie</string>
+    <string name="application_positioning">Debian GNU/Linux 13 (trixie) on Android, ARM64</string>
+    <string name="about_title">About ThothTerm Trixie</string>
+    <string name="about_notice">ThothTerm Trixie is an independent application and is not affiliated with or endorsed by the Debian Project. Debian is a registered trademark owned by Software in the Public Interest, Inc.</string>
 
-    <string name="garden_welcome">Welcome to ThothTerm Debian</string>
+    <string name="garden_welcome">Welcome to ThothTerm Trixie</string>
     <string name="garden_extracting_percent">Extracting Debian… %1$d%%</string>
     <string name="garden_downloading">Downloading Debian…</string>
     <string name="garden_consent_title">Debian needs to be downloaded</string>
-    <string name="garden_consent_body">ThothTerm Debian runs a Debian %1$s userland. This build does not include it, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n• This downloads executable software onto your device after installation.\n• It consists of unmodified packages from the official Debian archive, assembled into a root filesystem by the ThothTerm project with a reproducible build. The Debian Project did not build or endorse this download.\n• It is not part of this app’s package and was not built or verified by F‑Droid.\n• ThothTerm checks the download’s size and SHA‑256 checksum against values fixed in this app’s source, and refuses it if they do not match.\n\nNothing is downloaded unless you choose Download Debian.</string>
+    <string name="garden_consent_body">ThothTerm Trixie runs a Debian %1$s userland. This build does not include it, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n• This downloads executable software onto your device after installation.\n• It consists of unmodified packages from the official Debian archive, assembled into a root filesystem by the ThothTerm project with a reproducible build. The Debian Project did not build or endorse this download.\n• It is not part of this app’s package and was not built or verified by F‑Droid.\n• ThothTerm checks the download’s size and SHA‑256 checksum against values fixed in this app’s source, and refuses it if they do not match.\n\nNothing is downloaded unless you choose Download Debian.</string>
     <string name="garden_consent_accept">Download Debian</string>
     <string name="garden_consent_declined">Debian was not downloaded. You can start the download whenever you want.</string>
 
-    <string name="service_notify_text">ThothTerm Debian is running</string>
+    <string name="service_notify_text">ThothTerm Trixie is running</string>
     <string name="lan_help_off">LAN Mode lets a computer on the same Wi-Fi network use this Debian system in a web browser. Each browser gets a terminal of its own; the windows on this phone are not shared.</string>
 </resources>
