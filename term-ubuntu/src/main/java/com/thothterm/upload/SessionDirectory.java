@@ -16,6 +16,8 @@
 
 package com.thothterm.upload;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -34,6 +36,7 @@ import java.util.Arrays;
  * guest shell is -- and PRoot patch 0005 keeps each guest process's kernel
  * working directory in step with its guest one.
  */
+@RequiresApi(21)
 public final class SessionDirectory {
     static final int DEFAULT_UMASK = 022;
     /** How often {@link #resolveWhenReady} looks again while the guest shell starts. */

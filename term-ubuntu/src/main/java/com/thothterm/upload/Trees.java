@@ -16,9 +16,12 @@
 
 package com.thothterm.upload;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.IOException;
 
 /** Removing a staging tree without ever following a link out of it. */
+@RequiresApi(21)
 final class Trees {
     private Trees() {
     }
