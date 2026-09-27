@@ -46,8 +46,8 @@ builder_tool: debuerreotype 0.15-1.1
 keyring: debian-archive-keyring (debuerreotype-init --check-gpg)
 extra_packages: sudo ca-certificates curl netbase procps 
 installed_packages: 109
-build_script_sha256: 62ed330ec4aed93c9863f529cc2dc6ac032fe2ce94a8ac8090704468ec68cac3
-build_script_revision: 793ce99e72b30854a8bf457e4d649fbe6b3529b8
+build_script_sha256: 4dd465c22b37e563b7ab13de097f0319e602c25e1b4dcb1aa80c77606504636a
+build_script_revision: 6870552fc4de060c8c81fa9568e92c887d1472f6
 dpkg_audit: clean
 ```
 
@@ -66,7 +66,7 @@ servers. 109 packages in total; the exact list and versions are the
 ## Reproducibility
 
 The script was run twice on 2026-09-27, from a clean output directory each
-time. Both runs produced the same archive, byte for byte
+time, and twice more at its final revision after the product rename. Both runs produced the same archive, byte for byte
 (`cmp` equal, SHA-256 above), and the same package list and manifest.
 Anyone can re-derive the SHA-256 with:
 
