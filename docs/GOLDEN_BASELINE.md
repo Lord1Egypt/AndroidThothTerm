@@ -1,8 +1,10 @@
 # ThothTerm Terminal Emulator 1.0.0 Golden Baseline
 
 > The current Regular ThothTerm Terminal Golden Baseline is **1.3.0**
-> (`terminal-v1.3.0`); see `docs/TERMINAL_RELEASE_1.3.md`. This file remains the
-> record of the original 1.0.0 baseline.
+> (`terminal-v1.3.0`); see `docs/TERMINAL_RELEASE_1.3.md`. Its current patch
+> release is **1.3.1** (`terminal-v1.3.1`, the "Keep screen awake" fix); see
+> `docs/RELEASE_NOTES_1.3.1.md`. This file remains the record of the original
+> 1.0.0 baseline.
 
 Permanent, reproducible recovery point for the accepted terminal-only product.
 
