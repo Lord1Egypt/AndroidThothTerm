@@ -29,7 +29,7 @@ for p in tree jq; do
   $APT install $p >/dev/null 2>&1 && $p --version >/dev/null 2>&1; ok "apt install $p" $?
 done
 for p in tree jq; do
-  $APT purge $p >/dev/null 2>&1 && ! command -v $p >/dev/null && ! dpkg-query -W -f='${Status}' $p 2>/dev/null | grep -q "ok installed"; ok "apt purge $p" $?
+  $APT purge $p >/dev/null 2>&1 && hash -r && ! command -v $p >/dev/null && ! dpkg-query -W -f='${Status}' $p 2>/dev/null | grep -q "ok installed"; ok "apt purge $p" $?
 done
 # /proc/self/exe through a hard link the guest makes, and through a plain binary.
 ln /usr/bin/readlink /usr/local/bin/rl-hard
