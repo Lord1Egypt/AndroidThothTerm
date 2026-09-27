@@ -28,6 +28,7 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.thothterm.linux.DistroInfo;
+import com.thothterm.linux.GardenPalette;
 import com.thothterm.linux.RootfsManager;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
@@ -106,7 +107,11 @@ public final class LanController {
         DistroInfo distro = RootfsManager.get().image();
         String edition = distro != null ? distro.editionName() : "ThothTerm";
         this.port = distro != null ? distro.lanPort() : 0;
+        GardenPalette palette = RootfsManager.get().palette();
+        byte[] editionCss = (palette != null ? palette.css() : ":root {}\n")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
         LanServer.Assets assets = name -> {
+            if ("edition.css".equals(name)) return editionCss;
             byte[] body = read(assetManager, "lan/" + name);
             return "index.html".equals(name) ? PageBranding.apply(body, edition) : body;
         };

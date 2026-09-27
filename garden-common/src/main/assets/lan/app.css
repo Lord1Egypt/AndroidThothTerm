@@ -1,10 +1,17 @@
 /* ThothTerm Garden -- LAN Terminal page. */
+/* Neutral defaults: /edition.css, generated from the edition's palette and
+   loaded after this file, sets the ThothTerm-owned colours. Warnings and
+   errors keep their functional colours. */
 :root {
-  --bg: #0d1117;
-  --bar: #161b22;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --accent: #e95420;
+  --bg: #121212;
+  --bar: #1e1e1e;
+  --text: #eeeeee;
+  --muted: #9e9e9e;
+  --accent: #bdbdbd;
+  --accent-soft: #e0e0e0;
+  --term-bg: #121212;
+  --term-fg: #eeeeee;
+  --term-cursor: #bdbdbd;
   --ok: #3fb950;
   --warn: #d29922;
   --bad: #f85149;
@@ -15,11 +22,11 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
 body { display: flex; flex-direction: column; }
 #bar { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: var(--bar);
   border-bottom: 1px solid #30363d; flex: none; }
-.brand { font-weight: 600; }
+.brand { color: var(--accent); font-weight: 600; }
 .sub { color: var(--muted); }
 .spacer { flex: 1; }
 .state { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #30363d; }
-.state.ok { background: rgba(63, 185, 80, .18); color: var(--ok); }
+.state.ok { background: rgba(255, 255, 255, .08); background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent-soft); }
 .state.wait { background: rgba(210, 153, 34, .18); color: var(--warn); }
 .state.bad { background: rgba(248, 81, 73, .18); color: var(--bad); }
 button { font: inherit; color: var(--text); background: #21262d; border: 1px solid #30363d;

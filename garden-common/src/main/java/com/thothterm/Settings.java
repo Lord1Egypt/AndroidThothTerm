@@ -49,6 +49,12 @@ public class Settings {
             new ColorScheme(0xFFDCDCCC, 0xFF2C2C2C) /*dark pastels*/,
             new ColorScheme(0xFFE8EDF2, 0xFF07111F) /*ThothTerm Garden*/
     };
+    /**
+     * The "ThothTerm Garden" entry, and the default: drawn in the edition's
+     * palette (TermSettings#getColorScheme). The colours above are only what
+     * an edition without a palette gets.
+     */
+    public static final int EDITION_SCHEME = 11;
 
     @FontSource
     private int font_source;

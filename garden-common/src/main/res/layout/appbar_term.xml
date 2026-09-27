@@ -35,11 +35,11 @@
         app:contentInsetStartWithNavigation="4dp"
         app:contentInsetEnd="4dp"
         app:popupTheme="?attr/actionBarPopupTheme"
-        app:subtitleTextColor="@color/brand_text_muted_dark"
+        app:subtitleTextColor="@color/brand_on_surface_muted"
         app:subtitleTextAppearance="@style/ThothTerm.Toolbar.Subtitle"
         app:title="@string/application_terminal"
         app:titleMarginStart="8dp"
         app:titleTextAppearance="@style/ThothTerm.Toolbar.Title"
-        app:titleTextColor="@color/brand_white"/>
+        app:titleTextColor="@color/brand_on_surface"/>
 
 </com.google.android.material.appbar.AppBarLayout>

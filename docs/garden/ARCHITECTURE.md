@@ -86,6 +86,12 @@ None is a Debian-specific workaround.
   from `/etc/os-release` and the edition name from `/etc/thothterm/edition`,
   which the app writes. Both are read as data and stripped of control
   characters, so a point-release upgrade shows up without an app update.
+- **Colours per edition.** Ubuntu's banner, prompt, terminal scheme, app
+  chrome and web page hardcoded its amber/teal/navy and Ubuntu orange. They
+  now come from the edition: `assets/garden/palette.properties` (banner,
+  prompt, terminal scheme, LAN page via `/edition.css`) and
+  `res/values/colors.xml` (Android chrome). garden-common's defaults are
+  neutral grey. See `docs/branding/debian/PALETTE.md`.
 - **LAN port per edition**: Debian 7682, so it runs beside Ubuntu's 7681. On a
   collision LAN Mode moves up through ten ports and shows the port it bound.
 

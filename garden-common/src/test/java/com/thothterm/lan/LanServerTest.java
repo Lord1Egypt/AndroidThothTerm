@@ -62,6 +62,7 @@ public class LanServerTest {
         switch (name) {
             case "index.html": return "<!doctype html><title>LAN</title>".getBytes(StandardCharsets.UTF_8);
             case "xterm.js": return "var x;".getBytes(StandardCharsets.UTF_8);
+            case "edition.css": return ":root { --accent: #F44F7A; }".getBytes(StandardCharsets.UTF_8);
             case "fonts/cascadia-mono-arabic-400-normal.woff2": return new byte[]{'w', 'O', 'F', '2'};
             default: return null;
         }
@@ -461,6 +462,15 @@ public class LanServerTest {
             assertEquals(path, 404, http(port, "GET", path, null, null, null, null, host(port)).status);
         }
         assertEquals(405, http(port, "DELETE", "/", null, null, null, null, host(port)).status);
+    }
+
+    @Test
+    public void servesTheEditionStylesheet() throws IOException {
+        int port = start();
+        Response css = http(port, "GET", "/edition.css", null, null, null, null, host(port));
+        assertEquals(200, css.status);
+        assertTrue(css.headers.get("content-type").startsWith("text/css"));
+        assertTrue(css.text().contains("--accent: #F44F7A"));
     }
 
     @Test

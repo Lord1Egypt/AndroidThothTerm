@@ -49,7 +49,7 @@ public class ExtraKeysView extends LinearLayout
         super(context, attrs);
         setOrientation(VERTICAL);
         setFocusable(false);
-        setBackgroundColor(ContextCompat.getColor(context, R.color.brand_midnight));
+        setBackgroundColor(ContextCompat.getColor(context, R.color.brand_background));
         buildRows();
         applyMetrics();
     }
@@ -258,16 +258,16 @@ public class ExtraKeysView extends LinearLayout
     private void setButtonSurface(AppCompatButton button, int state) {
         GradientDrawable surface = new GradientDrawable();
         surface.setCornerRadius(dp(5));
-        int stroke = ContextCompat.getColor(getContext(), R.color.brand_text_muted_dark);
-        int fill = ContextCompat.getColor(getContext(), R.color.brand_navy_light);
-        int text = ContextCompat.getColor(getContext(), R.color.brand_white);
+        int stroke = ContextCompat.getColor(getContext(), R.color.brand_on_surface_muted);
+        int fill = ContextCompat.getColor(getContext(), R.color.brand_surface_light);
+        int text = ContextCompat.getColor(getContext(), R.color.brand_on_surface);
         if (state == EmulatorView.EXTRA_MODIFIER_ARMED) {
-            fill = ContextCompat.getColor(getContext(), R.color.brand_teal_dark);
-            stroke = ContextCompat.getColor(getContext(), R.color.brand_teal);
+            fill = ContextCompat.getColor(getContext(), R.color.brand_accent_dark);
+            stroke = ContextCompat.getColor(getContext(), R.color.brand_accent);
         } else if (state == EmulatorView.EXTRA_MODIFIER_LOCKED) {
-            fill = ContextCompat.getColor(getContext(), R.color.brand_teal);
-            stroke = ContextCompat.getColor(getContext(), R.color.brand_white);
-            text = ContextCompat.getColor(getContext(), R.color.brand_midnight);
+            fill = ContextCompat.getColor(getContext(), R.color.brand_accent);
+            stroke = ContextCompat.getColor(getContext(), R.color.brand_on_surface);
+            text = ContextCompat.getColor(getContext(), R.color.brand_background);
         }
         surface.setColor(fill);
         surface.setStroke(dp(state == EmulatorView.EXTRA_MODIFIER_LOCKED ? 2 : 1), stroke);

@@ -58,7 +58,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/application_terminal"
-                android:textColor="@color/brand_white"
+                android:textColor="@color/brand_on_surface"
                 android:textSize="20sp"
                 android:textStyle="bold"/>
 
@@ -67,7 +67,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="@string/application_positioning"
-                android:textColor="@color/brand_text_muted_dark"
+                android:textColor="@color/brand_on_surface_muted"
                 android:textSize="13sp"/>
 
             <TextView
@@ -75,7 +75,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:textColor="@color/brand_text_muted_dark"
+                android:textColor="@color/brand_on_surface_muted"
                 android:textSize="12sp"/>
 
         </LinearLayout>

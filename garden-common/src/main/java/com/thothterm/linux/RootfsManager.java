@@ -95,6 +95,8 @@ public final class RootfsManager {
     private final FileOps fileOps = new AndroidFileOps();
 
     private final DistroInfo image;
+    /** The edition's colours; null when the edition ships none (plain banner). */
+    private final GardenPalette palette;
     private final boolean embeddedRootfs;
     private volatile Listener listener;
     private volatile boolean running;
@@ -108,6 +110,7 @@ public final class RootfsManager {
         this.appContext = context.getApplicationContext();
         File filesDir = appContext.getFilesDir();
         this.image = loadImage();
+        this.palette = loadPalette();
         this.embeddedRootfs = image != null && hasEmbeddedArchive(image);
         // Without valid metadata nothing is ever extracted; the directory only
         // has to be one no edition uses.
@@ -193,6 +196,10 @@ public final class RootfsManager {
 
     public String loaderPath() {
         return new File(nativeLibDir, "libproot_loader.so").getAbsolutePath();
+    }
+
+    public GardenPalette palette() {
+        return palette;
     }
 
     public DistroInfo image() {
@@ -508,6 +515,13 @@ public final class RootfsManager {
         }
         // Read by thothfetch; the edition name is validated metadata, one line.
         writeTextIfChanged(new File(managedDir, "edition"), image.editionName() + "\n");
+        // Read as data by thothfetch and the managed prompt.
+        File paletteFile = new File(managedDir, "palette");
+        if (palette != null) {
+            writeTextIfChanged(paletteFile, palette.guestFile());
+        } else if (paletteFile.exists() && !paletteFile.delete()) {
+            throw new IOException("Cannot remove stale palette");
+        }
         File welcomeEnabled = new File(managedDir, "welcome-enabled");
         boolean showWelcome = PreferenceManager.getDefaultSharedPreferences(appContext)
                 .getBoolean("garden_show_welcome", true);
@@ -822,6 +836,15 @@ public final class RootfsManager {
         state.installedAt = System.currentTimeMillis();
         state.complete = true;
         state.write(stateFile);
+    }
+
+    private GardenPalette loadPalette() {
+        try {
+            return GardenPalette.load(appContext.getAssets().open(GardenPalette.ASSET));
+        } catch (Exception e) {
+            ThothLog.w(LogCategory.ROOTFS, "No usable edition palette; banner and prompt stay plain");
+            return null;
+        }
     }
 
     private DistroInfo loadImage() {

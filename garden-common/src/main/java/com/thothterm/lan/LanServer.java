@@ -87,6 +87,8 @@ final class LanServer {
             {"/", "index.html", "text/html; charset=utf-8"},
             {"/app.js", "app.js", "text/javascript; charset=utf-8"},
             {"/app.css", "app.css", "text/css; charset=utf-8"},
+            // Generated from the edition's palette (LanController), not a file.
+            {"/edition.css", "edition.css", "text/css; charset=utf-8"},
             {"/xterm.js", "xterm.js", "text/javascript; charset=utf-8"},
             {"/xterm.css", "xterm.css", "text/css; charset=utf-8"},
             {"/rtl.js", "rtl.js", "text/javascript; charset=utf-8"},

@@ -12,10 +12,28 @@
 # the system name from PRETTY_NAME in /etc/os-release, so an upgrade to a new
 # point release shows up here without an app update. Both files are read as
 # data, never sourced, and stripped of control characters before printing.
-amber=$'\033[38;5;214m'; teal=$'\033[38;5;44m'
-white=$'\033[38;5;252m'; muted=$'\033[38;5;246m'; reset=$'\033[0m'
+#
+# Colours are the edition's: /etc/thothterm/palette, which the app writes,
+# maps roles to SGR parameters. Nothing here names a colour. Without that file,
+# or with NO_COLOR set, the banner is plain text.
 
-root=${THOTHFETCH_ROOT-}
+root=${THOTHTERM_GUEST_ROOT-}
+
+primary= secondary= highlight= foreground= muted= reset=
+if [ -z "${NO_COLOR-}" ] && [ -r "$root/etc/thothterm/palette" ]; then
+  while IFS='=' read -r role sgr; do
+    case $sgr in ''|*[!0-9\;]*) continue ;; esac
+    case $role in
+      primary) primary=$'\033['"${sgr}m" ;;
+      secondary) secondary=$'\033['"${sgr}m" ;;
+      highlight) highlight=$'\033['"${sgr}m" ;;
+      foreground) foreground=$'\033['"${sgr}m" ;;
+      muted) muted=$'\033['"${sgr}m" ;;
+      *) continue ;;
+    esac
+    reset=$'\033[0m'
+  done < "$root/etc/thothterm/palette"
+fi
 
 # Printable text only, at most $2 characters.
 clean() {
@@ -61,26 +79,26 @@ arch=${HOSTTYPE:-aarch64}
 if [ "$cols" -lt 44 ]; then
   edition=$(clean "$edition" "$cols")
   os=$(clean "$os" "$cols")
-  printf '%s\n' "${amber}    /\\${reset}"
-  printf '%s\n' "${amber} __/  \\__${reset}"
-  printf '%s\n' "${teal}/  \\  /  \\${reset}"
-  printf '%s\n' "${teal}\\   \\/   /${reset}"
-  printf '%s\n' "${amber} \\  /\\  /${reset}"
-  printf '%s\n' "${amber}    \\/${reset}"
-  printf '%s\n' "${teal}    >_${reset}"
+  printf '%s\n' "${primary}    /\\${reset}"
+  printf '%s\n' "${primary} __/  \\__${reset}"
+  printf '%s\n' "${secondary}/  \\  /  \\${reset}"
+  printf '%s\n' "${secondary}\\   \\/   /${reset}"
+  printf '%s\n' "${primary} \\  /\\  /${reset}"
+  printf '%s\n' "${primary}    \\/${reset}"
+  printf '%s\n' "${secondary}    >_${reset}"
   printf '\n'
-  printf '%s\n' "${white}${edition}${reset}"
-  printf '%s\n' "${muted}${os}${reset}"
-  printf '%s\n' "${muted}User  thoth${reset}"
-  printf '%s\n' "${muted}Home  /home/thoth${reset}"
+  printf '%s\n' "${highlight}${edition}${reset}"
+  printf '%s\n' "${foreground}${os}${reset}"
+  printf '%s\n' "${muted}User  ${reset}${foreground}thoth${reset}"
+  printf '%s\n' "${muted}Home  ${reset}${foreground}/home/thoth${reset}"
 else
   edition=$(clean "$edition" 30)
   os=$(clean "$os" 30)
-  printf '%s\n' "${amber}    /\\${reset}        ${white}${edition}${reset}"
-  printf '%s\n' "${amber} __/  \\__${reset}     ${muted}${os}${reset}"
-  printf '%s\n' "${teal}/  \\  /  \\${reset}    ${muted}Architecture  $(clean "$arch" 16)${reset}"
-  printf '%s\n' "${teal}\\   \\/   /${reset}    ${muted}Shell         Bash${reset}"
-  printf '%s\n' "${amber} \\  /\\  /${reset}     ${muted}Home          /home/thoth${reset}"
-  printf '%s\n' "${amber}    \\/${reset}        ${muted}User          thoth${reset}"
-  printf '%s\n' "${teal}    >_${reset}"
+  printf '%s\n' "${primary}    /\\${reset}        ${highlight}${edition}${reset}"
+  printf '%s\n' "${primary} __/  \\__${reset}     ${foreground}${os}${reset}"
+  printf '%s\n' "${secondary}/  \\  /  \\${reset}    ${muted}Architecture  ${reset}${foreground}$(clean "$arch" 16)${reset}"
+  printf '%s\n' "${secondary}\\   \\/   /${reset}    ${muted}Shell         ${reset}${foreground}Bash${reset}"
+  printf '%s\n' "${primary} \\  /\\  /${reset}     ${muted}Home          ${reset}${foreground}/home/thoth${reset}"
+  printf '%s\n' "${primary}    \\/${reset}        ${muted}User          ${reset}${foreground}thoth${reset}"
+  printf '%s\n' "${secondary}    >_${reset}"
 fi

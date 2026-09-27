@@ -20,14 +20,14 @@
 
     <!-- Application chrome only; terminal ANSI colors remain independent. -->
     <style name="BaseAppTheme" parent="Theme.AppCompat">
-        <item name="colorPrimary">@color/brand_navy</item>
-        <item name="colorPrimaryDark">@color/brand_midnight</item>
-        <item name="colorAccent">@color/brand_teal</item>
-        <item name="colorPrimaryLight">@color/brand_navy_light</item>
+        <item name="colorPrimary">@color/brand_surface</item>
+        <item name="colorPrimaryDark">@color/brand_background</item>
+        <item name="colorAccent">@color/brand_accent</item>
+        <item name="colorPrimaryLight">@color/brand_surface_light</item>
         <item name="themeTextColor">?android:attr/textColorPrimary</item>
-        <item name="android:windowBackground">@color/brand_midnight</item>
-        <item name="android:navigationBarColor" tools:targetApi="21">@color/brand_midnight</item>
-        <item name="android:statusBarColor" tools:targetApi="21">@color/brand_midnight</item>
+        <item name="android:windowBackground">@color/brand_background</item>
+        <item name="android:navigationBarColor" tools:targetApi="21">@color/brand_background</item>
+        <item name="android:statusBarColor" tools:targetApi="21">@color/brand_background</item>
         <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
         <item name="alertDialogTheme">@style/ThothTerm.Dialog</item>
@@ -35,14 +35,14 @@
 
     <!-- "ThothTerm" "Light" theme -->
     <style name="BaseAppTheme.Light" parent="Theme.AppCompat.Light">
-        <item name="colorPrimary">#123D52</item>
-        <item name="colorPrimaryDark">#0A2A3B</item>
-        <item name="colorAccent">@color/brand_teal_dark</item>
-        <item name="colorPrimaryLight">#28596F</item>
+        <item name="colorPrimary">@color/brand_light_primary</item>
+        <item name="colorPrimaryDark">@color/brand_light_primary_dark</item>
+        <item name="colorAccent">@color/brand_accent_dark</item>
+        <item name="colorPrimaryLight">@color/brand_light_primary_light</item>
         <item name="themeTextColor">?android:attr/textColorPrimary</item>
-        <item name="android:windowBackground">@color/brand_mist</item>
-        <item name="android:navigationBarColor" tools:targetApi="21">@color/brand_mist</item>
-        <item name="android:statusBarColor" tools:targetApi="21">#0A2A3B</item>
+        <item name="android:windowBackground">@color/brand_light_background</item>
+        <item name="android:navigationBarColor" tools:targetApi="21">@color/brand_light_background</item>
+        <item name="android:statusBarColor" tools:targetApi="21">@color/brand_light_primary_dark</item>
         <item name="android:windowLightStatusBar" tools:targetApi="23">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
         <item name="alertDialogTheme">@style/ThothTerm.Dialog.Light</item>
@@ -50,20 +50,20 @@
 
     <!-- "ThothTerm" "DayNight" theme(system) -->
     <style name="BaseAppTheme.DayNight" parent="Theme.AppCompat.DayNight">
-        <item name="colorPrimary">@color/brand_navy</item>
-        <item name="colorPrimaryDark">@color/brand_midnight</item>
-        <item name="colorAccent">@color/brand_teal</item>
-        <item name="colorPrimaryLight">@color/brand_navy_light</item>
+        <item name="colorPrimary">@color/brand_surface</item>
+        <item name="colorPrimaryDark">@color/brand_background</item>
+        <item name="colorAccent">@color/brand_accent</item>
+        <item name="colorPrimaryLight">@color/brand_surface_light</item>
         <item name="themeTextColor">?android:attr/textColorPrimary</item>
-        <item name="android:statusBarColor" tools:targetApi="21">@color/brand_midnight</item>
+        <item name="android:statusBarColor" tools:targetApi="21">@color/brand_background</item>
         <item name="alertDialogTheme">@style/ThothTerm.Dialog</item>
     </style>
 
     <style name="BaseAppTheme.Amoled" parent="Theme.AppCompat">
         <item name="colorPrimary">#000000</item>
         <item name="colorPrimaryDark">#000000</item>
-        <item name="colorAccent">@color/brand_teal</item>
-        <item name="colorPrimaryLight">@color/brand_navy</item>
+        <item name="colorAccent">@color/brand_accent</item>
+        <item name="colorPrimaryLight">@color/brand_surface</item>
         <item name="themeTextColor">?android:attr/textColorPrimary</item>
         <item name="android:windowBackground">#000000</item>
         <item name="android:navigationBarColor" tools:targetApi="21">#000000</item>
@@ -74,13 +74,13 @@
     </style>
 
     <style name="ThothTerm.Dialog" parent="Theme.AppCompat.Dialog.Alert">
-        <item name="colorAccent">@color/brand_teal</item>
+        <item name="colorAccent">@color/brand_accent</item>
     </style>
 
     <!-- Compact toolbar typography for the brand title and live session label. -->
     <style name="ThothTerm.Toolbar.Theme" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <!-- Toolbar menu icons use ?attr/themeTextColor in this app. -->
-        <item name="themeTextColor">@color/brand_white</item>
+        <item name="themeTextColor">@color/brand_on_surface</item>
     </style>
 
     <style name="ThothTerm.Toolbar.Title" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
@@ -93,12 +93,12 @@
     </style>
 
     <style name="ThothTerm.Dialog.Light" parent="Theme.AppCompat.Light.Dialog.Alert">
-        <item name="colorAccent">@color/brand_teal_dark</item>
+        <item name="colorAccent">@color/brand_accent_dark</item>
     </style>
 
     <style name="ThothTerm.Dialog.Amoled" parent="Theme.AppCompat.Dialog.Alert">
         <item name="android:windowBackground">#000000</item>
-        <item name="colorAccent">@color/brand_teal</item>
+        <item name="colorAccent">@color/brand_accent</item>
     </style>
 
     <!-- actual "Dark" theme overridden at API level -->

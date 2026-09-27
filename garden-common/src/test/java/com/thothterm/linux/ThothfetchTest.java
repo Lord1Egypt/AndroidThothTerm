@@ -70,6 +70,8 @@ public class ThothfetchTest {
                 (edition + "\n").getBytes(StandardCharsets.UTF_8));
         Files.write(new File(root, "etc/os-release").toPath(),
                 osRelease.getBytes(StandardCharsets.UTF_8));
+        Files.write(new File(etc, "palette").toPath(), ("primary=38;5;204\nsecondary=38;5;217\n"
+                + "highlight=38;5;211\nforeground=38;5;255\nmuted=38;5;247\n").getBytes(StandardCharsets.UTF_8));
         return root;
     }
 
@@ -88,7 +90,7 @@ public class ThothfetchTest {
 
         ProcessBuilder builder = new ProcessBuilder("bash", script.getAbsolutePath());
         builder.environment().put("COLUMNS", Integer.toString(columns));
-        builder.environment().put("THOTHFETCH_ROOT", root.getAbsolutePath());
+        builder.environment().put("THOTHTERM_GUEST_ROOT", root.getAbsolutePath());
         builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
         builder.redirectErrorStream(true);
         Process process = builder.start();

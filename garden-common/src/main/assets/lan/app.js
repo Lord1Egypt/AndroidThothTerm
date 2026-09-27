@@ -149,6 +149,11 @@
   var disconnectedAt = 0;
   var hadTerminal = false;
 
+  /** A #rrggbb custom property from the stylesheets. */
+  function cssColor(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
   function ensureTerminal() {
     if (term) return;
     term = new ThothXterm.Terminal({
@@ -157,8 +162,11 @@
       fontSize: 14,
       // The bundled font (fonts.css), identical in every browser and OS.
       fontFamily: '"ThothTerm Mono", monospace',
-      theme: { background: '#0d1117', foreground: '#e6edf3', cursor: '#e95420',
-               selectionBackground: 'rgba(233, 84, 32, 0.35)' }
+      // The edition's defaults (edition.css). Programs' own colours are
+      // untouched: the ANSI palette is xterm's standard one, as on the phone.
+      theme: { background: cssColor('--term-bg'), foreground: cssColor('--term-fg'),
+               cursor: cssColor('--term-cursor'), cursorAccent: cssColor('--term-bg'),
+               selectionBackground: cssColor('--term-cursor') + '59' }
     });
     fit = new ThothXterm.FitAddon();
     term.loadAddon(fit);

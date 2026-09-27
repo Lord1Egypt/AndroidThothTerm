@@ -38,7 +38,25 @@ unset thothterm_dir
 unset -f thothterm_prepend_path
 export PATH
 
-export PS1='\[\e[38;5;39m\]thoth\[\e[0m\]@\[\e[38;5;214m\]thothterm\[\e[0m\]:\[\e[38;5;252m\]\w\[\e[0m\]\$ '
+# The prompt's colours are the edition's, from /etc/thothterm/palette (written
+# by the app, read here as data). Only colour changes between editions; the
+# text is always thoth@thothterm:DIR$ . NO_COLOR, or no palette, gives it plain.
+thothterm_user= thothterm_host= thothterm_path=
+if [ -z "${NO_COLOR-}" ] && [ -r "${THOTHTERM_GUEST_ROOT-}/etc/thothterm/palette" ]; then
+  while IFS='=' read -r thothterm_role thothterm_sgr; do
+    case $thothterm_sgr in ''|*[!0-9\;]*) continue ;; esac
+    case $thothterm_role in
+      promptUser) thothterm_user="\[\e[${thothterm_sgr}m\]" ;;
+      promptHost) thothterm_host="\[\e[${thothterm_sgr}m\]" ;;
+      promptPath) thothterm_path="\[\e[${thothterm_sgr}m\]" ;;
+    esac
+  done < "${THOTHTERM_GUEST_ROOT-}/etc/thothterm/palette"
+fi
+thothterm_reset=
+[ -n "$thothterm_user$thothterm_host$thothterm_path" ] && thothterm_reset='\[\e[0m\]'
+PS1="${thothterm_user}thoth${thothterm_reset}@${thothterm_host}thothterm${thothterm_reset}:${thothterm_path}"'\w'"${thothterm_reset}"'\$ '
+export PS1
+unset thothterm_role thothterm_sgr thothterm_user thothterm_host thothterm_path thothterm_reset
 
 if [ -n "${PS1-}" ] && [ -t 1 ] \
     && [ -f /etc/thothterm/welcome-enabled ] \

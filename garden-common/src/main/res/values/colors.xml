@@ -17,14 +17,20 @@
 
 <resources>
     <!-- ThothTerm visual identity. Keep app chrome separate from terminal ANSI colors. -->
-    <color name="brand_midnight">#08111F</color>
-    <color name="brand_navy">#10243A</color>
-    <color name="brand_navy_light">#18344F</color>
-    <color name="brand_teal">#39D9C5</color>
-    <color name="brand_teal_dark">#007C72</color>
-    <color name="brand_mist">#F3F7FA</color>
-    <color name="brand_white">#FFFFFFFF</color>
-    <color name="brand_text_muted_dark">#AAB9CC</color>
+    <!-- The app chrome's colour roles. Deliberately neutral grey here: every
+         Garden edition overrides each of them from its own approved artwork,
+         so an edition that forgot one can never look like another edition. -->
+    <color name="brand_background">#121212</color>
+    <color name="brand_surface">#1E1E1E</color>
+    <color name="brand_surface_light">#2C2C2C</color>
+    <color name="brand_accent">#BDBDBD</color>
+    <color name="brand_accent_dark">#757575</color>
+    <color name="brand_light_background">#F5F5F5</color>
+    <color name="brand_light_primary">#424242</color>
+    <color name="brand_light_primary_dark">#212121</color>
+    <color name="brand_light_primary_light">#616161</color>
+    <color name="brand_on_surface">#FFFFFFFF</color>
+    <color name="brand_on_surface_muted">#B0B0B0</color>
 
     <color name="colorvalue_alpha">#FFFFFFFF</color>
     <color name="colorvalue_red">#FFFF0000</color>

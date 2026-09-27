@@ -24,6 +24,8 @@ import android.view.KeyEvent;
 
 import com.thothterm.R;
 import com.thothterm.Settings;
+import com.thothterm.linux.GardenPalette;
+import com.thothterm.linux.RootfsManager;
 
 import androidx.preference.PreferenceManager;
 import jackpal.androidterm.emulatorview.ColorScheme;
@@ -189,6 +191,14 @@ public class TermSettings {
     }
 
     public ColorScheme getColorScheme() {
+        if (mColorId == Settings.EDITION_SCHEME) {
+            // The edition's own terminal colours; the cursor is its accent.
+            GardenPalette palette = RootfsManager.get().palette();
+            if (palette != null) {
+                return new ColorScheme(palette.argb("foreground"), palette.argb("background"),
+                        palette.argb("background"), palette.argb("primary"));
+            }
+        }
         return Settings.color_schemes[mColorId];
     }
 
