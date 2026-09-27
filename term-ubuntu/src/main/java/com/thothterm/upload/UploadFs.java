@@ -16,6 +16,8 @@
 
 package com.thothterm.upload;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.IOException;
 
 /**
@@ -23,6 +25,7 @@ import java.io.IOException;
  * symbolic link. {@link AndroidUploadFs} is the app's; JVM tests use one on
  * java.nio.file.
  */
+@RequiresApi(21)
 public interface UploadFs {
     int EEXIST = 17;
     int ENOTEMPTY = 39;

@@ -16,6 +16,8 @@
 
 package com.thothterm.upload;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.IOException;
 import java.util.Locale;
 
@@ -24,6 +26,7 @@ import java.util.Locale;
  * is told (a string on the phone, a JSON error for the browser); the message
  * is for tests and never carries file contents.
  */
+@RequiresApi(21)
 public final class UploadError extends IOException {
     public enum Code {
         /** The session's current directory cannot be determined. */

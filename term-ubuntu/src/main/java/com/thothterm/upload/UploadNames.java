@@ -16,6 +16,8 @@
 
 package com.thothterm.upload;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -31,6 +33,7 @@ import java.util.Locale;
  * checked on its own; nothing is normalized, so a name is stored exactly as
  * its Unicode was given, or refused.
  */
+@RequiresApi(21)
 public final class UploadNames {
     /** Linux's NAME_MAX, in bytes of UTF-8. */
     public static final int MAX_NAME_BYTES = 255;
