@@ -50,8 +50,11 @@ MaintainerNotes: |-
   the build environment; pacman installs base + archlinuxarm-keyring sudo
   ca-certificates curl into an empty root from freshly synced repositories,
   each package signature-checked, fully upgraded as of the build. It holds
-  unmodified Arch Linux ARM packages only, ships no pacman keyring, sync
-  databases, cache or lock, and is reproducible byte for byte from the
+  unmodified Arch Linux ARM packages only; the few settings the script changes
+  for a PRoot guest (one pacman.conf line, an empty machine-id, locked
+  accounts, hostname) are listed in the provenance document. It ships no
+  pacman keyring, sync databases, cache or lock, and is reproducible byte for
+  byte from the
   captured, hash-pinned inputs. The corresponding source of every package
   (recipe and upstream sources) is published in the same release. On first
   run the app creates the installation's own pacman keyring (pacman-key

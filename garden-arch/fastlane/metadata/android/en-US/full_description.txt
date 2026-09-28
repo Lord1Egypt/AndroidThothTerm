@@ -42,8 +42,9 @@ first launch offers to download it: about 200 MB from the project's GitHub
 release. Nothing is downloaded until you agree. The download is checked
 against a size and a SHA-256 checksum written into the app, and refused if
 either differs. The archive holds only unmodified Arch Linux ARM packages,
-each verified against Arch Linux ARM's signing key when it was built, by a
-script in the app's source that anyone can rerun to get the same bytes.
+each verified against Arch Linux ARM's signing key when it was built, with a
+few documented settings for running under PRoot on Android. A script in the
+app's source builds it, and anyone can rerun it to get the same bytes.
 
 A PRoot environment, not a booted system
 
