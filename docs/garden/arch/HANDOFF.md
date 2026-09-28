@@ -1,10 +1,90 @@
 # ThothTerm Rolling (Arch edition) — handoff, 2026-09-28
 
-State of the one-shot "Arch edition" task at the moment work stopped (weekly
-usage limit). Nothing is tagged or released yet. Read this first, then
-`docs/branding/arch/TRADEMARK.md`.
+Nothing is tagged or released yet. Read this first, then
+`docs/branding/arch/TRADEMARK.md`, then **`docs/garden/arch/RELEASE_CHECKLIST.md`**,
+which is now the step-by-step plan for everything that is left.
 
 **Status: ARCH GITHUB GOLDEN — not yet. ARCH F-DROID — not yet.**
+**Cloud work: complete. What remains needs the WSL box (docker+binfmt,
+Android SDK/NDK, gh) and the SM-A165F.**
+
+## Cloud session, 2026-09-28 (c49bb03 → see `git log`)
+
+A cloud container continued from c49bb03. It has no phone and no adb, and its
+network policy blocks `dl.google.com` (so no Android SDK, NDK or Android
+Gradle Plugin: **no APK was built in the cloud**), every archlinuxarm.org
+host and the upstream source hosts (so **no rootfs capture/build and no
+source collection** in the cloud). GitHub, Maven Central, PyPI, gitlab.com
+and Docker Hub were reachable. No device result below comes from the cloud.
+
+Commits (all on `feature/arch-v0.1.0`):
+
+- `7ce3a06` **fix(arch): collect the aarch64 sources; the freshness check can
+  download.** Real bugs:
+  - `collect-sources.py` ran makepkg in an x86_64 container, which fetches
+    `source` + `source_x86_64`, and exported from `.SRCINFO`, which lists
+    `source_<arch>` only for arches in `arch=()`. For any recipe with
+    `source_aarch64` it exported the x86_64 file (or failed) instead of the
+    corresponding source of the aarch64 binary. Now `CARCH=aarch64`,
+    `--ignorearch`, and the export reads the PKGBUILD's `source` +
+    `source_aarch64`. New `tests/garden-arch/host/collect-sources-selftest.sh`:
+    7/7 PASS; the old script 5/7 (it exported x86.txt in place of arm.txt).
+    **Re-run the source collection from scratch (`sources-trial2/` was made by
+    the old script).**
+  - `build-rootfs.sh check` ran `pacman -Sy` without `--disable-sandbox`
+    (capture has it): under qemu-user pacman 7's download sandbox cannot start.
+  - `build_script_revision` now says `uncommitted` when the recipe has local
+    changes (it printed the last commit's hash regardless).
+  - `ArchEditionTest.theSourceCollectorTakesTheAarch64Sources`.
+- `656fa65` docs: the store description and the F-Droid MaintainerNotes now say
+  which settings the rootfs changes besides "unmodified packages".
+- `fd3d101` **release tooling**:
+  - `garden-arch/rootfs/release-rootfs.py compare | pin | provenance | stage |
+    verify-published`: byte-compare ≥2 builds (refuses an uncommitted
+    recipe), pin exactly the 7 keys in `distro.properties`, write
+    `ROOTFS_PROVENANCE.md` from the build outputs (refuses a package without
+    recorded source), stage the rootfs release assets + `SHA256SUMS` and print
+    the `gh` command (publishes nothing), download back and verify.
+    `tests/garden-arch/host/release-rootfs-selftest.sh`: 13/13 PASS.
+  - `tools/garden/release/verify-apk.py`: SDK-free APK checks — identity, not
+    debuggable, arm64-v8a only, 16 KB ELF alignment (lib/ and
+    assets/runtime/), zip alignment as `zipalign -c -P 16 4`, distro.properties
+    byte-identical, full = exactly one stored rootfs with the pinned
+    size/SHA-256, fdroid = none, the two JNI classes R8 keeps (TermIO$Native 2
+    + Process$Native 5 = 7 native methods on Trixie 0.2.0), R8 ran,
+    signed/unsigned. Validated on the published Trixie 0.2.0 APKs (all PASS)
+    and on a doctored APK (misaligned .so and 4 KB PT_LOAD both FAIL).
+- the final cloud commit: `docs/garden/arch/PACKAGE_MANAGER.md` (drafted; the
+  device-gate result section is **PENDING**), `RELEASE_CHECKLIST.md`, this
+  section, `tools/garden/cloud-hosttest/` (see below), and
+  `tests/garden-arch/device/interrupt.sh` case 3 restores icu with `tar -xf`
+  (xz or zstd detected) instead of `-xJf`.
+
+Automated results in the cloud:
+
+- JVM unit tests with `tools/garden/cloud-hosttest/run.sh` (Robolectric
+  android-all 16 made into AGP-style mockable jars; Gradle could not run):
+  emulatorview 14/14 (includes ControlStringTest, the APC fix);
+  garden-common 257/257 (all but TermServiceTest's 3, not runnable without
+  AppCompat; includes LanServerTest, LanUploadTest, UploadBatchTest,
+  SessionDirectoryTest, UploadNamesTest = Garden File Bridge and LAN);
+  garden-debian 19/20; garden-arch 27/29. The only failures are the expected
+  ones: `PageAlignmentTest` (needs the NDK-built PRoot runtime) and
+  `provenanceRecordsThePinnedArchive` (no `ROOTFS_PROVENANCE.md` until the
+  release rootfs). Gradle must still run them locally (checklist step 1).
+- shellcheck: build-rootfs.sh and its three container scripts, the device
+  gate scripts, ci-build.sh — no real findings.
+- `fdroid lint` and `fdroid rewritemeta` (no change) on the filled template,
+  with fdroidserver 2.4.5 (PyPI) and master, against fdroiddata's current
+  config (eb5ab142): clean. The template has exactly one Builds entry.
+- Static audit of the pacman/keyring code (DistroInfo, GuestConfig,
+  GuestProcesses, RootfsManager, RootfsState): no defect found. The keyring
+  is made after the rename and state is written only after it verifies; an
+  image keyring is refused; the stale `db.lck` is removed only with no PRoot
+  running; sudo is reinstalled with `-S --needed`, never `-Sy`.
+- Not possible in the cloud: any APK build, R8/JNI/16 KB/zipalign on Arch
+  APKs (tooling is ready: checklist step 4), rootfs capture/build and
+  reproducibility runs, source collection, anything on the phone.
 
 ## Where things are
 
@@ -86,9 +166,9 @@ usage limit). Nothing is tagged or released yet. Read this first, then
   interrupt test (it killed an `icu` reinstall, which breaks pacman itself —
   now case 3 with a GNU-tar recovery), stale (openssh hook "systemd not PID 1"
   line is now INFO).
-- Unit tests at last run: garden-common 260, garden-debian 20, garden-arch 27
-  per flavour (only the provenance-doc test failed, expected until the release
-  rootfs doc exists), emulatorview 14.
+- Unit tests at the last local Gradle run: garden-common 260, garden-debian
+  20, garden-arch 27 per flavour (only the provenance-doc test failed, expected
+  until the release rootfs doc exists), emulatorview 14. Cloud results: above.
 
 ## Known, documented, not blocking
 
@@ -108,44 +188,25 @@ usage limit). Nothing is tagged or released yet. Read this first, then
 
 ## Remaining work, in order
 
-1. Re-run `tests/garden-arch/device/gate.sh <candidate> <stale>`; fix until
-   0 FAIL. Write `docs/garden/arch/PACKAGE_MANAGER.md` from the results.
-2. Corresponding source: finish `collect-sources.py` (trial was running, 0
-   unresolved so far); publish per-package `*.source.tar.gz` + `SOURCES.tsv`
-   with the rootfs release.
-3. App acceptance on the phone with a **minified release** build (debug-signed,
-   `install -r`): terminal smoke (Ctrl-C, CTRL reset, resize, rotation override,
-   pinch/menu zoom, extra keys, clipboard incl. Arabic, left-edge selection,
-   multiple windows, background/resume, notification tap, restart, busy-close
-   warning, nohup, Exit leaves no processes), File Bridge phone + browser
-   (sessions A/B, Unicode names, 150 MB, cancel, LAN-off), LAN browser suite
-   and attack suite (earlier sessions' scripts lived in the scratchpad:
-   lanaccept/lanattack/chargetest/phoneup/smoke — recreate), charging
-   screen-awake (record `screen_off_timeout`, original **30000**, restore),
-   F-Droid flavour consent/decline/404/wrong size/wrong hash/partial/retry
-   (point sourceUrl at a local test server or test before the rootfs release),
-   no data loss across `install -r`.
-4. **Release-day rootfs** (≤24 h before publishing): `build-rootfs.sh check`,
-   then `capture` again, `build` twice (≥2, prefer 4) from a *committed*
-   script, compare bytes, re-run the device gate on the final archive.
-   Publish GitHub release `arch-rootfs-aarch64-<sha12>` with the archive,
-   manifest, packages.tsv, scan, upstream .sig + provenance, SOURCES, SHA256SUMS;
-   download back, verify; pin in distro.properties; write
-   `docs/garden/arch/ROOTFS_PROVENANCE.md` (ArchEditionTest checks it).
-5. Clean clone; build full/fdroid release + debug-signed test APKs; R8 (two JNI
-   keeps, 6/6 natives), 16 KB (`zipalign -c -P 16 -v 4`, all ELFs 0x4000),
-   full embeds the exact rootfs bytes, fdroid embeds none.
-6. Annotated tag `arch-v0.1.0`; GitHub release "ThothTerm Rolling 0.1.0 —
-   Garden Golden Baseline", not draft/prerelease, `--latest=false`; assets
-   `ThothTerm-Rolling-v0.1.0-{full,fdroid}-{release-unsigned,test}.apk` +
-   SHA256SUMS.txt; download back and verify.
-7. F-Droid: fork `gitlab.com/Lord1Egypt/fdroiddata` (project 86673174), new
-   branch `com.thothterm.arch`, `metadata/com.thothterm.arch.yml` from the
-   template (ONE Builds entry, `Tags ^arch-v[0-9.]+$`, AutoUpdateMode Version),
-   lint/rewritemeta/local buildserver-trixie CI (`ci-build.sh`), ONE New App MR
-   "New app: ThothTerm Rolling (com.thothterm.arch)" with the official template,
-   Squash on, no auto-merge, never merge; wait for a green pipeline.
-   Do not touch !49556 (Ubuntu) or !50342 (Trixie).
+All of it is in `docs/garden/arch/RELEASE_CHECKLIST.md` with exact commands:
+
+1. Local: Gradle unit tests (step 1) and the two host self-tests.
+2. Phone: install the latest candidate build; title/APC regression; re-run
+   `tests/garden-arch/device/gate.sh <candidate> <stale>` until `FAIL: 0`
+   (the 14 earlier FAILs were harness bugs fixed in 978389e, never re-run).
+3. Local: release-day rootfs — `check`, `capture`, `build` ×4,
+   `release-rootfs.py compare`, `collect-sources.py` from scratch (0
+   UNRESOLVED), `release-rootfs.py provenance` + `pin`, gate on the final
+   archive, fill PACKAGE_MANAGER.md's PENDING section, commit, `stage`,
+   publish `arch-rootfs-aarch64-<sha12>`, `verify-published`.
+4. Local: clean clone, full/fdroid release + debug-signed test APKs,
+   `verify-apk.py` on all four, SHA256SUMS.
+5. Phone: full acceptance with the minified test build (terminal, File
+   Bridge phone+browser, LAN browser + attack suites, charging screen-awake
+   with `screen_off_timeout` 30000 restored, F-Droid consent/failure cases,
+   no data loss across `install -r`).
+6. Only then: tag `arch-v0.1.0`, GitHub release, F-Droid MR (one Builds
+   entry, Squash on, never merge; do not touch !49556 or !50342).
 
 ## Phone state left behind
 

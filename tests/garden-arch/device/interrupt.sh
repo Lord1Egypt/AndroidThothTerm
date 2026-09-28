@@ -61,7 +61,7 @@ killmid 3 -S --noconfirm icu
 pacman -V >/dev/null 2>&1; broken=$?
 echo "INFO 3 after the kill pacman $( [ $broken = 0 ] && echo still starts || echo 'cannot start:' ) $(pacman -V 2>&1 | grep -m1 'error' || true)"
 unlock 3
-tar -xJf "$pkg" -C / --exclude=.PKGINFO --exclude=.BUILDINFO --exclude=.MTREE --exclude=.INSTALL; ok $? "3 icu files restored from the cached package with GNU tar"
+tar -xf "$pkg" -C / --exclude=.PKGINFO --exclude=.BUILDINFO --exclude=.MTREE --exclude=.INSTALL; ok $? "3 icu files restored from the cached package with GNU tar (xz or zstd, detected)"
 pacman -V >/dev/null 2>&1; ok $? "3 pacman starts again"
 pacman -S --noconfirm icu > /tmp/int7.log 2>&1; r=$?
 [ $r = 0 ] && [ "$(pacman -Q icu | cut -d' ' -f2)" = "$v" ]; ok $? "3 icu reinstalled by pacman at the same version $v"
