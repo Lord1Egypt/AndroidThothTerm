@@ -186,6 +186,8 @@ def stageRootfs = tasks.register('stageDebianRootfs') {
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING)
             }
         }
+        // Exactly one archive: a pin change must not leave the previous one behind.
+        project.delete(target.parentFile)
         target.parentFile.mkdirs()
         java.nio.file.Files.copy(source.toPath(), target.toPath(),
                 java.nio.file.StandardCopyOption.REPLACE_EXISTING)
