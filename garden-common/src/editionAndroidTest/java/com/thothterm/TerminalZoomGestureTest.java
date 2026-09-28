@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.thothterm.debian;
+package com.thothterm;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -48,7 +48,9 @@ import org.junit.runner.RunWith;
  */
 @RunWith(AndroidJUnit4.class)
 public class TerminalZoomGestureTest {
-    private static final String PACKAGE = "com.thothterm.debian";
+    // Every Garden edition runs this against itself.
+    private static final String PACKAGE = InstrumentationRegistry.getInstrumentation()
+            .getTargetContext().getPackageName();
     private static final String FLIPPER = PACKAGE + ":id/view_flipper";
     private static final long LAUNCH_TIMEOUT_MS = 40_000L;
     // garden-common's TerminalZoom ladder. Spelled out because this runs against

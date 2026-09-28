@@ -41,16 +41,21 @@ import java.util.List;
  * alignment flags in {@code LDFLAGS} never reached, and the build only checked
  * {@code proot}. The build script now checks each artifact; this test is the
  * second line of defence and reads the ELF headers directly.
+ *
+ * <p>Shared by every Garden edition: each adds
+ * {@code garden-common/src/editionTest/java} to its unit-test sources.
  */
 public class PageAlignmentTest {
     /** 2**14. Android also accepts 64 KB, hence the >= comparison below. */
     private static final long REQUIRED_ALIGNMENT = 16384L;
     private static final int PT_LOAD = 1;
 
+    /** The edition being tested: Gradle runs its unit tests in its module directory. */
     private static File moduleDir() {
         File here = new File("").getAbsoluteFile();
-        if (new File(here, "src/main/assets/garden").isDirectory()) return here;
-        return new File(here, "garden-debian");
+        assertTrue("run from a Garden edition's module directory",
+                new File(here, "src/main/assets/garden/distro.properties").isFile());
+        return here;
     }
 
     private static File gardenCommon() {

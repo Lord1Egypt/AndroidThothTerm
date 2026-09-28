@@ -86,10 +86,31 @@ public class GardenScreenAwakeTest {
     public void everyEditionRunsTheSharedDeviceTest() throws IOException {
         assertTrue(new File(ROOT, DEVICE_TEST_DIR + "/com/thothterm/KeepScreenAwakeTest.java")
                 .isFile());
+        assertTrue(new File(ROOT, DEVICE_TEST_DIR + "/com/thothterm/TerminalZoomGestureTest.java")
+                .isFile());
         for (File edition : editions()) {
             assertTrue(edition + "/build.gradle must add " + DEVICE_TEST_DIR
                             + " to its androidTest sources",
                     read(new File(edition, "build.gradle")).contains(DEVICE_TEST_DIR));
+        }
+    }
+
+    /** Shared unit tests too (the 16 KB alignment check), never a per-edition copy. */
+    @Test
+    public void everyEditionRunsTheSharedUnitTests() throws IOException {
+        String dir = "garden-common/src/editionTest/java";
+        assertTrue(new File(ROOT, dir + "/com/thothterm/linux/PageAlignmentTest.java").isFile());
+        for (File edition : editions()) {
+            assertTrue(edition + "/build.gradle must add " + dir + " to its test sources",
+                    read(new File(edition, "build.gradle")).contains(dir));
+            List<File> files = new ArrayList<>();
+            collect(new File(edition, "src"), files);
+            for (File file : files) {
+                assertFalse(file + " copies a shared test",
+                        file.getName().equals("PageAlignmentTest.java")
+                                || file.getName().equals("TerminalZoomGestureTest.java")
+                                || file.getName().equals("KeepScreenAwakeTest.java"));
+            }
         }
     }
 

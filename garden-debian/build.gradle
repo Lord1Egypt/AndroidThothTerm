@@ -74,9 +74,12 @@ android {
         full {
             assets.srcDirs += "$buildDir/garden/rootfs-assets"
         }
-        // garden-common's device tests, which every edition runs.
+        // garden-common's device and unit tests, which every edition runs.
         androidTest {
             java.srcDirs += rootProject.file('garden-common/src/editionAndroidTest/java')
+        }
+        test {
+            java.srcDirs += rootProject.file('garden-common/src/editionTest/java')
         }
     }
     androidResources {
