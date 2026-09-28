@@ -122,6 +122,21 @@ public class ArchEditionTest {
     }
 
     /**
+     * The corresponding source of an aarch64 binary: the collector's x86_64
+     * container must fetch source and source_aarch64, never another
+     * architecture's, including from a recipe that declares only x86_64.
+     * tests/garden-arch/host/collect-sources-selftest.sh runs it for real.
+     */
+    @Test
+    public void theSourceCollectorTakesTheAarch64Sources() throws Exception {
+        String collector = read(new File(moduleDir(), "rootfs/collect-sources.py"));
+        assertTrue(collector.contains("export CARCH=aarch64 SRCDEST=/srcdest"));
+        assertTrue(collector.contains("makepkg --ignorearch --verifysource"));
+        assertTrue(collector.contains("\"${source[@]}\" \"${source_aarch64[@]}\""));
+        assertFalse(collector.contains("--printsrcinfo"));
+    }
+
+    /**
      * The archive is content-addressed: its name carries the first 12 hex
      * digits of its SHA-256, in the published file, the embedded asset and the
      * release it is published under.

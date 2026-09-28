@@ -75,6 +75,18 @@ die() { echo "build-rootfs: $*" >&2; exit 1; }
 [ "$(sha256sum "$HERE/archlinuxarm.gpg" | cut -d' ' -f1)" = "$KEYRING_SHA256" ] \
     || die "archlinuxarm.gpg does not match its pin"
 
+# The commit the recipe (this script, packages.txt, the pinned key) was last
+# changed in, or "uncommitted" when the working tree differs from it: a release
+# rootfs is built from a committed recipe only.
+script_revision() {
+    rev="$(git -C "$HERE" log -1 --format=%H -- build-rootfs.sh packages.txt archlinuxarm.gpg 2>/dev/null)" || rev=""
+    if [ -z "$rev" ] || ! git -C "$HERE" diff --quiet HEAD -- build-rootfs.sh packages.txt archlinuxarm.gpg 2>/dev/null; then
+        echo uncommitted
+    else
+        echo "$rev"
+    fi
+}
+
 # Verifies the upstream image against the Build System key alone, fail closed.
 verify_upstream() {
     gnupg="$(mktemp -d)"
@@ -353,7 +365,7 @@ rm /out/rootfs.tar
         echo "pacman_Dk: $(tr '\n' ' ' < "$WORK/dbcheck.txt")"
         echo "pacman_Qk: $(grep -vc ' 0 missing files' "$WORK/filecheck.txt" || true) packages with missing files"
         echo "build_script_sha256: $(sha256sum "$0" | cut -d' ' -f1)"
-        echo "build_script_revision: $(git -C "$HERE" log -1 --format=%H -- build-rootfs.sh packages.txt archlinuxarm.gpg 2>/dev/null || echo uncommitted)"
+        echo "build_script_revision: $(script_revision)"
         echo "--- /etc/pacman.conf (active lines)"
         grep -vE '^[[:space:]]*(#|$)' "$WORK/pacman.conf"
         echo "--- /etc/pacman.d/mirrorlist (active lines)"
@@ -371,7 +383,9 @@ cmd_check() {
 mkdir -p /tmp/pinned /tmp/live
 for db in /inputs/sync/*.db; do bsdtar -xf "$db" -C /tmp/pinned; done
 # A throwaway container only reads the live databases; nothing is installed.
-pacman -Sy >/dev/null
+# Without its sandbox, as in capture: qemu-user has neither Landlock nor
+# seccomp filters, and pacman 7 would refuse to download.
+pacman -Sy --disable-sandbox >/dev/null
 for db in /var/lib/pacman/sync/*.db; do bsdtar -xf "$db" -C /tmp/live; done
 echo "checked: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 changed=0

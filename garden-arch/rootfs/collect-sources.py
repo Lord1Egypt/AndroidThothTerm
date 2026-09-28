@@ -19,8 +19,12 @@ For every package base in the rootfs (read from each binary's own .PKGINFO):
    tag of that version.
 2. The source. In a throwaway container (archlinux:base-devel pinned by
    digest, plus git), `makepkg --verifysource` downloads every source the
-   recipe lists, for every architecture, and checks each against the
-   checksums the recipe pins. Files are kept as downloaded; a git source is
+   recipe lists for aarch64 -- `source` and `source_aarch64`, never another
+   architecture's -- and checks each against the checksums the recipe pins.
+   The container is x86_64, so makepkg is told CARCH=aarch64, and
+   --ignorearch, because an Arch recipe Arch Linux ARM rebuilds may declare
+   only x86_64 (without CARCH, makepkg would fetch source_x86_64 and skip
+   source_aarch64). Files are kept as downloaded; a git source is
    exported with `git archive` at exactly the commit or tag the recipe pins,
    which is the tree the package was built from (a whole mirror of, say,
    gcc.git would not fit a release asset).
@@ -48,12 +52,19 @@ TOOL_IMAGE = "thothterm-source-collector:{digest12}"
 COLLECT = r"""
 set -euo pipefail
 cd /r
-makepkg --printsrcinfo > /tmp/srcinfo
-makepkg --verifysource --skippgpcheck --nocolor SRCDEST=/srcdest > /tmp/verify.log 2>&1 \
+# The binaries are aarch64: makepkg (which keeps CARCH and SRCDEST from the
+# environment over makepkg.conf) fetches and verifies source plus
+# source_aarch64, even for a recipe that declares only x86_64.
+export CARCH=aarch64 SRCDEST=/srcdest
+makepkg --ignorearch --verifysource --skippgpcheck --nocolor > /tmp/verify.log 2>&1 \
     || { tail -20 /tmp/verify.log; exit 1; }
+# The same list makepkg just verified. Not .SRCINFO: it prints source_<arch>
+# only for the architectures in arch=(), which may not name aarch64.
+bash -c 'source ./PKGBUILD >/dev/null 2>&1; printf "%s\n" "${source[@]}" "${source_aarch64[@]}"' \
+    | grep -v '^$' | sort -u > /tmp/sources
 out=/o/$BASE/sources
 mkdir -p "$out"
-sed -n 's/^\tsource\(_[a-z0-9_]*\)\? = //p' /tmp/srcinfo | sort -u | while read -r entry; do
+while read -r entry; do
     name=${entry%%::*}; [ "$name" = "$entry" ] && name=
     url=${entry#*::}
     case $url in
@@ -77,7 +88,7 @@ sed -n 's/^\tsource\(_[a-z0-9_]*\)\? = //p' /tmp/srcinfo | sort -u | while read 
             printf 'file\t%s\t-\t%s\n' "$url" "$file" >> "/o/$BASE/sources.tsv" ;;
         *) ;;  # a local file: part of the recipe
     esac
-done
+done < /tmp/sources
 """
 ARM_REPO = "https://github.com/archlinuxarm/PKGBUILDs.git"
 ARCH_REPO = "https://gitlab.archlinux.org/archlinux/packaging/packages/{base}.git"
