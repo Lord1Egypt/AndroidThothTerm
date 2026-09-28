@@ -1,0 +1,15 @@
+# Packages installed explicitly into the ThothTerm Rolling root filesystem;
+# pacman resolves their dependencies. `base` is Arch's own minimal-install
+# meta package, and packages throughout the repositories assume it is present, so it
+# is kept whole (it brings pacman with its GnuPG, archlinux-keyring and
+# pacman-mirrorlist, glibc with its C.UTF-8 locale, coreutils, util-linux
+# with su, tar, gzip, xz, zstd and the rest). Arch Linux ARM's base does not
+# pull in archlinuxarm-keyring, the keys every Arch Linux ARM package is
+# signed with, so it is named here. Kept deliberately small: no
+# kernel, bootloader, firmware, ssh or network daemons. Users install the rest
+# with pacman.
+base
+archlinuxarm-keyring
+sudo
+ca-certificates
+curl

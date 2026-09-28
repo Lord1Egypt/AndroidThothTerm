@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (c) 2026 Mohamed Mounir.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<!-- ThothTerm Rolling's app chrome; the same values as
+     assets/garden/palette.properties where the roles meet (ArchPaletteTest).
+     Derivation: docs/branding/arch/PALETTE.md. -->
+<resources>
+    <color name="brand_background">#020811</color>
+    <color name="brand_surface">#061224</color>
+    <color name="brand_surface_light">#051A40</color>
+    <color name="brand_accent">#4F7FF4</color>
+    <color name="brand_accent_dark">#174FD1</color>
+    <color name="brand_light_background">#F3EDFE</color>
+    <color name="brand_light_primary">#032569</color>
+    <color name="brand_light_primary_dark">#061224</color>
+    <color name="brand_light_primary_light">#174FD1</color>
+    <color name="brand_on_surface">#F8F5FE</color>
+    <color name="brand_on_surface_muted">#6C7BB6</color>
+</resources>

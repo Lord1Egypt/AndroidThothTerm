@@ -1,0 +1,68 @@
+ThothTerm Rolling is an independent Android application that runs an Arch
+Linux ARM AArch64 environment under PRoot, and a terminal to work in it. There
+is no root, no virtual machine and no server somewhere else: the environment
+runs on the phone itself, inside the app.
+
+The environment is ordinary Arch Linux ARM userspace. pacman installs from
+Arch Linux ARM's own repositories and checks every package's signature
+against Arch Linux ARM's signing key; sudo is the distribution's sudo. The
+environment is rolling: it arrives fully upgraded as of the moment it was
+built, and "sudo pacman -Syu" keeps it current like any Arch Linux ARM
+system. What you install stays installed across app updates, as does
+everything in your home directory.
+
+What you get
+
+* Arch Linux ARM for AArch64, set up on first launch, with pacman ready: the
+  app creates this installation's own package-signing keyring for you
+* pacman and passwordless sudo for the user thoth
+* Several terminal windows at once, with a window list
+* Pinch-to-zoom and Zoom in / Zoom out / Reset
+* An extra keys row: Esc, Ctrl, Alt, Tab, Home, End and the arrows
+* Copy and paste, selection and scrollback
+* Correct display of Arabic and other right-to-left text
+* Upload files and folders from the phone into a terminal's current directory
+* Keep screen awake, by hand or automatically while charging
+* LAN Mode, to use the same environment from a web browser on another computer
+
+LAN Mode
+
+LAN Mode is off until you turn it on. While it is on, the app shows an address
+and a one-time PIN; a browser on the same Wi-Fi or Ethernet network must pair
+with that PIN before it gets anything. Every browser gets its own terminal,
+and the windows on the phone are never shared. It does not listen on mobile
+data or the Internet. Turning it off ends every browser's access. The
+connection is plain HTTP: terminal traffic and uploaded files are not
+encrypted in transit. Use it only on networks you trust.
+
+First run
+
+The F-Droid build does not include the Arch Linux ARM environment, so the
+first launch offers to download it: about 200 MB from the project's GitHub
+release. Nothing is downloaded until you agree. The download is checked
+against a size and a SHA-256 checksum written into the app, and refused if
+either differs. The archive holds only unmodified Arch Linux ARM packages,
+each verified against Arch Linux ARM's signing key when it was built, by a
+script in the app's source that anyone can rerun to get the same bytes.
+
+A PRoot environment, not a booted system
+
+Programs run as ordinary processes of the app. Package management and
+command-line software work; services that need systemd running as PID 1
+(systemctl) do not.
+
+Requirements
+
+* A 64-bit ARM phone (arm64-v8a), Android 8.0 or newer
+* About 700 MB for the environment right after setup, plus what pacman's
+  package databases and the software you install add
+
+This app is independent and is not affiliated with or endorsed by the Arch
+Linux or Arch Linux ARM projects. Arch Linux is a trademark of Levente Polyák
+and Judd Vinet, on behalf of Arch Linux.
+
+ThothTerm is free software under the Apache License 2.0, a fork of TermOne
+Plus, which derives from Terminal Emulator for Android and the Android Open
+Source Project. The PRoot runtime is built from source during the build. Its
+licence and those of the Arch Linux ARM packages are listed in
+THIRD_PARTY_NOTICES.md.
