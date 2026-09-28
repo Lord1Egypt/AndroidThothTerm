@@ -36,6 +36,13 @@ public final class DistroInfo {
 
     private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
     private static final Pattern NAME = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,79}");
+    private static final Pattern GROUP = Pattern.compile("[a-z_][a-z0-9_-]{0,31}");
+    private static final Pattern FINGERPRINT = Pattern.compile("[0-9A-F]{40}");
+
+    /** Debian-family guests: dpkg's status database, apt, debconf. */
+    public static final String DPKG = "dpkg";
+    /** Arch-family guests: pacman's local database and its own keyring. */
+    public static final String PACMAN = "pacman";
 
     private final Properties properties;
 
@@ -73,6 +80,14 @@ public final class DistroInfo {
         require("lanPort", lanPort() >= 1024 && lanPort() <= 65535);
         require("sudoBinary", sudoBinary().startsWith("usr/")
                 && !sudoBinary().contains(".."));
+        require("packageManager", packageManager().equals(DPKG) || packageManager().equals(PACMAN));
+        require("adminGroup", GROUP.matcher(adminGroup()).matches());
+        if (packageManager().equals(PACMAN)) {
+            // Without these the first run could not prove that the keyring it
+            // creates trusts the distribution's packages.
+            require("pacmanKeyring", NAME.matcher(pacmanKeyring()).matches());
+            require("packageSigningKey", FINGERPRINT.matcher(packageSigningKey()).matches());
+        }
     }
 
     /** Shown in the UI and written into the guest as one line of text. */
@@ -162,5 +177,27 @@ public final class DistroInfo {
     /** The real sudo binary, relative to the rootfs, that needs its setuid bit. */
     public String sudoBinary() {
         return get("sudoBinary");
+    }
+
+    /** {@link #DPKG} (the default) or {@link #PACMAN}. */
+    public String packageManager() {
+        String value = get("packageManager");
+        return value.isEmpty() ? DPKG : value;
+    }
+
+    /** The group administrators belong to: "sudo" by default, "wheel" on Arch. */
+    public String adminGroup() {
+        String value = get("adminGroup");
+        return value.isEmpty() ? "sudo" : value;
+    }
+
+    /** pacman only: the keyring {@code pacman-key --populate} loads, e.g. "archlinux". */
+    public String pacmanKeyring() {
+        return get("pacmanKeyring");
+    }
+
+    /** pacman only: fingerprint of the key the distribution signs its packages with. */
+    public String packageSigningKey() {
+        return get("packageSigningKey").toUpperCase(java.util.Locale.ROOT);
     }
 }

@@ -51,12 +51,21 @@ final class GuestConfig {
                 + USER_HOME + ":" + USER_SHELL);
     }
 
-    static String ensureGroup(String text) {
+    /**
+     * Adds the {@code thoth} group and makes {@code thoth} a member of
+     * {@code adminGroup} ("sudo" on Debian, "wheel" on Arch). Elevation itself
+     * comes from the sudoers entry; the membership only matches what the
+     * distribution's own tools expect of an administrator. Only a missing
+     * "sudo" group is created (as Debian's gid 27); another missing group is
+     * left alone rather than guessing a gid the distribution may use.
+     */
+    static String ensureGroup(String text, String adminGroup) {
         String result = text;
         if (!hasNamedLine(result, USER)) {
             result = appendStanza(result, USER + ":x:" + GID + ":");
         }
-        return ensureMember(result, "sudo", USER);
+        if (!hasNamedLine(result, adminGroup) && !adminGroup.equals("sudo")) return result;
+        return ensureMember(result, adminGroup, USER);
     }
 
     static String ensureShadow(String text) {
@@ -69,7 +78,7 @@ final class GuestConfig {
     private static final int AID_CACHE_START = 20000;
     private static final int AID_SHARED_START = 50000;
 
-    /** Where the guest's sudo package stands, from dpkg's status database. */
+    /** Where the guest's sudo package stands, from its package database. */
     enum PackageState {
         /** Fully installed and configured. */
         INSTALLED,
@@ -106,6 +115,26 @@ final class GuestConfig {
                     return PackageState.UNFINISHED;
                 default:
                     return PackageState.ABSENT;
+            }
+        }
+        return PackageState.ABSENT;
+    }
+
+    /**
+     * The state of {@code packageName} from the entry names in pacman's local
+     * database ({@code /var/lib/pacman/local}), which are
+     * {@code <name>-<pkgver>-<pkgrel>}. pacman writes an entry only once the
+     * package's files are in place and has no half-configured state, so an
+     * entry means installed. An interrupted transaction shows as a leftover
+     * {@code db.lck} instead.
+     */
+    static PackageState pacmanPackageState(String[] localEntries, String packageName) {
+        if (localEntries == null) return PackageState.ABSENT;
+        for (String entry : localEntries) {
+            int rel = entry.lastIndexOf('-');
+            int ver = rel > 0 ? entry.lastIndexOf('-', rel - 1) : -1;
+            if (ver > 0 && entry.substring(0, ver).equals(packageName)) {
+                return PackageState.INSTALLED;
             }
         }
         return PackageState.ABSENT;

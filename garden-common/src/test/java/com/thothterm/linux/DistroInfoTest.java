@@ -78,11 +78,47 @@ public class DistroInfoTest {
         assertEquals(1, info.schemaVersion());
         assertEquals(7699, info.lanPort());
         assertEquals("usr/bin/sudo", info.sudoBinary());
+        // Unset, an edition is a dpkg guest with Debian's admin group.
+        assertEquals(DistroInfo.DPKG, info.packageManager());
+        assertEquals("sudo", info.adminGroup());
+    }
+
+    @Test
+    public void parsesAPacmanEdition() throws Exception {
+        DistroInfo info = load(valid("packageManager", "pacman", "adminGroup", "wheel",
+                "pacmanKeyring", "archlinuxarm",
+                "packageSigningKey", "68b3537f39a313b3e574d06777193f152bdbe6a6"));
+        assertEquals(DistroInfo.PACMAN, info.packageManager());
+        assertEquals("wheel", info.adminGroup());
+        assertEquals("archlinuxarm", info.pacmanKeyring());
+        assertEquals("68B3537F39A313B3E574D06777193F152BDBE6A6", info.packageSigningKey());
     }
 
     @Test
     public void digestIsNormalizedToLowerCase() throws Exception {
         assertEquals(SHA, load(valid("sha256", SHA.toUpperCase(java.util.Locale.ROOT))).sha256());
+    }
+
+    /** A pacman edition must say which keyring and key its first run proves. */
+    @Test
+    public void refusesAPacmanEditionWithoutItsTrustAnchors() {
+        String key = "68B3537F39A313B3E574D06777193F152BDBE6A6";
+        String[][] bad = {
+                {"pacmanKeyring", null, "packageSigningKey", key},
+                {"pacmanKeyring", "../x", "packageSigningKey", key},
+                {"pacmanKeyring", "archlinuxarm; rm -rf /", "packageSigningKey", key},
+                {"pacmanKeyring", "archlinuxarm", "packageSigningKey", null},
+                {"pacmanKeyring", "archlinuxarm", "packageSigningKey", "77193F152BDBE6A6"},
+                {"pacmanKeyring", "archlinuxarm", "packageSigningKey", key + "' ; x '"},
+        };
+        for (String[] o : bad) {
+            try {
+                load(valid("packageManager", "pacman", o[0], o[1], o[2], o[3]));
+                fail("accepted " + java.util.Arrays.toString(o));
+            } catch (IOException expected) {
+                // fail closed
+            }
+        }
     }
 
     /** Anything the download check or the filesystem relies on must be present and sane. */
@@ -100,6 +136,8 @@ public class DistroInfoTest {
                 {"distroVersion", "red\\u001b[31m"}, {"distroName", "a\\u0007b"},
                 {"lanPort", "80"}, {"lanPort", "70000"}, {"lanPort", null},
                 {"sudoBinary", "/usr/bin/sudo"}, {"sudoBinary", "usr/../../etc/passwd"},
+                {"packageManager", "rpm"}, {"packageManager", "PACMAN"},
+                {"adminGroup", "wheel;rm"}, {"adminGroup", "Wheel"}, {"adminGroup", "a b"},
         };
         for (String[] override : bad) {
             try {

@@ -35,7 +35,8 @@ import java.util.Locale;
  * dpkg's own variable, used by every dpkg-based guest.
  */
 public class DistroNeutralityTest {
-    private static final String[] NAMES = {"debian", "ubuntu", "canonical ltd", "trixie"};
+    private static final String[] NAMES = {"debian", "ubuntu", "canonical ltd", "trixie",
+            "arch linux", "archlinux", "thothterm rolling"};
 
     private static boolean isComment(String line) {
         String t = line.trim();

@@ -210,7 +210,7 @@ public final class RootfsManager {
         if (image == null) return false;
 
         RootfsState state = RootfsState.read(stateFile);
-        if (!state.matches(image)) return false;
+        if (!state.isInstalled()) return false;
         if (!new File(rootfsDir, "usr/bin/bash").exists()) return false;
         return new File(runtimeLibDir, "libtalloc.so.2").exists();
     }
@@ -436,11 +436,20 @@ public final class RootfsManager {
         }
 
         setupRootfs(stagingDir, true);
+        if (isPacman() && new File(stagingDir, "etc/pacman.d/gnupg").exists()) {
+            // A keyring in the image would be one every installation shares,
+            // private master key included.
+            throw new IOException("The image carries a pacman keyring");
+        }
 
         SafeFileTree.deleteTree(fileOps, linuxDir, rootfsDir);
         if (!stagingDir.renameTo(rootfsDir)) {
             throw new IOException("Cannot finalize extracted rootfs");
         }
+        // PRoot needs the rootfs at its final path, so the keyring is made
+        // after the rename; setup is not complete, and no state is written,
+        // until it exists and verifies.
+        if (isPacman()) runProvisioning(rootfsDir, pacmanKeyringScript());
         writeState();
         ThothLog.i(LogCategory.ROOTFS, "Extraction complete");
     }
@@ -464,7 +473,89 @@ public final class RootfsManager {
     public synchronized void prepareSession() throws IOException {
         if (!isReady()) throw new IOException("Linux environment is not ready");
         setupRootfs(rootfsDir, false);
+        if (isPacman()) {
+            clearStalePacmanLock();
+            ensurePacmanKeyring();
+        }
         ensureRealSudo(rootfsDir);
+    }
+
+    private boolean isPacman() {
+        return DistroInfo.PACMAN.equals(image.packageManager());
+    }
+
+    /**
+     * pacman marks a running transaction with {@code db.lck} and removes it
+     * when done, so a lock left by a killed transaction blocks every later
+     * one. It is removed only when it is proven stale: no PRoot of this app is
+     * running, and every guest process -- pacman included -- runs under a
+     * PRoot that takes it down when it exits (PTRACE_O_EXITKILL). Otherwise
+     * it is left alone. The interrupted transaction itself is completed by
+     * the user's next {@code pacman -Syu}; see the edition's PACKAGE_MANAGER.md.
+     */
+    private void clearStalePacmanLock() {
+        File lock = new File(rootfsDir, "var/lib/pacman/db.lck");
+        if (!lock.exists()) return;
+        int running = GuestProcesses.countProot(new File("/proc"), prootPath(), android.os.Process.myPid());
+        if (running != 0) {
+            ThothLog.i(LogCategory.ROOTFS, "pacman lock present while " + running
+                    + " PRoot process(es) run; left in place");
+            return;
+        }
+        if (lock.delete()) {
+            ThothLog.w(LogCategory.ROOTFS, "Removed a stale pacman lock (no PRoot running);"
+                    + " an interrupted transaction completes with pacman -Syu");
+        } else {
+            ThothLog.w(LogCategory.ROOTFS, "Cannot remove the stale pacman lock");
+        }
+    }
+
+    /**
+     * Recreates the installation's own pacman keyring if it is gone (a user
+     * can delete it). Best effort: a failure is logged and retried on the
+     * next window, and never blocks the terminal. An existing keyring is
+     * never touched.
+     */
+    private void ensurePacmanKeyring() {
+        if (new File(rootfsDir, "etc/pacman.d/gnupg/trustdb.gpg").isFile()) return;
+        try {
+            runProvisioning(rootfsDir, pacmanKeyringScript());
+            ThothLog.i(LogCategory.ROOTFS, "pacman keyring recreated");
+        } catch (Throwable t) {
+            ThothLog.e(LogCategory.ROOTFS, "pacman keyring creation failed type="
+                    + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
+        }
+    }
+
+    /**
+     * The installation's own pacman keyring, as the distribution documents
+     * it: pacman-key --init (a fresh local master key, from the kernel's
+     * random source) and --populate with the distribution's keyring package
+     * data. Then two proofs, both offline: the package-signing key is fully
+     * valid, and a genuine signed repository package kept in the image for
+     * this purpose verifies with it. Any other result fails the script.
+     */
+    private String pacmanKeyringScript() {
+        String key = image.packageSigningKey();
+        return "set -e\n"
+                + PATH_EXPORT + "\n"
+                + "export LANG=C.UTF-8\n"
+                + "cd /\n"
+                + "K=/etc/pacman.d/gnupg\n"
+                + "rm -rf \"$K\"\n"
+                + "pacman-key --init\n"
+                + "pacman-key --populate " + image.pacmanKeyring() + "\n"
+                + "gpg --homedir \"$K\" --batch --with-colons --list-keys " + key
+                + " | grep -q '^pub:[fu]:' || { echo 'signing key is not fully valid' >&2; exit 1; }\n"
+                + "set -- /usr/share/thothterm/signature-check/*.sig\n"
+                + "[ -f \"$1\" ] || { echo 'no signature-check package' >&2; exit 1; }\n"
+                + "gpg --homedir \"$K\" --batch --status-fd 1 --verify \"$1\" \"${1%.sig}\""
+                + " > /tmp/.thothterm-verify 2>/dev/null || true\n"
+                + "grep -q '^\\[GNUPG:\\] VALIDSIG " + key + " ' /tmp/.thothterm-verify"
+                + " && grep -qE '^\\[GNUPG:\\] TRUST_(FULLY|ULTIMATE)' /tmp/.thothterm-verify"
+                + " || { cat /tmp/.thothterm-verify >&2; rm -f /tmp/.thothterm-verify; exit 1; }\n"
+                + "rm -f /tmp/.thothterm-verify\n"
+                + "echo keyring-verified\n";
     }
 
     private void setupRootfs(File root, boolean installSkeleton) throws IOException {
@@ -491,7 +582,7 @@ public final class RootfsManager {
         File localeFix = new File(profileDir, "01-locale-fix.sh");
         writeTextIfChanged(localeFix, GuestConfig.localeFixScript());
 
-        setupDebconfFrontend(root);
+        if (!isPacman()) setupDebconfFrontend(root);
         writeRuntimeConfigVersion(root);
 
         copyManagedAsset("linux/thothterm-garden.sh",
@@ -559,7 +650,7 @@ public final class RootfsManager {
 
         File group = new File(root, "etc/group");
         if (group.isFile()) {
-            writeTextIfChanged(group, GuestConfig.ensureGroup(readText(group)));
+            writeTextIfChanged(group, GuestConfig.ensureGroup(readText(group), image.adminGroup()));
         }
 
         File shadow = new File(root, "etc/shadow");
@@ -683,7 +774,7 @@ public final class RootfsManager {
             // Installed from the distribution's own archive, so apt verifies
             // it with the distribution's signing keys rather than us
             // re-implementing that check.
-            runProvisioning(root, sudoAptInstallScript());
+            runProvisioning(root, isPacman() ? sudoPacmanInstallScript() : sudoAptInstallScript());
             boolean setuid = forceSudoSetuid(root);
             String report = runProvisioning(root, sudoVerifyScript());
             ThothLog.i(LogCategory.ROOTFS, "sudo provisioning complete setuid="
@@ -694,8 +785,12 @@ public final class RootfsManager {
         }
     }
 
-    /** Where sudo stands in the guest's dpkg database. */
+    /** Where sudo stands in the guest's package database. */
     private GuestConfig.PackageState sudoState(File root) {
+        if (isPacman()) {
+            return GuestConfig.pacmanPackageState(
+                    new File(root, "var/lib/pacman/local").list(), "sudo");
+        }
         File status = new File(root, "var/lib/dpkg/status");
         if (!status.isFile()) return GuestConfig.PackageState.ABSENT;
         try {
@@ -728,6 +823,20 @@ public final class RootfsManager {
                 + "exit 0\n";
     }
 
+    /**
+     * Installs sudo with pacman from the repository databases the guest
+     * already has. Never -Sy: refreshing the databases without upgrading the
+     * rest is a partial upgrade, which Arch does not support. If the guest
+     * has never synced, this fails, is logged and retried; the rootfs itself
+     * ships sudo, so that only happens after a user removed it.
+     */
+    private String sudoPacmanInstallScript() {
+        return "set -e\n"
+                + PATH_EXPORT + "\n"
+                + "cd /\n"
+                + "pacman -S --noconfirm --needed sudo\n";
+    }
+
     /** Finishes whatever an interrupted dpkg run left unconfigured. */
     private String dpkgConfigureScript() {
         return "set -e\n"
@@ -740,7 +849,7 @@ public final class RootfsManager {
     private String sudoVerifyScript() {
         return "set -e\n"
                 + PATH_EXPORT + "\n"
-                + "dpkg-query -W -f='${Status} ${Version}\\n' sudo\n"
+                + (isPacman() ? "pacman -Q sudo\n" : "dpkg-query -W -f='${Status} ${Version}\\n' sudo\n")
                 + "test -x /usr/bin/sudo\n"
                 + "visudo -c\n";
     }

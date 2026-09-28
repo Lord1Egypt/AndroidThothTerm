@@ -49,11 +49,11 @@ public class GuestConfigTest {
 
     @Test
     public void groupAddsThothAndMembershipIdempotently() {
-        String once = GuestConfig.ensureGroup(BASE_GROUP);
+        String once = GuestConfig.ensureGroup(BASE_GROUP, "sudo");
         assertTrue(once.contains("thoth:x:1000:\n"));
         assertTrue(once.contains("sudo:x:27:thoth\n"));
 
-        String twice = GuestConfig.ensureGroup(once);
+        String twice = GuestConfig.ensureGroup(once, "sudo");
         assertEquals(once, twice);
         assertEquals(1, occurrences(twice, "thoth:x:1000:"));
     }
@@ -61,15 +61,29 @@ public class GuestConfigTest {
     @Test
     public void groupPreservesExistingSudoMembers() {
         String text = "sudo:x:27:alice\n";
-        String updated = GuestConfig.ensureGroup(text);
+        String updated = GuestConfig.ensureGroup(text, "sudo");
         assertTrue(updated.contains("sudo:x:27:alice,thoth\n"));
         assertFalse(updated.contains("alice\n,thoth"));
+    }
+
+    /** Arch: administrators are the existing wheel group, never a new gid 27. */
+    @Test
+    public void groupUsesTheEditionsAdminGroup() {
+        String arch = "root:x:0:root\nwheel:x:998:\nusers:x:984:\n";
+        String once = GuestConfig.ensureGroup(arch, "wheel");
+        assertTrue(once.contains("wheel:x:998:thoth\n"));
+        assertFalse(once.contains("sudo:"));
+        assertEquals(once, GuestConfig.ensureGroup(once, "wheel"));
+        // A missing admin group other than Debian's sudo is never invented.
+        String noWheel = GuestConfig.ensureGroup("root:x:0:\n", "wheel");
+        assertFalse(noWheel.contains("wheel"));
+        assertTrue(noWheel.contains("thoth:x:1000:\n"));
     }
 
     @Test
     public void groupRecognisesExistingMembership() {
         String text = "thoth:x:1000:\nsudo:x:27:bob,thoth\n";
-        assertEquals(text, GuestConfig.ensureGroup(text));
+        assertEquals(text, GuestConfig.ensureGroup(text, "sudo"));
     }
 
     @Test
@@ -214,6 +228,20 @@ public class GuestConfigTest {
         assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.packageState(DPKG_STATUS, "tree"));
         assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.packageState(DPKG_STATUS, "missing"));
         assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.packageState("", "sudo"));
+    }
+
+    @Test
+    public void readsThePacmanStateOfAPackage() {
+        String[] local = {"ALPM_DB_VERSION", "sudo-1.9.17.p2-2", "sudo-extra-1.0-1",
+                "archlinuxarm-keyring-20240419-2", "lz4-1:1.10.0-2"};
+        assertEquals(GuestConfig.PackageState.INSTALLED, GuestConfig.pacmanPackageState(local, "sudo"));
+        assertEquals(GuestConfig.PackageState.INSTALLED, GuestConfig.pacmanPackageState(local, "archlinuxarm-keyring"));
+        // An epoch is part of the version; a longer name is another package.
+        assertEquals(GuestConfig.PackageState.INSTALLED, GuestConfig.pacmanPackageState(local, "lz4"));
+        assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.pacmanPackageState(local, "sudo-extra-1.0"));
+        assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.pacmanPackageState(local, "archlinuxarm"));
+        assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.pacmanPackageState(new String[]{"sudo-extra-1.0-1"}, "sudo"));
+        assertEquals(GuestConfig.PackageState.ABSENT, GuestConfig.pacmanPackageState(null, "sudo"));
     }
 
     @Test
