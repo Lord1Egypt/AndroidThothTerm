@@ -17,15 +17,20 @@ For every package base in the rootfs (read from each binary's own .PKGINFO):
    packages/<base>). The ARM recipe is taken at the newest commit whose
    PKGBUILD declares exactly this epoch, pkgver and pkgrel; the Arch one at the
    tag of that version.
-2. The source. `makepkg --allsource` in a throwaway archlinux:base-devel
-   container (pinned by digest) downloads every source the recipe lists,
-   checks each against the checksums the recipe pins, and writes
-   <base>-<version>.src.tar.gz: recipe, patches and upstream sources.
+2. The source. In a throwaway container (archlinux:base-devel pinned by
+   digest, plus git), `makepkg --verifysource` downloads every source the
+   recipe lists, for every architecture, and checks each against the
+   checksums the recipe pins. Files are kept as downloaded; a git source is
+   exported with `git archive` at exactly the commit or tag the recipe pins,
+   which is the tree the package was built from (a whole mirror of, say,
+   gcc.git would not fit a release asset).
+3. <base>-<version>.source.tar.gz holds recipe/ (PKGBUILD, patches, install
+   files as the recipe has them) and sources/.
 
-Writes OUT/<base>-<version>.src.tar.gz and OUT/SOURCES.tsv (binary package,
-version, base, recipe origin, source archive, size, SHA-256). A base whose
-recipe cannot be matched exactly is listed as UNRESOLVED and the script exits
-1: nothing is guessed.
+Writes OUT/<base>-<version>.source.tar.gz and OUT/SOURCES.tsv (binary
+package, version, base, recipe origin, source archive, size, SHA-256). A base
+whose recipe cannot be matched exactly, or whose sources do not all verify, is
+listed as UNRESOLVED and the script exits 1: nothing is guessed.
 """
 import hashlib
 import io
@@ -35,8 +40,45 @@ import subprocess
 import sys
 import tarfile
 
-BUILDER = ("archlinux:base-devel@sha256:"
-           "{digest}")
+BASE_IMAGE = "archlinux:base-devel@sha256:{digest}"
+TOOL_IMAGE = "thothterm-source-collector:{digest12}"
+
+# Runs as the unprivileged "builder" user in /r (the recipe). Exports every
+# source into /o/<base>/sources.
+COLLECT = r"""
+set -euo pipefail
+cd /r
+makepkg --printsrcinfo > /tmp/srcinfo
+makepkg --verifysource --skippgpcheck --nocolor SRCDEST=/srcdest > /tmp/verify.log 2>&1 \
+    || { tail -20 /tmp/verify.log; exit 1; }
+out=/o/$BASE/sources
+mkdir -p "$out"
+sed -n 's/^\tsource\(_[a-z0-9_]*\)\? = //p' /tmp/srcinfo | sort -u | while read -r entry; do
+    name=${entry%%::*}; [ "$name" = "$entry" ] && name=
+    url=${entry#*::}
+    case $url in
+        git+*|git://*)
+            frag=${url#*#}; [ "$frag" = "$url" ] && frag=
+            frag=${frag%%\?*}
+            repo=${url%%#*}; repo=${repo%%\?*}; repo=${repo#git+}
+            [ -n "$name" ] || { name=${repo##*/}; name=${name%.git}; }
+            case $frag in
+                commit=*) ref=${frag#commit=} ;;
+                tag=*) ref=refs/tags/${frag#tag=} ;;
+                branch=*) ref=refs/heads/${frag#branch=} ;;
+                *) ref=HEAD ;;
+            esac
+            commit=$(git -C "/srcdest/$name" rev-parse "$ref^{commit}")
+            git -C "/srcdest/$name" archive --format=tar --prefix="$name/" "$commit" | gzip -n -9 > "$out/$name-$commit.tar.gz"
+            printf 'git\t%s\t%s\t%s\n' "$repo" "$commit" "$name-$commit.tar.gz" >> "/o/$BASE/sources.tsv" ;;
+        *://*)
+            file=${name:-${url##*/}}
+            cp -L "/srcdest/$file" "$out/$file"
+            printf 'file\t%s\t-\t%s\n' "$url" "$file" >> "/o/$BASE/sources.tsv" ;;
+        *) ;;  # a local file: part of the recipe
+    esac
+done
+"""
 ARM_REPO = "https://github.com/archlinuxarm/PKGBUILDs.git"
 ARCH_REPO = "https://gitlab.archlinux.org/archlinux/packaging/packages/{base}.git"
 
@@ -100,7 +142,7 @@ def sha256(path):
 
 def main():
     inputs, tsv, out = (os.path.abspath(a) for a in sys.argv[1:4])
-    digest = os.environ["BUILDER_DIGEST"]
+    digest = os.environ["BUILDER_DIGEST"]  # archlinux:base-devel
     os.makedirs(out, exist_ok=True)
     work = os.path.join(out, ".work")
     os.makedirs(work, exist_ok=True)
@@ -123,6 +165,15 @@ def main():
     bases = {}
     for name, info in sorted(files.items()):
         bases.setdefault((info.get("pkgbase", name), info["pkgver"]), []).append(name)
+
+    tool_image = TOOL_IMAGE.format(digest12=digest[:12])
+    subprocess.run(["docker", "build", "-q", "-t", tool_image, "-"], check=True, text=True,
+                   input="FROM %s\nRUN pacman -Syu --noconfirm git && pacman -Scc --noconfirm "
+                         "&& useradd -m builder\n" % BASE_IMAGE.format(digest=digest),
+                   stdout=subprocess.DEVNULL)
+    tools = run(["docker", "run", "--rm", tool_image, "pacman", "-Q", "pacman", "git"]).strip()
+    srcdest = os.path.join(work, "srcdest")
+    os.makedirs(srcdest, exist_ok=True)
 
     clone = os.path.join(work, "PKGBUILDs")
     if not os.path.isdir(clone):
@@ -157,19 +208,30 @@ def main():
             recipe_dir = recipe
             origin = "archlinux packaging/%s tag %s @ %s" % (base, tag, commit)
 
-        # makepkg refuses root; the container's own "builder" user runs it.
-        script = ("set -e; useradd -m builder 2>/dev/null || true; chown -R builder /r /o; "
-                  "cd /r && su builder -c 'makepkg --allsource --skippgpcheck --nocolor SRCPKGDEST=/o' "
-                  "> /o/.log-%s 2>&1" % base)
-        result = subprocess.run(["docker", "run", "--rm", "-v", recipe_dir + ":/r", "-v", out + ":/o",
-                                 BUILDER.format(digest=digest), "bash", "-c", script],
+        stage = os.path.join(work, "stage")
+        run(["rm", "-rf", stage])
+        os.makedirs(stage)
+        # makepkg refuses root; the image's own "builder" user runs it.
+        os.makedirs(os.path.join(stage, base, "sources"))
+        with open(os.path.join(stage, "collect.sh"), "w") as f:
+            f.write(COLLECT)
+        result = subprocess.run(["docker", "run", "--rm", "-v", recipe_dir + ":/r", "-v", stage + ":/o",
+                                 "-v", srcdest + ":/srcdest", tool_image, "bash", "-c",
+                                 "chown -R builder /r /o /srcdest && su builder -c 'BASE=%s bash /o/collect.sh'"
+                                 % base],
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        produced = [n for n in os.listdir(out) if n.endswith(".src.tar.gz") and n.startswith(base + "-")
-                    and n[len(base) + 1:].startswith(version.split(":")[-1])]
-        if result.returncode != 0 or not produced:
-            unresolved.append("%s %s: makepkg --allsource failed (see %s/.log-%s)" % (base, version, out, base))
+        os.remove(os.path.join(stage, "collect.sh"))
+        with open(os.path.join(out, ".log-" + base), "w") as log:
+            log.write(result.stdout)
+        if result.returncode != 0:
+            unresolved.append("%s %s: sources did not all download and verify (see %s/.log-%s)"
+                              % (base, version, out, base))
             continue
-        src = produced[0]
+        # recipe/ as the recipe has it, sources/ as verified and exported.
+        run(["cp", "-a", recipe_dir, os.path.join(stage, base, "recipe")])
+        src = "%s-%s.source.tar.gz" % (base, version.replace(":", "-"))
+        run(["sh", "-c", "tar --sort=name --owner=0 --group=0 --numeric-owner --mtime=@0 "
+                         "-C %s -cf - %s | gzip -n -9 > %s" % (stage, base, os.path.join(out, src))])
         size = os.path.getsize(os.path.join(out, src))
         digest_hex = sha256(os.path.join(out, src))
         for name in names:
@@ -177,6 +239,7 @@ def main():
         print("ok %-28s %-40s %s" % (base, version, origin), flush=True)
 
     with open(os.path.join(out, "SOURCES.tsv"), "w") as f:
+        f.write("# collected with %s: %s\n" % (BASE_IMAGE.format(digest=digest), tools.replace("\n", ", ")))
         f.write("# package\tversion\tpkgbase\trecipe\tsource archive\tsize\tsha256\n")
         f.write("\n".join(rows) + "\n")
     for u in unresolved:

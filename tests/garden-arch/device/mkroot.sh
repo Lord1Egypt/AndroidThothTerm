@@ -30,6 +30,6 @@ if [ -f $2.dirmodes ]; then
   done < $2.dirmodes
 fi
 echo "directory modes restored: $(grep -c . $2.dirmodes 2>/dev/null || echo 0)"
-# The resolver Android uses; the app bind-mounts its own copy the same way.
-printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' > $T/$1/resolv.conf
+# The resolvers Android uses; the app bind-mounts its own copy the same way.
+cp $S/resolv.conf $T/$1/resolv.conf
 echo "rootfs ready: $(du -sm $R | cut -f1) MiB"

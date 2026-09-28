@@ -545,11 +545,14 @@ public final class RootfsManager {
                 + "rm -rf \"$K\"\n"
                 + "pacman-key --init\n"
                 + "pacman-key --populate " + image.pacmanKeyring() + "\n"
-                + "gpg --homedir \"$K\" --batch --with-colons --list-keys " + key
+                // pacman-key's own options: its keyring directory is 0755 by
+                // design, which plain gpg would warn about.
+                + "G=\"gpg --homedir $K --no-permission-warning --batch\"\n"
+                + "$G --with-colons --list-keys " + key
                 + " | grep -q '^pub:[fu]:' || { echo 'signing key is not fully valid' >&2; exit 1; }\n"
                 + "set -- /usr/share/thothterm/signature-check/*.sig\n"
                 + "[ -f \"$1\" ] || { echo 'no signature-check package' >&2; exit 1; }\n"
-                + "gpg --homedir \"$K\" --batch --status-fd 1 --verify \"$1\" \"${1%.sig}\""
+                + "$G --status-fd 1 --verify \"$1\" \"${1%.sig}\""
                 + " > /tmp/.thothterm-verify 2>/dev/null || true\n"
                 + "grep -q '^\\[GNUPG:\\] VALIDSIG " + key + " ' /tmp/.thothterm-verify"
                 + " && grep -qE '^\\[GNUPG:\\] TRUST_(FULLY|ULTIMATE)' /tmp/.thothterm-verify"

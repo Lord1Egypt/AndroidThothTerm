@@ -9,24 +9,24 @@ grep -q '^thoth:' /etc/group || printf '\nthoth:x:1000:\n' >> /etc/group
 grep -q '^wheel:.*thoth' /etc/group || sed -i 's/^\(wheel:[^:]*:[^:]*:\)\(.*\)$/\1\2,thoth/; s/^\(wheel:[^:]*:[^:]*:\),thoth$/\1thoth/' /etc/group
 grep -q '^thoth:' /etc/shadow || printf '\nthoth:!:19000:0:99999:7:::\n' >> /etc/shadow
 mkdir -p /home/thoth /tmp && chmod 1777 /tmp
+mkdir -p /etc/sudoers.d
 printf 'thoth ALL=(ALL:ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/thoth
 chmod 0440 /etc/sudoers.d/thoth
-chmod 4755 /usr/bin/sudo
+if [ -f /usr/bin/sudo ]; then chmod 4755 /usr/bin/sudo; fi
 grep -q localhost /etc/hosts || printf '127.0.0.1 localhost\n::1 localhost ip6-localhost ip6-loopback\n' >> /etc/hosts
 # --- the app's pacmanKeyringScript; the harness also refuses an image keyring ---
 export LANG=C.UTF-8
 cd /
 K=/etc/pacman.d/gnupg
 if [ -e "$K" ]; then echo "FAIL the image carries a pacman keyring"; exit 1; fi
-start=$(cut -d' ' -f1 /proc/uptime)
+SECONDS=0
 pacman-key --init
 pacman-key --populate archlinuxarm
-gpg --homedir "$K" --batch --with-colons --list-keys 68B3537F39A313B3E574D06777193F152BDBE6A6 | grep -q '^pub:[fu]:' || { echo 'signing key is not fully valid' >&2; exit 1; }
+gpg --homedir "$K" --no-permission-warning --batch --with-colons --list-keys 68B3537F39A313B3E574D06777193F152BDBE6A6 | grep -q '^pub:[fu]:' || { echo 'signing key is not fully valid' >&2; exit 1; }
 set -- /usr/share/thothterm/signature-check/*.sig
 [ -f "$1" ] || { echo 'no signature-check package' >&2; exit 1; }
-gpg --homedir "$K" --batch --status-fd 1 --verify "$1" "${1%.sig}" > /tmp/.thothterm-verify 2>/dev/null || true
+gpg --homedir "$K" --no-permission-warning --batch --status-fd 1 --verify "$1" "${1%.sig}" > /tmp/.thothterm-verify 2>/dev/null || true
 grep -q '^\[GNUPG:\] VALIDSIG 68B3537F39A313B3E574D06777193F152BDBE6A6 ' /tmp/.thothterm-verify && grep -qE '^\[GNUPG:\] TRUST_(FULLY|ULTIMATE)' /tmp/.thothterm-verify || { cat /tmp/.thothterm-verify >&2; rm -f /tmp/.thothterm-verify; exit 1; }
 rm -f /tmp/.thothterm-verify
 echo keyring-verified
-end=$(cut -d' ' -f1 /proc/uptime)
-echo "provisioned: $(. /etc/os-release; echo "$PRETTY_NAME"), pacman $(pacman -Q pacman | cut -d' ' -f2), keyring in $(awk "BEGIN{print $end-$start}") s"
+echo "provisioned: $(. /etc/os-release; echo "$PRETTY_NAME"), pacman $(ls /var/lib/pacman/local | sed -n "s/^pacman-\([0-9]\)/\1/p"), keyring in ${SECONDS} s"

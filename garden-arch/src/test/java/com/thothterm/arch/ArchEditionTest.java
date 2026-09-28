@@ -108,6 +108,20 @@ public class ArchEditionTest {
     }
 
     /**
+     * Android kernels have no Landlock, so pacman's filesystem sandbox is the
+     * one layer the image turns off; the seccomp filter and the unprivileged
+     * DownloadUser must stay on.
+     */
+    @Test
+    public void theImageTurnsOffOnlyTheSandboxLayerAndroidLacks() throws Exception {
+        String builder = read(new File(moduleDir(), "rootfs/build-rootfs.sh"));
+        assertTrue(builder.contains("grep -qx \"DisableSandboxFilesystem\" $T/etc/pacman.conf"));
+        assertTrue(builder.contains("grep -qx \"#DisableSandboxSyscalls\" $T/etc/pacman.conf"));
+        assertTrue(builder.contains("grep -q \"^DownloadUser = alpm\" $T/etc/pacman.conf"));
+        assertFalse(builder.replaceAll("(?m)^\\s*#.*$", "").contains("s/^#DisableSandboxSyscalls"));
+    }
+
+    /**
      * The archive is content-addressed: its name carries the first 12 hex
      * digits of its SHA-256, in the published file, the embedded asset and the
      * release it is published under.

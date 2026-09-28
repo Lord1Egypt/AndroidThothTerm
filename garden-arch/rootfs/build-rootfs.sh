@@ -252,9 +252,23 @@ pacman keyring at first run, to prove offline that the keyring trusts the
 Arch Linux ARM Build System key. It is not a package cache, and pacman does
 not own these files.
 README
+umount -R $T/proc $T/sys $T/dev $T/run $T/tmp
+
+# ---- one pacman.conf setting for a PRoot guest on Android ----------------
+# pacman 7 confines its downloader three ways: Landlock, a seccomp filter
+# and the unprivileged DownloadUser. Android kernels have no Landlock (on the
+# SM-A165F: "restricting filesystem access failed because Landlock is not
+# supported by the kernel!"), which makes every download fail. Only that
+# layer is turned off; the seccomp filter and DownloadUser stay, and so does
+# every signature check.
+grep -qx "#DisableSandboxFilesystem" $T/etc/pacman.conf
+sed -i "s/^#DisableSandboxFilesystem$/# ThothTerm: Android kernels provide no Landlock; the seccomp filter and\n# DownloadUser stay on. docs\/garden\/arch\/PACKAGE_MANAGER.md\nDisableSandboxFilesystem/" $T/etc/pacman.conf
+grep -qx "DisableSandboxFilesystem" $T/etc/pacman.conf
+grep -qx "#DisableSandboxSyscalls" $T/etc/pacman.conf
+grep -q "^DownloadUser = alpm" $T/etc/pacman.conf
+
 cp $T/etc/pacman.conf /out/pacman.conf
 cp $T/etc/pacman.d/mirrorlist /out/mirrorlist
-umount -R $T/proc $T/sys $T/dev $T/run $T/tmp
 
 # ---- publication state ---------------------------------------------------
 # No repository view, cache, lock or log from the build: the first pacman

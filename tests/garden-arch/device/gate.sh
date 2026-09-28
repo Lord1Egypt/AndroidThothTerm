@@ -15,10 +15,10 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PKG=com.thothterm.arch
 S=/data/local/tmp/ga
-T=/data/data/$PKG/files/ga
+T=/data/user/0/$PKG/files/ga
 TMP="${TMPDIR:-/tmp}"
 NLD="$(adb shell dumpsys package $PKG | tr -d '\r' | sed -n 's/.*legacyNativeLibraryDir=//p' | head -1)/arm64"
-app() { adb shell "run-as $PKG $*"; }
+app() { adb shell "run-as $PKG sh -c '$*'"; }
 
 push_rootfs() { # push_rootfs TARBALL NAME
     # toybox tar applies each directory's mode as it goes, and some archive
@@ -57,7 +57,13 @@ adb push "$HERE/mkroot.sh" "$HERE/run.sh" $S/ >/dev/null
 # The runtime libraries the APK stages into files/linux/runtime/lib.
 G="$HERE/../../../garden-arch/build/garden/assets/runtime/arm64-v8a"
 adb push "$G/libtalloc.so.2" "$G/libandroid-shmem.so" $S/ >/dev/null
-printf 'T=%s\nNLD=%s\n' "$T" "$NLD" > "$TMP/ga-env"
+# The resolvers Android is using, as the app's AndroidNetworkResolver writes them.
+adb shell dumpsys connectivity | tr -d '\r' | grep -oE 'DnsAddresses: \[[^]]*\]' | head -1 \
+    | sed 's/^DnsAddresses: \[//; s/\]$//' | tr ',' '\n' | sed 's#^ */##; s# *$##' | grep . \
+    | sed 's/^/nameserver /' > "$TMP/ga-resolv.conf"
+grep -q nameserver "$TMP/ga-resolv.conf" || { echo "FAIL no Android DNS servers"; exit 1; }
+adb push "$TMP/ga-resolv.conf" $S/resolv.conf >/dev/null
+printf 'T=%s\nNLD=%s\nS=%s\n' "$T" "$NLD" "$S" > "$TMP/ga-env"
 adb push "$TMP/ga-env" $S/env >/dev/null
 app "chmod -R u+w $T 2>/dev/null; rm -rf $T && mkdir -p $T/lib && cp $S/mkroot.sh $S/run.sh $S/env $T/ && cp $S/libtalloc.so.2 $S/libandroid-shmem.so $T/lib/"
 push_rootfs "$1" final
@@ -71,8 +77,11 @@ mkroot() { # mkroot NAME TARBALL: stops the gate unless the rootfs is complete
 }
 mkroot fresh $S/final.tar.gz
 cmds fresh provision.sh zero.sh restart.sh
-out="$out$(app sh $T/run.sh fresh root provision.sh 2>&1 | tail -2)
-"
+prov="$(app sh $T/run.sh fresh root provision.sh 2>&1)"
+case "$prov" in *keyring-verified*) out="${out}PASS first-run keyring: $(printf '%s\n' "$prov" | tail -1)
+" ;; *) printf '%s\n' "$prov" | tail -20; echo "FAIL first-run keyring provisioning"; exit 1 ;; esac
+case "$prov" in *[Ww]arning*|*WARNING*|*rror*) out="${out}FAIL provisioning printed warnings: $(printf '%s\n' "$prov" | grep -iE 'warning|error' | head -3 | tr '\n' ' ')
+" ;; esac
 out="$out$(app sh $T/run.sh fresh root zero.sh)
 "
 out="$out$(app sh $T/run.sh fresh root restart.sh)
