@@ -371,7 +371,9 @@ cmd_check() {
 mkdir -p /tmp/pinned /tmp/live
 for db in /inputs/sync/*.db; do bsdtar -xf "$db" -C /tmp/pinned; done
 # A throwaway container only reads the live databases; nothing is installed.
-pacman -Sy >/dev/null
+# QEMU cannot use the pacman 7 Landlock/seccomp downloader sandbox (the capture
+# path uses the same builder-only option). The shipped pacman.conf is untouched.
+pacman -Sy --disable-sandbox >/dev/null
 for db in /var/lib/pacman/sync/*.db; do bsdtar -xf "$db" -C /tmp/live; done
 echo "checked: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 changed=0
