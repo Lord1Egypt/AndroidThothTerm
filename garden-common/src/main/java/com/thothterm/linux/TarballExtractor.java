@@ -334,15 +334,23 @@ public final class TarballExtractor {
      */
     static String sanitizeEntryName(String raw) {
         if (raw == null) return null;
-        String name = raw.replace('\\', '/');
-        if (name.indexOf('\0') >= 0) return null;
-        if (name.length() == 0 || name.length() > 4096) return null;
-        if (name.charAt(0) == '/') return null;
+        if (raw.indexOf('\0') >= 0) return null;
+        if (raw.length() == 0 || raw.length() > 4096) return null;
 
-        StringBuilder result = new StringBuilder(name.length());
-        for (String part : name.split("/")) {
-            if (part.length() == 0 || part.equals(".")) continue;
+        // A backslash is a valid Linux filename character. Arch Linux ARM's
+        // systemd package uses literal "\\x2d" in three unit names. Rewriting
+        // those bytes as separators silently loses installed package files.
+        // Still reject Windows-style traversal and absolute names, then use
+        // only the actual Unix separator when constructing the destination.
+        String safetyName = raw.replace('\\', '/');
+        if (safetyName.charAt(0) == '/') return null;
+        for (String part : safetyName.split("/")) {
             if (part.equals("..")) return null;
+        }
+
+        StringBuilder result = new StringBuilder(raw.length());
+        for (String part : raw.split("/")) {
+            if (part.length() == 0 || part.equals(".")) continue;
             if (result.length() > 0) result.append('/');
             result.append(part);
         }

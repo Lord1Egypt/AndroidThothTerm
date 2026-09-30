@@ -53,6 +53,8 @@ public class TarballExtractorTest {
         assertNull(TarballExtractor.sanitizeEntryName(".."));
         assertNull(TarballExtractor.sanitizeEntryName(""));
         assertNull(TarballExtractor.sanitizeEntryName("a/..\\..\\b"));
+        assertNull(TarballExtractor.sanitizeEntryName("a\\..\\evil"));
+        assertNull(TarballExtractor.sanitizeEntryName("\\etc\\passwd"));
         assertNull(TarballExtractor.sanitizeEntryName("a\0b"));
     }
 
@@ -61,6 +63,29 @@ public class TarballExtractorTest {
         assertEquals("etc/os-release", TarballExtractor.sanitizeEntryName("etc/os-release"));
         assertEquals("usr/bin", TarballExtractor.sanitizeEntryName("./usr/bin"));
         assertEquals("a/b/c", TarballExtractor.sanitizeEntryName("a//b/./c"));
+        assertEquals("usr/lib/systemd/system/system-systemd\\x2dcryptsetup.slice",
+                TarballExtractor.sanitizeEntryName(
+                        "usr/lib/systemd/system/system-systemd\\x2dcryptsetup.slice"));
+    }
+
+    @Test
+    public void extractsLiteralBackslashesWithoutMakingDirectories() throws Exception {
+        File root = temporaryFolder.newFolder("systemd-unit");
+        String unit = "usr/lib/systemd/system/system-systemd\\x2dcryptsetup.slice";
+
+        ByteArrayOutputStream tar = new ByteArrayOutputStream();
+        tar.write(entry(unit, '0', null, "[Unit]\n".getBytes(ASCII)));
+        tar.write(entry("usr/lib/systemd/system/a\\..\\evil", '0', null,
+                "bad".getBytes(ASCII)));
+        tar.write(new byte[1024]);
+
+        TarballExtractor extractor = new TarballExtractor(new JvmFileOps(), root, null);
+        extractor.extract(new ByteArrayInputStream(tar.toByteArray()));
+
+        assertEquals("[Unit]\n", readText(new File(root, unit)));
+        assertFalse(new File(root, "usr/lib/systemd/system/system-systemd/x2dcryptsetup.slice")
+                .exists());
+        assertEquals(1, extractor.rejectedEntries());
     }
 
     @Test
