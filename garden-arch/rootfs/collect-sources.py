@@ -61,6 +61,47 @@ recreate_zlib_patch() {
     git -C /tmp/thoth-zlib-patch format-patch --abbrev=9 --no-signature -1 --stdout "$commit" > "/srcdest/$commit.patch"
     touch /tmp/zlib-patch-recreated
 }
+# The ARM nss 3.130-1 recipe at 3399ceebf57c8fe733224867837eb854a8120bc4
+# has its three local-file BLAKE2 checksums in the order patch, bundle,
+# certdata although its source array lists bundle, certdata, patch. Each
+# published checksum matches exactly one file from that same pinned commit.
+# Verify from a corrected temporary recipe, retaining the original recipe and
+# a copy of the correction in the archive. Reject any other mismatch.
+verify_nss_checksum_permutation() {
+    [ "$BASE" = nss ] || return 1
+    grep -Fxq 'pkgver=3.130' PKGBUILD || return 1
+    grep -Fxq 'pkgrel=1' PKGBUILD || return 1
+    grep -Fq 'bundle.sh ... FAILED' /tmp/verify.log || return 1
+    grep -Fq 'certdata2pem.py ... FAILED' /tmp/verify.log || return 1
+    grep -Fq '0001-Fix-generating-nss.pc-with-system-nspr.patch ... FAILED' /tmp/verify.log || return 1
+    mkdir -p /tmp/nss-verify
+    cp -a /r/. /tmp/nss-verify/
+    python3 - <<'PY' || return 1
+from pathlib import Path
+import hashlib
+
+recipe = Path('/tmp/nss-verify')
+files = [
+    ('bundle.sh', '4be5dd836c844fdd7b63302a6994d62149082c3bc81eef70f373f416fed80a61a923960e4390d1c391b81ab01b409370d788818a30ffdd3a4ed467b670f990f6'),
+    ('certdata2pem.py', '6bb59dcc9289916dcbf8fb6d73db0c0cd7582dc12a3aa4e8be19ec62c9ede65fdd9470a2d92ec5a114506b78d2d21b8ae0a1b45a17dc1f90f7d75434a93da510'),
+    ('0001-Fix-generating-nss.pc-with-system-nspr.patch', 'e219dc77e8d43ca790783d68f2829013a4c5bdc5ae49b91e4165900c50e5fbd695439be5ae999c7815e03c761ce41ae8ff91fa7cbc49da3ab067844e0f6763b3'),
+]
+for name, expected in files:
+    actual = hashlib.blake2b((recipe / name).read_bytes()).hexdigest()
+    if actual != expected:
+        raise SystemExit(f'nss local source changed: {name}: {actual}')
+old = "\n".join(["        'e219dc77e8d43ca790783d68f2829013a4c5bdc5ae49b91e4165900c50e5fbd695439be5ae999c7815e03c761ce41ae8ff91fa7cbc49da3ab067844e0f6763b3'", "        '4be5dd836c844fdd7b63302a6994d62149082c3bc81eef70f373f416fed80a61a923960e4390d1c391b81ab01b409370d788818a30ffdd3a4ed467b670f990f6'", "        '6bb59dcc9289916dcbf8fb6d73db0c0cd7582dc12a3aa4e8be19ec62c9ede65fdd9470a2d92ec5a114506b78d2d21b8ae0a1b45a17dc1f90f7d75434a93da510'"])
+new = "\n".join("        '" + digest + "'" for _, digest in files)
+path = recipe / 'PKGBUILD'
+text = path.read_text()
+if text.count(old) != 1:
+    raise SystemExit('nss checksum permutation did not match the pinned recipe')
+path.write_text(text.replace(old, new))
+PY
+    (cd /tmp/nss-verify && makepkg --verifysource --ignorearch --skippgpcheck --nocolor SRCDEST=/srcdest > /tmp/verify.log 2>&1) || return 1
+    cp /tmp/nss-verify/PKGBUILD "/o/$BASE/PKGBUILD.checksums-corrected"
+    printf '%s\n' 'Arch Linux ARM nss 3.130-1 commit 3399ceebf57c8fe733224867837eb854a8120bc4 lists the three local-file BLAKE2 checksums in the wrong order. PKGBUILD.checksums-corrected reorders only those checksums. The original recipe is in recipe/, and all local and remote sources passed makepkg --verifysource with the corrected temporary recipe.' > "/o/$BASE/CHECKSUM_ORDER.txt"
+}
 # A remote VCS fetch can fail transiently. Every attempt repeats the complete
 # source-integrity check; a persistent checksum mismatch still fails closed.
 for attempt in 1 2 3; do
@@ -72,6 +113,9 @@ for attempt in 1 2 3; do
         && grep -Fq 'https://github.com/madler/zlib/commit/36ff1be48ef696cc67b0855f7c8537ce0276210d.patch' /tmp/srcinfo; then
         recreate_zlib_patch
         continue
+    fi
+    if verify_nss_checksum_permutation; then
+        break
     fi
     if [ "$attempt" -eq 3 ]; then tail -20 /tmp/verify.log; exit 1; fi
     sleep 5
@@ -197,6 +241,8 @@ def main():
         for line in f:
             name, version = line.split("\t")[:2]
             installed[name] = version
+    if not installed:
+        sys.exit("no installed packages in " + tsv)
     files = {}
     for name in os.listdir(os.path.join(inputs, "pkg")):
         if ".pkg.tar." in name and not name.endswith(".sig"):

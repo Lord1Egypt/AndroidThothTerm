@@ -1,6 +1,7 @@
 """Regression test for the source collector's AArch64 .SRCINFO selection."""
 
 import importlib.util
+import os
 import pathlib
 import subprocess
 import sys
@@ -13,6 +14,20 @@ COLLECTOR = REPO / "garden-arch/rootfs/collect-sources.py"
 
 
 class SourceSelectionTest(unittest.TestCase):
+    def test_empty_package_list_cannot_pass_source_collection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            inputs = root / "inputs"
+            (inputs / "pkg").mkdir(parents=True)
+            packages = root / "packages.tsv"
+            packages.write_text("")
+            result = subprocess.run(
+                [sys.executable, str(COLLECTOR), str(inputs), str(packages), str(root / "out")],
+                env={**os.environ, "BUILDER_DIGEST": "0" * 64},
+                text=True, capture_output=True)
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("no installed packages", result.stderr)
+
     def test_common_and_aarch64_sources_only(self):
         sys.dont_write_bytecode = True
         spec = importlib.util.spec_from_file_location("collect_sources", COLLECTOR)
