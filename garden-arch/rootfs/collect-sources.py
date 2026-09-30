@@ -50,8 +50,15 @@ set -euo pipefail
 cd /r
 export CARCH=aarch64
 makepkg --printsrcinfo > /tmp/srcinfo
-makepkg --verifysource --ignorearch --skippgpcheck --nocolor SRCDEST=/srcdest > /tmp/verify.log 2>&1 \
-    || { tail -20 /tmp/verify.log; exit 1; }
+# A remote VCS fetch can fail transiently. Every attempt repeats the complete
+# source-integrity check; a persistent checksum mismatch still fails closed.
+for attempt in 1 2 3; do
+    if makepkg --verifysource --ignorearch --skippgpcheck --nocolor SRCDEST=/srcdest > /tmp/verify.log 2>&1; then
+        break
+    fi
+    if [ "$attempt" -eq 3 ]; then tail -20 /tmp/verify.log; exit 1; fi
+    sleep 5
+done
 out=/o/$BASE/sources
 mkdir -p "$out"
 # .SRCINFO includes sources for every supported architecture. Match only the
