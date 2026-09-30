@@ -21,6 +21,7 @@ NLD="$(adb shell dumpsys package $PKG | tr -d '\r' | sed -n 's/.*legacyNativeLib
 app() { adb shell "run-as $PKG sh -c '$*'"; }
 
 push_rootfs() { # push_rootfs TARBALL NAME
+    [ -s "$1" ] || { echo "FAIL missing rootfs archive: $1"; exit 1; }
     # toybox tar applies each directory's mode as it goes, and some archive
     # directories are read-only (the root is 0555 by systemd's tmpfiles
     # root.conf, so is ca-certificates' cadir), which would stop it creating
@@ -39,11 +40,12 @@ with tarfile.open(sys.argv[2], "w:gz", format=tarfile.GNU_FORMAT, compresslevel=
             continue
         out.addfile(m, src.extractfile(m) if m.isreg() else None)
 open(sys.argv[3], "w").write("\n".join(sorted(modes, key=lambda l: -l.count("/"))) + "\n")
-' "$1" "$TMP/ga-$2.tar.gz" "$TMP/ga-$2.dirmodes"
+' "$1" "$TMP/ga-$2.tar.gz" "$TMP/ga-$2.dirmodes" || exit 1
     adb push "$TMP/ga-$2.dirmodes" $S/$2.tar.gz.dirmodes >/dev/null
     adb push "$TMP/ga-$2.tar.gz" $S/$2.tar.gz >/dev/null
     # Hard links, which the app (and this test) materialize as copies.
-    tar tvzf "$1" | awk '$1 ~ /^h/ {print $6, $9}' > "$TMP/ga-$2.hardlinks"
+    tar tvzf "$1" > "$TMP/ga-$2.list" || exit 1
+    awk '$1 ~ /^h/ {print $6, $9}' "$TMP/ga-$2.list" > "$TMP/ga-$2.hardlinks" || exit 1
     adb push "$TMP/ga-$2.hardlinks" $S/$2.tar.gz.hardlinks >/dev/null
     echo "hard links in $2: $(wc -l < "$TMP/ga-$2.hardlinks")"
 }
@@ -97,7 +99,14 @@ if [ $# -ge 2 ]; then
     push_rootfs "$2" stale
     mkroot old $S/stale.tar.gz
     cmds old provision.sh stale.sh
-    out="$out$(app sh $T/run.sh old root provision.sh 2>&1 | tail -1)
+    stale_prov="$(app sh $T/run.sh old root provision.sh provision upstream-stale 2>&1)"
+    stale_prov_status=$?
+    if [ "$stale_prov_status" -ne 0 ] || ! printf '%s\n' "$stale_prov" | grep -q '^keyring-verified$'; then
+        printf '%s\n' "$stale_prov" | tail -20
+        echo 'FAIL stale-image keyring provisioning'
+        exit 1
+    fi
+    out="${out}PASS stale-image keyring provisioning: $(printf '%s\n' "$stale_prov" | tail -1)
 "
     out="$out$(app sh $T/run.sh old root stale.sh)
 "
