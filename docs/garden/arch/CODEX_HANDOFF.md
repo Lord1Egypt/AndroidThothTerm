@@ -1,12 +1,62 @@
 # ThothTerm Rolling — local Codex continuation
 
-Updated 2026-09-30 after the physical browser gate and APK install incident. Base **c49bb03**; branch
-`codex/arch-v0.1.0-from-c49bb03`; last code commit before this update
-**e12eb12** and previous handoff commit **a1d5392**. Run `git rev-parse HEAD`
+Updated 2026-09-30 after the fresh rootfs, clean release build, and final
+binary checks. Base **c49bb03**; branch
+`codex/arch-v0.1.0-from-c49bb03`; code HEAD before this handoff update
+**7a5b4f94ace531e152e2f9050dae91c7aee13ba4**. Run `git rev-parse HEAD`
 for the exact current commit (a handoff file cannot contain its own commit hash).
 The later cloud Arch branch was not used as an implementation baseline. This
 is a candidate, not a release. No tag, GitHub release, F-Droid MR, or
 BlackArch work was created.
+
+## Current state (supersedes older candidate notes below)
+
+- Fresh September 30 rootfs `03a4c669ed6f89d044a9e83dce54c554f04885fd1bb7d1793f5b95b7cc0f48d1`,
+  199,826,020 bytes, is pinned in `distro.properties`. Official source,
+  signature, inputs, normalization, and package state are recorded in
+  `ROOTFS_PROVENANCE.md`. Two independent offline builds from equivalent clean
+  captured inputs were byte identical. The fresh physical device package gate
+  passed **78 PASS / 0 FAIL** (`/tmp/codex-arch-gate-fresh-final.log`).
+- Source collection is complete: 138 installed binary rows, 120 unique source
+  archives, `SOURCES.tsv` SHA-256
+  `0b55a1198a6bd0881f6badfd2fca3104ae1ddada0463913e59254bd6e811efee`.
+  Commit `129a63c` handles an upstream NSS local-file checksum ordering defect
+  by matching every original BLAKE2 checksum, then verifying the corrected
+  order with `makepkg --verifysource`; its tests pass 2/2.
+- Arch Full and F-Droid unit tests pass **28/28 each** on the final pin. A
+  detached clean checkout at `/tmp/thoth-arch-release-clean` built Full debug,
+  Full/F-Droid release APKs, and both AABs with 316 Gradle tasks successful.
+  Its Git worktree remained clean. Release APKs are intentionally unsigned.
+- Clean release SHA-256: Full APK
+  `b0c5d2653ccec83d34d726115efcbe13a77a667063392a1defda0729d9cf5ab0`,
+  F-Droid APK
+  `26798cd4085e43e66ddca487010a1d920108e4dbb85f393d31076a5e4df1f87c`,
+  Full AAB
+  `96d2088fe217f40e3c8c24c72d1faad3e6ddb6c2f9d7902ce5fc8961d64acc81`,
+  F-Droid AAB
+  `16f87c56e32a82ce67f7888063ede124d96e2bb89ce3300a7321637ccc17d4c4`.
+  APKs have `com.thothterm.arch` 0.1.0/100, only `arm64-v8a` packaged JNI
+  libraries, and pass `zipalign -c -P 16 -v 4`. Every packaged ELF LOAD
+  alignment is `0x4000`. Full APK/AAB embed the exact pinned rootfs SHA;
+  F-Droid APK/AAB contain none. R8 output has all seven declared and
+  registered JNI methods with their original class/method names and signatures.
+- Candidate minified Full and F-Droid ran physically in isolated
+  `com.thothterm.arch.codexprobe`, including pacman 7.1.0. Phone File Bridge
+  file, Arabic folder, exact hashes, and picker cancellation passed. The
+  charging foreground terminal held `FLAG_KEEP_SCREEN_ON`; the original
+  `screen_off_timeout` was restored to **30000 ms**.
+- New final pinned probes are built but await ADB reconnection:
+  `/tmp/thoth-arch-final-full-probe` Full debug SHA
+  `608bb64808d67fde765e42791cbbbfe8fb961218f0aed61914155373589ed4fa`
+  and `/tmp/thoth-arch-final-fdroid-probe` F-Droid debug SHA
+  `18875b615fa881ab46861ae6170ca122c7e02de5213a4a19a8789a0ff79309e2`.
+  Their separate application IDs cannot replace primary Rolling. The user
+  reported new ADB port `192.168.1.103:34445`; TCP opens, but `adb connect`
+  currently fails. A question is pending whether this is the pairing port.
+- **Release blocker:** the primary Rolling HOME was lost during the Android
+  incremental-install incident documented below. Do not replace primary
+  Rolling again until the cause and backup/recovery status are understood.
+  The user has not yet answered the backup question. No release/tag/MR was made.
 
 ## Work completed
 
@@ -111,7 +161,7 @@ BlackArch work was created.
   `--no-incremental` for any authorized primary replacement. Original screen
   timeout remains **30000 ms**.
 
-## Remaining gates
+## Candidate phone gates and current remaining work
 
 The physical browser gate on the candidate passed: real Chromium pairing,
 wrong PIN, Host/Origin/token rejection, two separate browser sessions and
@@ -149,16 +199,15 @@ The isolated F-Droid consent/download/retry flow passed physically in
 size, partial body, wrong SHA, and connection failure all offered retry without
 installing a rootfs; explicit consent and a valid HTTPS archive installed
 successfully and `pacman --version` ran. The test fixture is stopped and ADB
-reverse removed. Minified physical runtime, cancellation and phone-side File
-Bridge UI, and final fresh-rootfs acceptance remain. The complete device gate
-must be rerun on the fresh final rootfs.
-Resolve the clean source collector trial. Once candidate defects are fixed,
-capture a fresh rootfs, build twice from equivalent clean inputs and compare
-bytes, collect exact sources, write provenance and pin the new hash. Re-run
-physical package and app gates on that final candidate, then clean-clone
-Full/F-Droid APK builds and binary checks. Do not publish or tag without
-explicit authorization.
+reverse removed. The minified runtime and phone-side upload and cancel gates
+also passed in that isolated package. The fresh rootfs package gate, source
+collection, reproducibility, and clean release binary checks are now complete
+as recorded at the top of this file. Remaining: reconnect ADB, test the
+fresh-pinned Full and F-Droid isolated probes physically, resolve or explain
+the primary data-loss incident and backup status, check final rootfs freshness
+at the eventual publication date, and obtain explicit release authorization.
+Do not publish or tag without it.
 
 ## Exact next command
 
-`tail -n 20 /tmp/codex-final-build-a.log && tail -n 5 /tmp/codex-sources-candidate-retry.log`
+`adb start-server; adb devices -l; adb mdns services; adb connect 192.168.1.103:34445`
