@@ -5,6 +5,18 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin LANG=C.
 ok() { if [ "$1" = 0 ]; then echo "PASS $2"; else echo "FAIL $2 ${3:-}"; fi; }
 BAD='unknown trust|marginal trust|invalid or corrupted package|required key missing|not writable|could not be looked up|keyserver|failed to|error:|warning: .*(key|sign|trust)|archlinuxarm.gpg.*(missing|not found)|trustdb.*(error|fail|broken|corrupt)|permission'
 clean() { ! grep -Eiq "$BAD" "$1"; }
+# libarchive asks Android to chmod a symlink to 0777 while replacing it.
+# Android cannot chmod symlinks, but the link and its target are intact. Only
+# this exact warning is tolerated, and only after checking every named link.
+clean_symlink_chmod() {
+  log=$1
+  sed -n "s/^warning: warning given when extracting \(\/.*\) (Can't set permissions to 0777)$/\1/p" "$log" > "$log.symlinks"
+  while IFS= read -r path; do
+    [ -L "$path" ] && [ -e "$path" ] || return 1
+  done < "$log.symlinks"
+  sed "/^warning: warning given when extracting \/.* (Can't set permissions to 0777)$/d" "$log" > "$log.checked"
+  clean "$log.checked"
+}
 K=/etc/pacman.d/gnupg
 
 pacman --version > /tmp/a 2>&1; grep -q 'Pacman v7' /tmp/a; ok $? "A pacman --version ($(sed -n 's/.*\(Pacman v[^ ]*\).*/\1/p' /tmp/a))"
@@ -25,7 +37,7 @@ ok $? "C current repository package $f downloaded and signature-verified (truste
 cd / && rm -rf /tmp/c
 
 pacman -Syu --noconfirm > /tmp/d 2>&1; r=$?
-[ $r = 0 ] && clean /tmp/d; ok $? "D pacman -Syu ($(grep -E '^Packages \(' /tmp/d | cut -d')' -f1 | tr -d 'Packages (' || true) upgraded)" "$(grep -Ei "$BAD" /tmp/d | head -3)"
+[ $r = 0 ] && clean_symlink_chmod /tmp/d && pacman -Qkk coreutils > /tmp/d.qkk 2>&1; ok $? "D pacman -Syu ($(grep -E '^Packages \(' /tmp/d | cut -d')' -f1 | tr -d 'Packages (' || true) upgraded; $(wc -l < /tmp/d.symlinks) verified symlink warnings)" "$(grep -Ei "$BAD" /tmp/d.checked 2>/dev/null | head -3)"
 pacman -Syu --noconfirm > /tmp/e 2>&1; r=$?
 [ $r = 0 ] && grep -q 'there is nothing to do' /tmp/e && clean /tmp/e; ok $? "E second pacman -Syu: nothing to do"
 

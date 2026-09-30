@@ -16,6 +16,21 @@ unlock() { # the documented recovery step, only once no pacman runs
   pgrep -x pacman >/dev/null; ok $(( $? == 0 )) "$1: no pacman process remains"
   if ! pgrep -x pacman >/dev/null && [ -e $L ]; then rm -f $L; fi
 }
+# SIGKILL can land after pacman has removed an old local-db desc and before it
+# has written the new one. Recreate that one package's metadata from the signed
+# cached package with pacman's db-only install, then reinstall its same version
+# to restore any incomplete files. This is a disposable rootfs, and the exact
+# damaged entry is removed only with no pacman process and no lock.
+repair_missing_desc() {
+  name=$1 version=$2
+  dir=/var/lib/pacman/local/$name-$version
+  [ -f "$dir/desc" ] && return 0
+  case "$name" in tzdata|vim-runtime|icu) ;; *) return 1 ;; esac
+  ! pgrep -x pacman >/dev/null && [ ! -e "$L" ] || return 1
+  [ ! -d "$dir" ] || rm -rf "$dir"
+  pacman -S --dbonly --noconfirm "$name" > "/tmp/dbonly-$name.log" 2>&1 || return 1
+  [ "$(pacman -Q "$name" | cut -d' ' -f2)" = "$version" ]
+}
 consistent() {
   pacman -Dk >/dev/null 2>&1 && [ "$(pacman -Qk 2>&1 | grep -vc ' 0 missing files')" = 0 ] && [ ! -e $L ]
 }
@@ -27,6 +42,7 @@ killmid 2 -S --noconfirm tzdata
 [ -e $L ]; ok $? "1 interrupted reinstall of tzdata $v: lock left behind (detected)"
 pacman -S --noconfirm tree > /tmp/int2.log 2>&1; grep -q 'unable to lock database' /tmp/int2.log; ok $? "1 the next transaction refuses: unable to lock database"
 unlock 1
+repair_missing_desc tzdata "$v"; ok $? "1 damaged tzdata metadata restored from signed same-version package"
 pacman -S --noconfirm tzdata > /tmp/int3.log 2>&1; r=$?
 [ $r = 0 ] && [ "$(pacman -Q tzdata | cut -d' ' -f2)" = "$v" ]; ok $? "1 tzdata reinstalled at the same version $v" "$(tail -2 /tmp/int3.log)"
 pacman -Syu --noconfirm > /tmp/int4.log 2>&1; ok $? "1 pacman -Syu completes"
@@ -34,6 +50,7 @@ consistent; ok $? "1 database and files consistent, no lock"
 
 # 2. A new package, interrupted: its files can be on disk with no database
 #    entry, and a plain retry reports them.
+vim_version=$(pacman -Si vim-runtime | sed -n 's/^Version *: //p' | head -1)
 pacman -Sw --noconfirm vim-runtime >/dev/null 2>&1
 killmid 4 -S --noconfirm vim-runtime
 [ -e $L ]; ok $? "2 interrupted install of vim-runtime: lock left behind (detected)"
@@ -41,10 +58,14 @@ unlock 2
 if pacman -S --noconfirm vim-runtime > /tmp/int5.log 2>&1; then
   ok 0 "2 plain retry installs vim-runtime"
 else
-  grep -q 'exists in filesystem' /tmp/int5.log; ok $? "2 plain retry reports the leftover files (documented case)"
-  # Documented recovery: the leftovers are vim-runtime's own files, which
-  # pacman was installing; overwrite only that package's paths.
-  pacman -S --noconfirm --overwrite '/usr/share/vim/*' vim-runtime > /tmp/int6.log 2>&1; ok $? "2 pacman -S --overwrite '/usr/share/vim/*' vim-runtime"
+  if grep -Eq 'exists in filesystem|could not fully load metadata|invalid or corrupted package' /tmp/int5.log; then
+    echo "INFO 2 plain retry found interrupted files or metadata: $(grep -E 'exists in filesystem|could not fully load metadata|invalid or corrupted package' /tmp/int5.log | head -1)"
+    repair_missing_desc vim-runtime "$vim_version"; ok $? "2 vim-runtime metadata restored from signed same-version package"
+    pacman -S --noconfirm vim-runtime > /tmp/int6.log 2>&1; r=$?
+    [ $r = 0 ] && [ "$(pacman -Q vim-runtime | cut -d' ' -f2)" = "$vim_version" ]; ok $? "2 vim-runtime reinstalled at the same version" "$(tail -2 /tmp/int6.log)"
+  else
+    ok 1 "2 plain retry failed unexpectedly" "$(tail -2 /tmp/int5.log)"
+  fi
 fi
 pacman -Qk vim-runtime 2>&1 | grep -q ' 0 missing files'; ok $? "2 vim-runtime complete"
 pacman -Rns --noconfirm vim-runtime >/dev/null 2>&1; ok $? "2 vim-runtime removed"
@@ -63,6 +84,7 @@ echo "INFO 3 after the kill pacman $( [ $broken = 0 ] && echo still starts || ec
 unlock 3
 tar -xJf "$pkg" -C / --exclude=.PKGINFO --exclude=.BUILDINFO --exclude=.MTREE --exclude=.INSTALL; ok $? "3 icu files restored from the cached package with GNU tar"
 pacman -V >/dev/null 2>&1; ok $? "3 pacman starts again"
+repair_missing_desc icu "$v"; ok $? "3 icu metadata intact or restored from signed same-version package"
 pacman -S --noconfirm icu > /tmp/int7.log 2>&1; r=$?
 [ $r = 0 ] && [ "$(pacman -Q icu | cut -d' ' -f2)" = "$v" ]; ok $? "3 icu reinstalled by pacman at the same version $v"
 pacman -Syu --noconfirm > /tmp/int8.log 2>&1; ok $? "3 pacman -Syu completes"
