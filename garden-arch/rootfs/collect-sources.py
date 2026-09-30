@@ -21,8 +21,8 @@ For every package base in the rootfs (read from each binary's own .PKGINFO):
    digest, plus git), `makepkg --verifysource` downloads every source the
    recipe lists for AArch64, and checks each against the
    checksums the recipe pins. Files are kept as downloaded; a git source is
-   exported with `git archive` at exactly the commit or tag the recipe pins,
-   which is the tree the package was built from (a whole mirror of, say,
+   exported with `git archive` or `hg archive` at exactly the commit or tag
+   the recipe pins, which is the tree the package was built from (a mirror of, say,
    gcc.git would not fit a release asset).
 3. <base>-<version>.source.tar.gz holds recipe/ (PKGBUILD, patches, install
    files as the recipe has them) and sources/.
@@ -74,6 +74,18 @@ sed -n -e 's/^\tsource = //p' -e 's/^\tsource_aarch64 = //p' /tmp/srcinfo | sort
             commit=$(git -C "/srcdest/$name" rev-parse "$ref^{commit}")
             git -C "/srcdest/$name" archive --format=tar --prefix="$name/" "$commit" | gzip -n -9 > "$out/$name-$commit.tar.gz"
             printf 'git\t%s\t%s\t%s\n' "$repo" "$commit" "$name-$commit.tar.gz" >> "/o/$BASE/sources.tsv" ;;
+        hg+*)
+            frag=${url#*#}; [ "$frag" = "$url" ] && frag=
+            repo=${url%%#*}; repo=${repo#hg+}
+            [ -n "$name" ] || name=${repo##*/}
+            case $frag in
+                tag=*|revision=*|branch=*) ref=${frag#*=} ;;
+                "") ref=default ;;
+                *) echo "unsupported Mercurial reference: $frag" >&2; exit 1 ;;
+            esac
+            commit=$(hg --repository "/srcdest/$name" log -r "$ref" --template '{node}')
+            hg --repository "/srcdest/$name" archive --type tar --rev "$commit" --prefix "$name/" - | gzip -n -9 > "$out/$name-$commit.tar.gz"
+            printf 'hg\t%s\t%s\t%s\n' "$repo" "$commit" "$name-$commit.tar.gz" >> "/o/$BASE/sources.tsv" ;;
         *://*)
             file=${name:-${url##*/}}
             cp -L "/srcdest/$file" "$out/$file"
@@ -171,7 +183,7 @@ def main():
 
     tool_image = TOOL_IMAGE.format(digest12=digest[:12])
     subprocess.run(["docker", "build", "-q", "-t", tool_image, "-"], check=True, text=True,
-                   input="FROM %s\nRUN pacman -Syu --noconfirm git && pacman -Scc --noconfirm "
+                   input="FROM %s\nRUN pacman -Syu --noconfirm git mercurial && pacman -Scc --noconfirm "
                          "&& useradd -m builder\n" % BASE_IMAGE.format(digest=digest),
                    stdout=subprocess.DEVNULL)
     tools = run(["docker", "run", "--rm", tool_image, "pacman", "-Q", "pacman", "git"]).strip()
