@@ -3,6 +3,7 @@
 import importlib.util
 import pathlib
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -13,6 +14,7 @@ COLLECTOR = REPO / "garden-arch/rootfs/collect-sources.py"
 
 class SourceSelectionTest(unittest.TestCase):
     def test_common_and_aarch64_sources_only(self):
+        sys.dont_write_bytecode = True
         spec = importlib.util.spec_from_file_location("collect_sources", COLLECTOR)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
