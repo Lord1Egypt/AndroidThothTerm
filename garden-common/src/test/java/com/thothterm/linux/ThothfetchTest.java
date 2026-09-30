@@ -91,6 +91,8 @@ public class ThothfetchTest {
         ProcessBuilder builder = new ProcessBuilder("bash", script.getAbsolutePath());
         builder.environment().put("COLUMNS", Integer.toString(columns));
         builder.environment().put("THOTHTERM_GUEST_ROOT", root.getAbsolutePath());
+        // Exercise the colour path regardless of the developer shell's preference.
+        builder.environment().remove("NO_COLOR");
         builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
         builder.redirectErrorStream(true);
         Process process = builder.start();
