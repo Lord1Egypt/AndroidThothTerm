@@ -1,6 +1,6 @@
 # ThothTerm Rolling — local Codex continuation
 
-Updated 2026-09-30 after the physical browser gate. Base **c49bb03**; branch
+Updated 2026-09-30 after the physical browser gate and APK install incident. Base **c49bb03**; branch
 `codex/arch-v0.1.0-from-c49bb03`; last code commit before this update
 **e12eb12** and previous handoff commit **a1d5392**. Run `git rev-parse HEAD`
 for the exact current commit (a handoff file cannot contain its own commit hash).
@@ -96,9 +96,20 @@ BlackArch work was created.
   `/tmp/thoth-rolling-{full,fdroid}-minified-test.apk` for physical runtime.
 - Separate F-Droid HTTPS probe APK SHA-256:
   `9e2f2e3d962002d75b462d9f55a0ff2a30ab5cc507c01d3f0a94387b6e914983`.
-- No protected app was uninstalled or cleared. The primary Rolling HOME
-  sentinel is still in place. Disposable device-gate roots live under
-  `files/ga`, separate from `files/linux`.
+- The regular Terminal, Ubuntu, Trixie, and PocketClaw apps were not touched.
+  **Incident at 2026-09-30 10:52 local:** `adb install -r` of the 203 MB
+  debug-signed minified Full APK selected Android's incremental install path.
+  It reported `Success` and initially retained data, but Android fully removed
+  `com.thothterm.arch` about 15 seconds later. Logcat records
+  `PACKAGE_FULLY_REMOVED` and incremental mount cleanup; the exact initiating
+  cause is not yet established. A nonincremental `adb install --no-incremental
+  -r` restored the Full debug APK, but its old private data, including
+  `/home/thoth/codex-home-preservation-sentinel`, is absent. **The primary
+  Rolling HOME was lost.** No `pm clear` or explicit uninstall was run. Do not
+  replace the primary APK again until this is understood. Check for a user
+  backup. Test future release APKs under an isolated package and always use
+  `--no-incremental` for any authorized primary replacement. Original screen
+  timeout remains **30000 ms**.
 
 ## Remaining gates
 
@@ -119,22 +130,28 @@ remained clean. Screenshots: `/tmp/thoth-lan-browser.png`,
 `/tmp/thoth-lan-security.png`, `/tmp/thoth-lan-reconnect-ctrlc-arabic.png`,
 and `/tmp/thoth-lan-off-browser.png`.
 
-The on-device `KeepScreenAwakeTest` and `UploadFsDeviceTest` run had 19 tests,
-18 pass and one overflow-menu automation failure after the phone slept. The
-single failed test then passed alone. Upload filesystem's four tests all
-passed. Rerun the full suite with the recorded original timeout temporarily
-extended and restore **30000 ms** immediately afterward; classify the first
-failure as a test harness timeout only if the full rerun confirms it.
+The on-device `KeepScreenAwakeTest` and `UploadFsDeviceTest` full rerun passed
+**19/19** with the timeout temporarily extended. The original **30000 ms**
+was restored. The first overflow-menu failure was a test harness timeout after
+the phone slept, not a product failure. Log:
+`/tmp/codex-android-instrument-rerun.txt`.
 
-The user independently ran signed `sudo pacman -Syu` on the primary rootfs;
-their photos show `coreutils` 9.12-2 installed and a returned prompt. The
-locale symlink chmod warnings match the known PRoot model limitation, but
-package integrity still needs direct confirmation on the primary rootfs.
+The user independently ran signed `sudo pacman -Syu` on the then-primary
+rootfs; their photos show `coreutils` 9.12-2 installed and a returned prompt.
+The cached package's signature verified against the pinned Arch Linux ARM
+Build System key. Before the install incident, all **251 regular file SHA-256
+hashes and 46 symlink targets** in the installed coreutils matched the signed
+package. `pacman -Qkk` reported UID/GID mismatch for all files due to
+Android/PRoot ownership mapping; this did not indicate changed contents.
 
-Minified physical runtime, isolated F-Droid consent/download/retry,
-cancellation and phone-side File Bridge UI, and final fresh-rootfs acceptance
-remain. The complete device gate must be rerun on the fresh final rootfs. Test
-the isolated F-Droid consent/download/retry flow.
+The isolated F-Droid consent/download/retry flow passed physically in
+`com.thothterm.arch.codexprobe`: decline made no request, HTTP 404, wrong
+size, partial body, wrong SHA, and connection failure all offered retry without
+installing a rootfs; explicit consent and a valid HTTPS archive installed
+successfully and `pacman --version` ran. The test fixture is stopped and ADB
+reverse removed. Minified physical runtime, cancellation and phone-side File
+Bridge UI, and final fresh-rootfs acceptance remain. The complete device gate
+must be rerun on the fresh final rootfs.
 Resolve the clean source collector trial. Once candidate defects are fixed,
 capture a fresh rootfs, build twice from equivalent clean inputs and compare
 bytes, collect exact sources, write provenance and pin the new hash. Re-run
@@ -144,4 +161,4 @@ explicit authorization.
 
 ## Exact next command
 
-`adb devices -l && adb shell settings get system screen_off_timeout && adb shell dumpsys window | grep -m1 mCurrentFocus`
+`tail -n 20 /tmp/codex-final-build-a.log && tail -n 5 /tmp/codex-sources-candidate-retry.log`
