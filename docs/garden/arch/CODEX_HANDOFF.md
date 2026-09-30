@@ -1,7 +1,9 @@
 # ThothTerm Rolling — local Codex continuation
 
-Updated 2026-09-30 02:21 UTC. Base **c49bb03**; branch
-`codex/arch-v0.1.0-from-c49bb03`; current committed HEAD **e12eb12**.
+Updated 2026-09-30 after the physical browser gate. Base **c49bb03**; branch
+`codex/arch-v0.1.0-from-c49bb03`; last code commit before this update
+**e12eb12** and previous handoff commit **a1d5392**. Run `git rev-parse HEAD`
+for the exact current commit (a handoff file cannot contain its own commit hash).
 The later cloud Arch branch was not used as an implementation baseline. This
 is a candidate, not a release. No tag, GitHub release, F-Droid MR, or
 BlackArch work was created.
@@ -30,10 +32,12 @@ BlackArch work was created.
   unavailable, so its exact bytes remain unproven. The new build does not keep
   that title stale.
 - Created `/home/thoth/codex-home-preservation-sentinel`; `adb install -r`
-  of the same APK preserved it. A changed-pin F-Droid APK is built in
-  `/tmp/thoth-arch-pin-probe` for the stronger physical update test, pending
-  the device gate. The state-model regression test already covers a changed
-  pin. Do not clear Rolling data.
+  of the same APK preserved it. A changed-pin F-Droid APK from
+  `/tmp/thoth-arch-pin-probe` was installed with `adb install -r`; the primary
+  rootfs state, `installedAt=1790730892546`, and sentinel SHA-256
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+  survived. Reinstalling the normal Full debug APK preserved them again.
+  Do not clear Rolling data.
 - The complete strict candidate package-manager gate on disposable app-owned
   roots passed **76 PASS / 0 FAIL** (`/tmp/codex-arch-gate-final-candidate.log`).
   It checked signed provisioning, two `pacman -Syu` runs, package integrity,
@@ -50,9 +54,11 @@ BlackArch work was created.
   transient fetches; `03347ba` reproduces the checksum-pinned zlib patch from
   its immutable upstream commit. The source-selection regression test passes.
   Old invalid source archives were discarded. A clean candidate recollection
-  is running in `/tmp/codex-sources-candidate.log` and
-  `arch-rootfs-work/sources-codex-candidate/`; final-rootfs sources must be
-  collected again from their own package state.
+  was interrupted when local Docker disappeared. It was restarted after Docker
+  recovered in `/tmp/codex-sources-candidate-retry.log` and
+  `arch-rootfs-work/sources-codex-candidate/`; it is fetching GCC's large git
+  history. Check its process and log. Final-rootfs sources must be collected
+  again from their own package state.
 - Added `PACKAGE_MANAGER.md` with the signed-keyring, narrow Landlock, and
   interrupted-transaction model. Commit `1d5d147` fixed the rootfs builder
   freshness check under QEMU. Its live check at 2026-09-30 02:17:08 UTC found
@@ -66,10 +72,13 @@ BlackArch work was created.
 ## Candidate binaries and phone state
 
 - Phone: SM-A165F, Android 16/API 36, arm64, ADB last seen at
-  `192.168.1.103:34915` (discover again; port can change). It is AC charging.
-  Rolling is foreground, its window flags include `FLAG_KEEP_SCREEN_ON`, and
-  LAN port 7683 refuses connections while off. The original system
-  `screen_off_timeout` is **30000 ms**, never modified.
+  `192.168.1.103:43977` (discover again; port can change). It is AC charging.
+  The terminal window had `FLAG_KEEP_SCREEN_ON` while foreground. LAN Mode is
+  now off. The original system `screen_off_timeout` is **30000 ms**; it was
+  temporarily set to 600000 for the browser gate and restored to **30000**.
+  The phone subsequently locked while the LAN settings screen was in front;
+  the user has been asked to unlock it again. Recheck the terminal window's
+  flag once it is unlocked and foreground.
 - Full debug APK SHA-256:
   `849c870c80ee6d8165a22078c0c4772cc0acdc86deccd3fbae68efd7b9e7f377`.
 - Candidate rootfs SHA-256 (September 28, **not fresh final**):
@@ -93,9 +102,39 @@ BlackArch work was created.
 
 ## Remaining gates
 
-Physical changed-pin HOME preservation, minified runtime, Android
-instrumentation, phone terminal, LAN/browser, File Bridge and screen-awake
-acceptance remain. The complete gate must be rerun on the fresh final rootfs. Test the isolated F-Droid consent/download/retry flow.
+The physical browser gate on the candidate passed: real Chromium pairing,
+wrong PIN, Host/Origin/token rejection, two separate browser sessions and
+terminal IDs, cross-session upload refusal, sign-out revocation, reload
+reattachment, resize, Ctrl-C, pasted input, Arabic output, LAN-off disconnect,
+and occupied-port fallback from 7683 to 7684. File Bridge targeted the
+browser shell's current `/home/thoth/codex upload target`, kept duplicate
+files, uploaded a nested Arabic folder, and transferred a 150 MiB file whose
+phone SHA-256 matches the fixture
+`12ba578486fc98e3d601b534901ce1e0cb2743f02de2adbba06a4ab860f85415`.
+Eleven forged paths (including traversal, encoded traversal, absolute paths,
+backslashes, NUL and control attempts) were rejected. Wrong token/upload ID
+were refused. A symlink target was renamed safely and the outside directory
+remained clean. Screenshots: `/tmp/thoth-lan-browser.png`,
+`/tmp/thoth-lan-uploads.png`, `/tmp/thoth-lan-large.png`,
+`/tmp/thoth-lan-security.png`, `/tmp/thoth-lan-reconnect-ctrlc-arabic.png`,
+and `/tmp/thoth-lan-off-browser.png`.
+
+The on-device `KeepScreenAwakeTest` and `UploadFsDeviceTest` run had 19 tests,
+18 pass and one overflow-menu automation failure after the phone slept. The
+single failed test then passed alone. Upload filesystem's four tests all
+passed. Rerun the full suite with the recorded original timeout temporarily
+extended and restore **30000 ms** immediately afterward; classify the first
+failure as a test harness timeout only if the full rerun confirms it.
+
+The user independently ran signed `sudo pacman -Syu` on the primary rootfs;
+their photos show `coreutils` 9.12-2 installed and a returned prompt. The
+locale symlink chmod warnings match the known PRoot model limitation, but
+package integrity still needs direct confirmation on the primary rootfs.
+
+Minified physical runtime, isolated F-Droid consent/download/retry,
+cancellation and phone-side File Bridge UI, and final fresh-rootfs acceptance
+remain. The complete device gate must be rerun on the fresh final rootfs. Test
+the isolated F-Droid consent/download/retry flow.
 Resolve the clean source collector trial. Once candidate defects are fixed,
 capture a fresh rootfs, build twice from equivalent clean inputs and compare
 bytes, collect exact sources, write provenance and pin the new hash. Re-run
@@ -105,4 +144,4 @@ explicit authorization.
 
 ## Exact next command
 
-`adb shell settings get system screen_off_timeout && adb shell run-as com.thothterm.arch cat files/linux/arch-aarch64/state.properties`
+`adb devices -l && adb shell settings get system screen_off_timeout && adb shell dumpsys window | grep -m1 mCurrentFocus`
