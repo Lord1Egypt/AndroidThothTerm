@@ -50,11 +50,28 @@ set -euo pipefail
 cd /r
 export CARCH=aarch64
 makepkg --printsrcinfo > /tmp/srcinfo
+# GitHub's generated patch for this zlib commit changed from nine to ten
+# abbreviated object-id digits after Arch pinned its checksums. Recreate the
+# exact earlier patch from the immutable upstream commit only if the current
+# download fails verification; makepkg still checks both recipe checksums.
+recreate_zlib_patch() {
+    commit=36ff1be48ef696cc67b0855f7c8537ce0276210d
+    git clone --quiet --filter=blob:none https://github.com/madler/zlib.git /tmp/thoth-zlib-patch
+    git -C /tmp/thoth-zlib-patch cat-file -e "$commit^{commit}"
+    git -C /tmp/thoth-zlib-patch format-patch --abbrev=9 --no-signature -1 --stdout "$commit" > "/srcdest/$commit.patch"
+    touch /tmp/zlib-patch-recreated
+}
 # A remote VCS fetch can fail transiently. Every attempt repeats the complete
 # source-integrity check; a persistent checksum mismatch still fails closed.
 for attempt in 1 2 3; do
     if makepkg --verifysource --ignorearch --skippgpcheck --nocolor SRCDEST=/srcdest > /tmp/verify.log 2>&1; then
         break
+    fi
+    if [ "$BASE" = zlib ] && [ ! -e /tmp/zlib-patch-recreated ] \
+        && grep -Fq '36ff1be48ef696cc67b0855f7c8537ce0276210d.patch ... FAILED' /tmp/verify.log \
+        && grep -Fq 'https://github.com/madler/zlib/commit/36ff1be48ef696cc67b0855f7c8537ce0276210d.patch' /tmp/srcinfo; then
+        recreate_zlib_patch
+        continue
     fi
     if [ "$attempt" -eq 3 ]; then tail -20 /tmp/verify.log; exit 1; fi
     sleep 5
@@ -96,7 +113,13 @@ sed -n -e 's/^\tsource = //p' -e 's/^\tsource_aarch64 = //p' /tmp/srcinfo | sort
         *://*)
             file=${name:-${url##*/}}
             cp -L "/srcdest/$file" "$out/$file"
-            printf 'file\t%s\t-\t%s\n' "$url" "$file" >> "/o/$BASE/sources.tsv" ;;
+            if [ "$BASE" = zlib ] && [ "$file" = 36ff1be48ef696cc67b0855f7c8537ce0276210d.patch ] \
+                && [ -e /tmp/zlib-patch-recreated ]; then
+                printf 'git-format-patch --abbrev=9 --no-signature\t%s\t%s\t%s\n' \
+                    https://github.com/madler/zlib.git 36ff1be48ef696cc67b0855f7c8537ce0276210d "$file" >> "/o/$BASE/sources.tsv"
+            else
+                printf 'file\t%s\t-\t%s\n' "$url" "$file" >> "/o/$BASE/sources.tsv"
+            fi ;;
         *) ;;  # a local file: part of the recipe
     esac
 done
