@@ -1,15 +1,87 @@
 # ThothTerm Rolling — local Codex continuation
 
-Updated 2026-09-30 after the fresh rootfs, clean release build, and final
-binary checks. Base **c49bb03**; branch
+Updated 2026-09-30 after physical testing of the extractor fix and the clean
+release rebuild. Base **c49bb03**; branch
 `codex/arch-v0.1.0-from-c49bb03`; code HEAD before this handoff update
-**7a5b4f94ace531e152e2f9050dae91c7aee13ba4**. Run `git rev-parse HEAD`
+**3be6ce5b9bbbee073dd21be25ae014ed6291c97f**. Run `git rev-parse HEAD`
 for the exact current commit (a handoff file cannot contain its own commit hash).
 The later cloud Arch branch was not used as an implementation baseline. This
 is a candidate, not a release. No tag, GitHub release, F-Droid MR, or
 BlackArch work was created.
 
-## Current state (supersedes older candidate notes below)
+## Latest verification after extractor fix
+
+- **PRODUCT BUG found during the requested on-phone `pacman -Syu` check:**
+  both upgrades exited 0 and were no-ops, but `pacman -Qk` found three missing
+  systemd unit files on a newly extracted Full rootfs. The signed archive
+  contains these filenames with literal `\\x2d` characters. The Android tar
+  extractor changed backslashes into path separators, placing the bytes under
+  wrong nested directories. The 78/0 package gate extracted with GNU tar and
+  therefore did not exercise Android's Java extractor. This was a product bug,
+  not a pacman failure or a PRoot limitation.
+- Commit `3be6ce5` preserves literal Linux backslashes while continuing to
+  reject backslash-style absolute and traversal paths. A focused tar test
+  reproduces the signed systemd filename and the malicious path. Full shared
+  suite: **261/261**, Arch Full **28/28**, Arch F-Droid **28/28**, all zero
+  failures (`/tmp/codex-backslash-full-unit.log`). The rootfs archive itself
+  remains unchanged and reproducible.
+- Fresh isolated fixed Full package `com.thothterm.arch.finalfullprobe2`
+  (debug APK SHA-256
+  `f8f3ff0b70b5d817efe42475276a35a5b9546781f39bb7b346695a429138d0ea`)
+  extracted the exact pinned `03a4c669...` archive. The three systemd files
+  have their correct literal names. Two signed `sudo pacman -Syu --noconfirm`
+  runs exited **0** with “there is nothing to do”; `pacman -Dk` and `-Qk`
+  also exited **0**, with **138 packages / 0 missing files**. Evidence:
+  `/tmp/codex-final-fixed-full-qk.log` and
+  `/tmp/codex-final-fixed-full-verify.png`.
+- Fresh isolated fixed F-Droid package
+  `com.thothterm.arch.finalfdroidprobe2` (debug APK SHA-256
+  `e919b4f89615fc3d86fc1f872e907675abdb879ee616904afc0868b9b37347bb`)
+  made no request before consent, made one local HTTPS request after consent,
+  checked the exact final archive, installed it, and retained the three
+  literal systemd filenames. Its two `-Syu`, `-Dk`, and `-Qk` exits were all
+  **0**; **138 packages / 0 missing files**. Evidence:
+  `/tmp/codex-final-fixed-fdroid-qk.log`,
+  `/tmp/codex-final-fixed-fdroid-verify.png`. HTTPS fixture stopped; ADB
+  reverse removed. Earlier isolated F-Droid probe covered decline, 404,
+  wrong size, partial, wrong hash, and retry.
+- Final-pinned Full probe before the extractor fix physically ran pacman 7.1.0,
+  showed no APC payload or duplicate prompt, rendered Arabic OSC title
+  `عنوان عربي`, and returned to `Window ١` after title clear. Evidence:
+  `/tmp/codex-final-title-apc.png` and
+  `/tmp/codex-final-title-cleared.png`. Its isolated HOME sentinel and exact
+  `installedAt` survived `adb install --no-incremental -r`. The fixed Full
+  probe's terminal has one prompt and the same title code.
+- Detached clean checkout `/tmp/thoth-arch-release-fixed` at `3be6ce5`
+  built Full debug/release and F-Droid release APKs and both AABs: **316
+  Gradle tasks successful**, Git worktree clean. Final unsigned SHA-256:
+  Full APK `a9641fe33c39231762168a4992a9d90bed8406688467961b4817d7ceddd37c24`;
+  F-Droid APK `6d496bdb0bd3ade4ba551e787be48cc095e986b80df04171185c1bfecaba232b`;
+  Full AAB `3a823d305b149fdc86bd109f88dd19a0708ba88d178633081319548ec4081004`;
+  F-Droid AAB `3d990fd276b28309444fc11a64bc11fb70268dca45b62a8e8468ece64526ff6e`.
+  Identity is `com.thothterm.arch` 0.1.0/100, arm64 only. Full APK/AAB embed
+  exactly the pinned rootfs hash; F-Droid APK/AAB embed none. Both APKs pass
+  `zipalign -c -P 16 -v 4`; every native ELF LOAD is `0x4000`; AAB native
+  contents match APKs. R8 keeps all seven registered JNI declarations with
+  original names/signatures. APKs and AABs are unsigned as expected.
+- Wireless ADB was re-paired at `192.168.1.103:34445`; port can change.
+  After every temporary extension the original screen timeout was restored
+  to **30000 ms**, most recently after the F-Droid gate. No primary Rolling or
+  other protected app was replaced in these tests. The user confirmed a
+  backup of the old primary `/home/thoth` exists; its path/format is pending.
+  The primary incremental-install data-loss cause is still unproven. A
+  five-minute user-requested phone pause was observed; local binary checks
+  resumed afterward.
+- Remaining: physical minified runtime on the corrected code, backup recovery
+  assessment for the primary app, and freshness at publication time. Do not
+  publish or tag without explicit authorization.
+  An isolated Full minified APK with the corrected extractor was built for
+  `com.thothterm.arch.finalfullprobe2` and signed with the same debug key as
+  that already installed probe, SHA-256
+  `78341b339b278ed5cb0bfb336b13f2968c177ff909eb7e047569dab3cb30ad54`.
+  It has no `.idsig` and awaits the physical `--no-incremental` runtime check.
+
+## Earlier candidate state (superseded where noted above)
 
 - Fresh September 30 rootfs `03a4c669ed6f89d044a9e83dce54c554f04885fd1bb7d1793f5b95b7cc0f48d1`,
   199,826,020 bytes, is pinned in `distro.properties`. Official source,
@@ -223,7 +295,10 @@ Do not publish or tag without it.
 
 `adb start-server; adb devices -l; adb mdns services`
 
-After the user supplies the new pairing endpoint and six-digit code, run
-`adb pair <pairing-ip>:<pairing-port>`, enter the code, then connect to the
-phone's current main wireless debugging `IP:port` and install only the two
-isolated final probe packages with `adb install --no-incremental -r`.
+Once the phone is free, install only the signed disposable minified probe
+`/tmp/thoth-final-fixed-full-minified-probe2.apk` with
+`adb install --no-incremental -r`. Its package is
+`com.thothterm.arch.finalfullprobe2`, signed with the same local debug
+certificate as the already installed probe. Verify its existing rootfs state
+and HOME files first, then launch and run pacman/JNI. Do not replace primary
+`com.thothterm.arch`.
