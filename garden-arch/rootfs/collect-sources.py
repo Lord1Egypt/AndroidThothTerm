@@ -19,7 +19,7 @@ For every package base in the rootfs (read from each binary's own .PKGINFO):
    tag of that version.
 2. The source. In a throwaway container (archlinux:base-devel pinned by
    digest, plus git), `makepkg --verifysource` downloads every source the
-   recipe lists, for every architecture, and checks each against the
+   recipe lists for AArch64, and checks each against the
    checksums the recipe pins. Files are kept as downloaded; a git source is
    exported with `git archive` at exactly the commit or tag the recipe pins,
    which is the tree the package was built from (a whole mirror of, say,
@@ -48,12 +48,15 @@ TOOL_IMAGE = "thothterm-source-collector:{digest12}"
 COLLECT = r"""
 set -euo pipefail
 cd /r
+export CARCH=aarch64
 makepkg --printsrcinfo > /tmp/srcinfo
-makepkg --verifysource --skippgpcheck --nocolor SRCDEST=/srcdest > /tmp/verify.log 2>&1 \
+makepkg --verifysource --ignorearch --skippgpcheck --nocolor SRCDEST=/srcdest > /tmp/verify.log 2>&1 \
     || { tail -20 /tmp/verify.log; exit 1; }
 out=/o/$BASE/sources
 mkdir -p "$out"
-sed -n 's/^\tsource\(_[a-z0-9_]*\)\? = //p' /tmp/srcinfo | sort -u | while read -r entry; do
+# .SRCINFO includes sources for every supported architecture. Match only the
+# common and AArch64 arrays, just as makepkg did above with CARCH=aarch64.
+sed -n -e 's/^\tsource = //p' -e 's/^\tsource_aarch64 = //p' /tmp/srcinfo | sort -u | while read -r entry; do
     name=${entry%%::*}; [ "$name" = "$entry" ] && name=
     url=${entry#*::}
     case $url in
