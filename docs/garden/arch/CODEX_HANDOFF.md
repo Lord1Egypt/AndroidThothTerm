@@ -72,14 +72,21 @@ BlackArch work was created.
   The primary incremental-install data-loss cause is still unproven. A
   five-minute user-requested phone pause was observed; local binary checks
   resumed afterward.
-- Remaining: physical minified runtime on the corrected code, backup recovery
-  assessment for the primary app, and freshness at publication time. Do not
+- Remaining: backup recovery assessment for the primary app, investigation
+  of the incremental-install data loss, and freshness at publication time. Do not
   publish or tag without explicit authorization.
   An isolated Full minified APK with the corrected extractor was built for
   `com.thothterm.arch.finalfullprobe2` and signed with the same debug key as
   that already installed probe, SHA-256
   `78341b339b278ed5cb0bfb336b13f2968c177ff909eb7e047569dab3cb30ad54`.
-  It has no `.idsig` and awaits the physical `--no-incremental` runtime check.
+  It has no `.idsig`. On reconnection at `192.168.1.103:40539`, its physical
+  `adb install --no-incremental -r` and runtime check passed. Two `-Syu`
+  runs, `-Dk`, and `-Qk` all returned 0. The second update reported nothing
+  to do. The existing HOME script survived with identical SHA-256
+  `521058ef9dbc852b3acb4e0716370b13da663cf168d8f9e7c4b92f6b9207a56c`.
+  Screenshots: `/tmp/codex-fixed-minified-runtime.png` and
+  `/tmp/codex-fixed-minified-home.png`. The package is non-debuggable and
+  remains installed. Original screen timeout restored to **30000 ms**.
 
 ## Earlier candidate state (superseded where noted above)
 
@@ -295,10 +302,7 @@ Do not publish or tag without it.
 
 `adb start-server; adb devices -l; adb mdns services`
 
-Once the phone is free, install only the signed disposable minified probe
-`/tmp/thoth-final-fixed-full-minified-probe2.apk` with
-`adb install --no-incremental -r`. Its package is
-`com.thothterm.arch.finalfullprobe2`, signed with the same local debug
-certificate as the already installed probe. Verify its existing rootfs state
-and HOME files first, then launch and run pacman/JNI. Do not replace primary
-`com.thothterm.arch`.
+The corrected minified probe runtime is now verified. Obtain the confirmed
+backup's path and format, inspect it read-only, and plan recovery of the primary
+Rolling HOME. Do not replace primary `com.thothterm.arch` while the earlier
+incremental-install incident and recovery remain unresolved.
