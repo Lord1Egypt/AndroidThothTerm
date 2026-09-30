@@ -51,8 +51,19 @@ BlackArch work was created.
   and `/tmp/thoth-arch-final-fdroid-probe` F-Droid debug SHA
   `18875b615fa881ab46861ae6170ca122c7e02de5213a4a19a8789a0ff79309e2`.
   Their separate application IDs cannot replace primary Rolling. The user
-  reported new ADB port `192.168.1.103:34445`; TCP opens, but `adb connect`
-  currently fails. A question is pending whether this is the pairing port.
+  reported new ADB port `192.168.1.103:34445`. The ADB 37 diagnostic server
+  reached that service but its TLS handshake ended with
+  `SSLV3_ALERT_CERTIFICATE_UNKNOWN`: the phone rejects this computer's saved
+  pairing certificate. A new wireless debugging pairing code was requested.
+- The user's `pacman -Syu` photos show coreutils 9.12-2 installed and a
+  returned prompt. Warnings about setting `0777` permissions on
+  `LC_TIME/coreutils.mo` are for package symlinks to `LC_MESSAGES/coreutils.mo`,
+  confirmed in the signed package. PRoot cannot apply that symlink metadata.
+  All 251 installed regular file hashes and 46 symlink targets matched the
+  signed package before the later APK install incident. This is a known PRoot
+  model limitation, not evidence of a failed pacman transaction.
+- The Codex branch was pushed to `origin` with a normal non-force push at
+  handoff commit `2e1f3d4`; no other branch or tag was pushed.
 - **Release blocker:** the primary Rolling HOME was lost during the Android
   incremental-install incident documented below. Do not replace primary
   Rolling again until the cause and backup/recovery status are understood.
@@ -210,4 +221,9 @@ Do not publish or tag without it.
 
 ## Exact next command
 
-`adb start-server; adb devices -l; adb mdns services; adb connect 192.168.1.103:34445`
+`adb start-server; adb devices -l; adb mdns services`
+
+After the user supplies the new pairing endpoint and six-digit code, run
+`adb pair <pairing-ip>:<pairing-port>`, enter the code, then connect to the
+phone's current main wireless debugging `IP:port` and install only the two
+isolated final probe packages with `adb install --no-incremental -r`.
