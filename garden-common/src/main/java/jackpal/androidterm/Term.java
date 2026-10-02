@@ -40,6 +40,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -185,7 +186,7 @@ public class Term extends AppCompatActivity
             if (keyCode == KeyEvent.KEYCODE_BACK && mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES && mActionBar.isShowing()) {
                 /* We need to intercept the key event before the view sees it,
                    otherwise the view will handle it before we get it */
-                onKeyUp(keyCode, event);
+                handleBackAction();
                 return true;
             } else {
                 return false;
@@ -233,6 +234,7 @@ public class Term extends AppCompatActivity
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
+        getOnBackPressedDispatcher().addCallback(this, mBackCallback);
 
         ThothLog.d(LogCategory.UI, "Term activity created");
         mHandler = new Handler(getMainLooper());
@@ -789,31 +791,54 @@ public class Term extends AppCompatActivity
         return super.onPrepareOptionsMenu(menu);
     }
 
+    /**
+     * Back, however it arrives -- the back key before Android 13, a
+     * predictive-back gesture or the back key from Android 13 on (AndroidX
+     * hands those to the platform OnBackInvokedDispatcher) -- reaches
+     * {@link #handleBackAction} through this activity's
+     * OnBackPressedDispatcher. Registered with this activity's lifecycle in
+     * onCreate: active while started, removed when destroyed. onKeyUp no
+     * longer intercepts KEYCODE_BACK: from Android 16 a back gesture
+     * dispatches no key event at all.
+     */
+    private final OnBackPressedCallback mBackCallback = new OnBackPressedCallback(true) {
+        @Override
+        public void handleOnBackPressed() {
+            handleBackAction();
+        }
+    };
+
+    /** Does what {@link BackAction#decide} says; true when back did something. */
+    private boolean handleBackAction() {
+        EmulatorView currentView = getCurrentEmulatorView();
+        BackAction.Result result = BackAction.decide(
+                currentView != null && currentView.getSelectingText(),
+                mActionBarMode, mActionBar.isShowing(), mSettings.getBackKeyAction());
+        switch (result) {
+            case FINISH_TEXT_SELECTION:
+                currentView.finishSelectingText();
+                return true;
+            case HIDE_ACTION_BAR:
+                mActionBar.hide();
+                return true;
+            case STOP_SERVICE_AND_FINISH:
+                mStopServiceOnFinish = true;
+                finish();
+                return true;
+            case FINISH:
+                finish();
+                return true;
+            case CLOSE_WINDOW:
+                doCloseWindow();
+                return true;
+            default:
+                return false;
+        }
+    }
+
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         switch (keyCode) {
-            case KeyEvent.KEYCODE_BACK:
-                EmulatorView currentView = getCurrentEmulatorView();
-                if (currentView != null && currentView.getSelectingText()) {
-                    currentView.finishSelectingText();
-                    return true;
-                }
-                if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES && mActionBar.isShowing()) {
-                    mActionBar.hide();
-                    return true;
-                }
-                switch (mSettings.getBackKeyAction()) {
-                    case TermSettings.BACK_KEY_STOPS_SERVICE:
-                        mStopServiceOnFinish = true;
-                    case TermSettings.BACK_KEY_CLOSES_ACTIVITY:
-                        finish();
-                        return true;
-                    case TermSettings.BACK_KEY_CLOSES_WINDOW:
-                        doCloseWindow();
-                        return true;
-                    default:
-                        return false;
-                }
             case KeyEvent.KEYCODE_MENU:
                 if (!mActionBar.isShowing()) {
                     mActionBar.show();
