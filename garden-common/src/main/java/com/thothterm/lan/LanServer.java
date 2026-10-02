@@ -326,7 +326,7 @@ final class LanServer {
             int browser = auth.browserFor(token);
             if (browser > 0) {
                 auth.revoke(token);
-                uploads.cancelBrowser(browser);
+                uploads.signOut(browser);
                 disconnectBrowser(browser);
                 log.info("Browser signed out; paired browsers=" + auth.pairedBrowsers());
             }

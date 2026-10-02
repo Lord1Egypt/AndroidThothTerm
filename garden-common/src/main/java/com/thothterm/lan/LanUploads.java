@@ -37,6 +37,12 @@ import java.util.Map;
  * another browser's upload. Signing out, the terminal ending, LAN Mode going
  * off and a browser that stops sending all abandon an upload, which removes
  * whatever it had not finished.
+ *
+ * <p>Signing out and LAN Mode going off are recorded under the same lock that
+ * registers an upload, so a {@link #begin} that passed its checks before
+ * either cannot register afterwards: it abandons the batch it opened instead.
+ * Abandoning closes the stream of a file being received
+ * ({@link UploadBatch#cancel}), so nothing stays writable.</p>
  */
 final class LanUploads {
     static final int MAX_UPLOADS = 8;
@@ -79,6 +85,11 @@ final class LanUploads {
     private final Map<Upload, Boolean> active = new HashMap<>();
     /** Terminals whose upload is being opened right now (see {@link #begin}). */
     private final java.util.Set<RemoteTerminals.Terminal> opening = new java.util.HashSet<>();
+    /**
+     * Browsers signed out in this run. A browser id is never issued twice in
+     * a run ({@link LanAuth}), so this only grows by one per sign-out.
+     */
+    private final java.util.Set<Integer> signedOut = new java.util.HashSet<>();
     private boolean closed;
 
     LanUploads(Host host, LanAuth.Clock clock, SecureRandom random, LanLog log) {
@@ -97,6 +108,9 @@ final class LanUploads {
         // unlocked.
         synchronized (this) {
             if (closed) throw new UploadError(UploadError.Code.CANCELLED, "LAN Mode is off");
+            if (signedOut.contains(browser)) {
+                throw new UploadError(UploadError.Code.CANCELLED, "signed out");
+            }
             if (uploads.size() + opening.size() >= MAX_UPLOADS) {
                 throw new UploadError(UploadError.Code.BUSY, "too many uploads");
             }
@@ -114,12 +128,16 @@ final class LanUploads {
             random.nextBytes(raw);
             Upload upload = new Upload(Base64.getUrlEncoder().withoutPadding().encodeToString(raw),
                     browser, terminal, batch, clock.nowMs());
+            String refused;
             synchronized (this) {
-                if (closed) {
-                    batch.cancel();
-                    throw new UploadError(UploadError.Code.CANCELLED, "LAN Mode is off");
-                }
-                uploads.put(upload.id, upload);
+                // Signed out or switched off while the batch was being opened.
+                refused = closed ? "LAN Mode is off"
+                        : signedOut.contains(browser) ? "signed out" : null;
+                if (refused == null) uploads.put(upload.id, upload);
+            }
+            if (refused != null) {
+                batch.cancel();
+                throw new UploadError(UploadError.Code.CANCELLED, refused);
             }
             return upload;
         } finally {
@@ -147,8 +165,18 @@ final class LanUploads {
         upload.batch.cancel();
     }
 
-    void cancelBrowser(int browser) {
-        for (Upload u : remove(u -> u.browser == browser)) u.batch.cancel();
+    /**
+     * Browser {@code browser} signed out: abandon its uploads, including one
+     * being opened right now, and refuse it any new one. Idempotent.
+     */
+    void signOut(int browser) {
+        List<Upload> gone;
+        synchronized (this) {
+            signedOut.add(browser);
+            gone = remove(u -> u.browser == browser);
+        }
+        for (Upload u : gone) u.batch.cancel();
+        if (!gone.isEmpty()) log.info("Abandoned " + gone.size() + " upload(s) of a signed-out browser");
     }
 
     /** Abandon uploads whose terminal is gone or that went quiet. */
@@ -169,6 +197,7 @@ final class LanUploads {
             closed = true;
             all = new ArrayList<>(uploads.values());
             uploads.clear();
+            active.clear();
         }
         for (Upload u : all) u.batch.cancel();
         if (!all.isEmpty()) log.info("Abandoned " + all.size() + " browser upload(s)");
@@ -180,7 +209,8 @@ final class LanUploads {
 
     /** A file of {@code upload} is streaming in. */
     synchronized void receiving(Upload upload, boolean on) {
-        if (on) active.put(upload, Boolean.TRUE);
+        // An upload already abandoned is never tracked again.
+        if (on && uploads.get(upload.id) == upload) active.put(upload, Boolean.TRUE);
         else active.remove(upload);
         upload.lastUsedMs = clock.nowMs();
     }
@@ -201,6 +231,7 @@ final class LanUploads {
             if (match.test(u)) {
                 removed.add(u);
                 it.remove();
+                active.remove(u);
             }
         }
         return removed;

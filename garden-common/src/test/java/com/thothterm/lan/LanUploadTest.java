@@ -97,6 +97,9 @@ public class LanUploadTest {
     private final NioUploadFs fs = new NioUploadFs();
     private final List<Socket> sockets = new ArrayList<>();
     private StagingJournal journal;
+    /** When set, {@code Host.target} counts down the first and waits for the second. */
+    private volatile java.util.concurrent.CountDownLatch targetEntered;
+    private volatile java.util.concurrent.CountDownLatch targetRelease;
     private File home;
     private LanMode mode;
     private int port;
@@ -120,6 +123,21 @@ public class LanUploadTest {
         LanUploads.Host host = new LanUploads.Host() {
             @Override
             public UploadTarget target(Pty pty) throws UploadError {
+                java.util.concurrent.CountDownLatch release = targetRelease;
+                if (release != null) {
+                    targetEntered.countDown();
+                    // Deliberately deaf to interrupts (LAN Mode off interrupts
+                    // its workers): the slowest host there can be.
+                    long deadline = System.currentTimeMillis() + 10_000;
+                    while (release.getCount() > 0) {
+                        if (System.currentTimeMillis() > deadline) throw new AssertionError("never released");
+                        try {
+                            release.await(50, java.util.concurrent.TimeUnit.MILLISECONDS);
+                        } catch (InterruptedException ignored) {
+                            // Keep waiting.
+                        }
+                    }
+                }
                 File dir = directories.get(pty);
                 if (dir == null) throw new UploadError(UploadError.Code.NO_DIRECTORY, "unknown pty");
                 return new UploadTarget(dir.getPath(), "/home/thoth/" + home.toPath().relativize(dir.toPath()),
@@ -692,6 +710,106 @@ public class LanUploadTest {
         assertEquals(204, response(send("POST", "/api/logout", h, null)).status);
         assertNothingLeft(cwd);
         assertEquals(401, begin(token, term, "files", null, 1).status);
+    }
+
+    /** The server stops reading a transfer: the client sees the connection end, not a stall. */
+    private static void assertClosedByServer(Socket transfer) throws IOException {
+        InputStream in = transfer.getInputStream();
+        byte[] sink = new byte[4096];
+        try {
+            while (in.read(sink) >= 0) {
+                // A final error response may arrive before the end.
+            }
+        } catch (java.net.SocketTimeoutException e) {
+            fail("the transfer is still open");
+        } catch (java.net.SocketException reset) {
+            // Closed by the server.
+        }
+    }
+
+    /** Hold the next begin inside {@code Host.target}; returns its still-open request. */
+    private Socket beginHeld(String token, String term) throws Exception {
+        targetEntered = new java.util.concurrent.CountDownLatch(1);
+        targetRelease = new java.util.concurrent.CountDownLatch(1);
+        byte[] body = bytes("{\"term\":" + FlatJson.quote(term) + ",\"kind\":\"files\",\"bytes\":1}");
+        Map<String, String> h = headers(token);
+        h.put("Content-Type", "application/json");
+        h.put("Content-Length", Integer.toString(body.length));
+        Socket s = send("POST", LanServer.UPLOAD_BEGIN, h, body);
+        assertTrue("begin never reached the terminal's directory",
+                targetEntered.await(10, java.util.concurrent.TimeUnit.SECONDS));
+        return s;
+    }
+
+    private void release() {
+        java.util.concurrent.CountDownLatch release = targetRelease;
+        targetRelease = null;
+        release.countDown();
+    }
+
+    private Response logout(String token) throws IOException {
+        Map<String, String> h = headers(token);
+        h.put("Content-Length", "0");
+        return response(send("POST", "/api/logout", h, null));
+    }
+
+    @Test
+    public void signingOutClosesTheStreamOfAFileBeingReceived() throws Exception {
+        String token = pair();
+        File cwd = dir("signout-stream");
+        String term = terminal(token, cwd);
+        String up = beginOk(token, term, "files", null, 4 << 20, "/home/thoth/signout-stream");
+        Socket transfer = halfSent(token, up);
+        eventually("staging exists", () -> !noStaging(cwd));
+        assertEquals(204, logout(token).status);
+        assertClosedByServer(transfer);
+        assertNothingLeft(cwd);
+    }
+
+    /**
+     * Codex QA d977d13: an upload begun just before sign-out stayed open. The
+     * begin passed its checks, sign-out found nothing to abandon, and the
+     * begin then registered the upload of a signed-out browser.
+     */
+    @Test
+    public void signingOutWhileAnUploadIsBeingOpenedLeavesNothingOpen() throws Exception {
+        String token = pair();
+        String other = pair();
+        File cwd = dir("signout-race");
+        String term = terminal(token, cwd);
+        File otherCwd = dir("other");
+        String otherTerm = terminal(other, otherCwd);
+        String otherUp = beginOk(other, otherTerm, "files", null, -1, "/home/thoth/other");
+
+        Socket held = beginHeld(token, term);
+        assertEquals(204, logout(token).status);
+        release();
+        Response r = response(held);
+        assertEquals(new String(r.body, StandardCharsets.UTF_8), 410, r.status);
+        assertEquals("cancelled", r.error());
+        eventually("staging removed", () -> noStaging(cwd));
+        assertEquals(Collections.emptyList(), names(cwd));
+
+        // Idempotent, and the other browser's upload is untouched.
+        assertEquals(204, logout(token).status);
+        assertEquals(401, begin(token, term, "files", null, 1).status);
+        assertEquals(200, put(other, otherUp, "kept.txt", bytes("k")).status);
+        assertEquals(200, finish(other, otherUp).status);
+        assertEquals(Collections.singletonList("kept.txt"), names(otherCwd));
+        assertEquals(0, new StagingJournal(new File(tmp.getRoot(), "app/upload-staging")).sweep(fs));
+    }
+
+    @Test
+    public void lanModeOffWhileAnUploadIsBeingOpenedLeavesNothingOpen() throws Exception {
+        String token = pair();
+        File cwd = dir("off-race");
+        String term = terminal(token, cwd);
+        Socket held = beginHeld(token, term);
+        mode.stop(LanMode.Failure.NONE);
+        release();
+        assertClosedByServer(held);
+        assertNothingLeft(cwd);
+        mode.stop(LanMode.Failure.NONE);
     }
 
     @Test
