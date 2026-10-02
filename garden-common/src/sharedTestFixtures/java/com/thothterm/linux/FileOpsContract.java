@@ -48,6 +48,12 @@ public final class FileOpsContract {
         c.put("createNewAppliesMaskedModeOnClose", FileOpsContract::createNewAppliesMaskedModeOnClose);
         c.put("chmodRefusesSymlinkAndLeavesTarget", FileOpsContract::chmodRefusesSymlinkAndLeavesTarget);
         c.put("chmodWorksOnUnreadableFile", FileOpsContract::chmodWorksOnUnreadableFile);
+        c.put("chmodOfUnreadableFileStillMasksSetuid", FileOpsContract::chmodOfUnreadableFileStillMasksSetuid);
+        c.put("chmodRefusesSymlinkToUnreadableTarget", FileOpsContract::chmodRefusesSymlinkToUnreadableTarget);
+        c.put("chmodWorksOnDirectory", FileOpsContract::chmodWorksOnDirectory);
+        c.put("chmodWorksOnUnreadableDirectoryKeepingSticky",
+                FileOpsContract::chmodWorksOnUnreadableDirectoryKeepingSticky);
+        c.put("chmodRefusesSymlinkToDirectory", FileOpsContract::chmodRefusesSymlinkToDirectory);
         c.put("mkdirRefusesDanglingSymlink", FileOpsContract::mkdirRefusesDanglingSymlink);
         c.put("unlinkRemovesLinkNotTarget", FileOpsContract::unlinkRemovesLinkNotTarget);
         c.put("unlinkOfDanglingSymlinkRemovesTheLink", FileOpsContract::unlinkOfDanglingSymlinkRemovesTheLink);
@@ -129,6 +135,69 @@ public final class FileOpsContract {
         Files.setPosixFilePermissions(f, ExtractorSecurityCases.JvmPermissions.of(0200));
         ops.chmodNoFollow(f.toFile(), 0640);
         eq(0640, ExtractorSecurityCases.Fixture.mode(f.toFile()), "mode applied");
+    }
+
+    /** The owner-unreadable path (the EACCES fallback) applies the same masks. */
+    static void chmodOfUnreadableFileStillMasksSetuid(FileOps ops, File dir) throws Exception {
+        Path f = write(dir, "wo", "x");
+        Files.setPosixFilePermissions(f, ExtractorSecurityCases.JvmPermissions.of(0200));
+        ops.chmodNoFollow(f.toFile(), 06755);
+        eq(0755, ExtractorSecurityCases.Fixture.mode(f.toFile()), "setuid and setgid masked");
+        Files.setPosixFilePermissions(f, ExtractorSecurityCases.JvmPermissions.of(0000));
+        ops.chmodNoFollow(f.toFile(), 0110);
+        eq(0110, ExtractorSecurityCases.Fixture.mode(f.toFile()), "0000 -> 0110");
+    }
+
+    /**
+     * A symlink is refused even when its target is one the owner cannot read,
+     * the case where a no-follow open fails with EACCES before it could fail
+     * with ELOOP: the target keeps its mode.
+     */
+    static void chmodRefusesSymlinkToUnreadableTarget(FileOps ops, File dir) throws Exception {
+        Path target = write(dir, "target", "t");
+        Files.setPosixFilePermissions(target, ExtractorSecurityCases.JvmPermissions.of(0200));
+        Files.createSymbolicLink(dir.toPath().resolve("link"), target);
+        try {
+            ops.chmodNoFollow(new File(dir, "link"), 0777);
+            throw new AssertionError("chmod accepted a symlink");
+        } catch (IOException expected) {
+            // a symlink is never chmodded
+        }
+        eq(0200, ExtractorSecurityCases.Fixture.mode(target.toFile()), "target mode unchanged");
+        ops.setMode(new File(dir, "link"), 0777);
+        eq(0200, ExtractorSecurityCases.Fixture.mode(target.toFile()), "target mode unchanged");
+    }
+
+    static void chmodWorksOnDirectory(FileOps ops, File dir) throws Exception {
+        Path d = Files.createDirectory(dir.toPath().resolve("d"));
+        Files.setPosixFilePermissions(d, ExtractorSecurityCases.JvmPermissions.of(0755));
+        ops.chmodNoFollow(d.toFile(), 0700);
+        eq(0700, ExtractorSecurityCases.Fixture.mode(d.toFile()), "directory mode applied");
+    }
+
+    /** A directory its owner cannot list (0300) still takes a mode, sticky included. */
+    static void chmodWorksOnUnreadableDirectoryKeepingSticky(FileOps ops, File dir) throws Exception {
+        Path d = Files.createDirectory(dir.toPath().resolve("d"));
+        Files.setPosixFilePermissions(d, ExtractorSecurityCases.JvmPermissions.of(0300));
+        ops.chmodNoFollow(d.toFile(), 03777);
+        // lstat's mode; java.nio's PosixFilePermission has no sticky bit.
+        eq(01777, ops.permissions(d.toFile()), "sticky kept, setgid dropped");
+        Files.setPosixFilePermissions(d, ExtractorSecurityCases.JvmPermissions.of(0300));
+        ops.chmodNoFollow(d.toFile(), 0755);
+        eq(0755, ExtractorSecurityCases.Fixture.mode(d.toFile()), "0300 -> 0755");
+    }
+
+    static void chmodRefusesSymlinkToDirectory(FileOps ops, File dir) throws Exception {
+        Path d = Files.createDirectory(dir.toPath().resolve("d"));
+        Files.setPosixFilePermissions(d, ExtractorSecurityCases.JvmPermissions.of(0700));
+        Files.createSymbolicLink(dir.toPath().resolve("link"), d);
+        try {
+            ops.chmodNoFollow(new File(dir, "link"), 01777);
+            throw new AssertionError("chmod accepted a symlink to a directory");
+        } catch (IOException expected) {
+            // refused
+        }
+        eq(0700, ExtractorSecurityCases.Fixture.mode(d.toFile()), "target directory mode unchanged");
     }
 
     static void mkdirRefusesDanglingSymlink(FileOps ops, File dir) throws Exception {

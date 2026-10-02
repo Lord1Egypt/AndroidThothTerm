@@ -45,15 +45,28 @@ public final class ExtractorGate {
         return failures;
     }
 
-    /** @return the number of failures (0 or 1) */
+    /**
+     * Extracts the real archive and compares the tree with the independent
+     * manifest: path, type, mode, size and symlink target from {@code lstat}
+     * and {@code readlink}, content from the SHA-256 of the bytes the
+     * extractor wrote, recorded while they were written
+     * ({@link RecordingFileOps}). Nothing is reopened that its owner cannot
+     * read, and no mode is ever changed to look: Arch's 0110
+     * {@code dbus-daemon-launch-helper} stays 0110. Every file the owner can
+     * read is also re-read from disk and must match its record; every real
+     * hard link must share its target's inode.
+     *
+     * @return the number of failures (0 or 1)
+     */
     public static int realArchive(FileOps ops, File archive, String sha256, File manifest,
                                   File staging, Report report) {
         try {
             if (staging.exists()) SafeFileTree.deleteTree(ops, staging, staging);
+            RecordingFileOps recording = new RecordingFileOps(ops);
             RootfsArchive.Result result;
             InputStream in = new FileInputStream(archive);
             try {
-                result = RootfsArchive.extract(in, staging, ops, null);
+                result = RootfsArchive.extract(in, staging, recording, null);
             } finally {
                 in.close();
             }
@@ -61,7 +74,8 @@ public final class ExtractorGate {
             RootfsArchive.verify(result, sha256);
             report.line("PASS archive verified: sha256 matches, 0 rejected entries");
             List<String> expected = TreeManifest.read(manifest);
-            List<String> actual = TreeManifest.of(staging, ops::permissions);
+            ContentCheck content = new ContentCheck(recording, ops);
+            List<String> actual = TreeManifest.of(staging, ops::permissions, content);
             List<String> diff = TreeManifest.diff(expected, actual, 40);
             if (!diff.isEmpty()) {
                 for (String line : diff) report.line("DIFF " + line);
@@ -69,14 +83,76 @@ public final class ExtractorGate {
                         + expected.size() + " expected, " + actual.size() + " extracted)");
                 return 1;
             }
+            int links = 0;
+            for (RecordingFileOps.Link link : recording.links()) {
+                if (!sameInode(link.existing, link.link)) {
+                    report.line("FAIL hard link is not its target's inode: " + link.link);
+                    return 1;
+                }
+                links++;
+            }
             report.line("PASS extracted tree matches the independent manifest: "
                     + actual.size() + " paths (" + result.hardlinkFallbacks
                     + " hardlinks materialized as copies)");
+            report.line("PASS content of " + content.files + " regular files = the bytes the"
+                    + " extractor wrote (SHA-256 recorded during extraction); " + content.reread
+                    + " re-read from disk and identical, " + content.unreadable.size()
+                    + " owner-unreadable verified without reopening or chmod"
+                    + (content.unreadable.isEmpty() ? "" : " " + content.unreadable)
+                    + "; " + links + " hard links share their target's inode");
             return 0;
         } catch (Throwable t) {
             report.line("FAIL real archive: " + t);
             return 1;
         }
+    }
+
+    /**
+     * Content of each regular file for {@link TreeManifest}: its extraction
+     * record, which must exist, be complete and match the file's lstat size.
+     * A file its owner can read must also hash to the same value on disk. A
+     * mismatch is returned as a value the manifest cannot contain, so it
+     * shows up as a difference.
+     */
+    static final class ContentCheck implements TreeManifest.Contents {
+        private final RecordingFileOps recording;
+        private final FileOps ops;
+        int files;
+        int reread;
+        final java.util.List<String> unreadable = new java.util.ArrayList<>();
+
+        ContentCheck(RecordingFileOps recording, FileOps ops) {
+            this.recording = recording;
+            this.ops = ops;
+        }
+
+        @Override
+        public String sha256(File file, String rel, long size) throws java.io.IOException {
+            files++;
+            RecordingFileOps.Content record = recording.contentOf(file);
+            if (record == null || record.sha256() == null) return "NOT-WRITTEN-BY-THE-EXTRACTOR";
+            if (record.length() != size) {
+                return "SIZE-ON-DISK-" + size + "-BUT-WROTE-" + record.length();
+            }
+            // Decided from the mode bits, not by trying: root could read it anyway.
+            if ((ops.permissions(file) & 0400) == 0) {
+                unreadable.add(rel + "=" + Integer.toOctalString(ops.permissions(file)));
+                return record.sha256();
+            }
+            String disk = TreeManifest.sha256(file.toPath());
+            reread++;
+            return disk.equals(record.sha256()) ? record.sha256() : "ON-DISK-" + disk;
+        }
+    }
+
+    private static boolean sameInode(File a, File b) throws java.io.IOException {
+        Object ka = java.nio.file.Files.readAttributes(a.toPath(),
+                java.nio.file.attribute.BasicFileAttributes.class,
+                java.nio.file.LinkOption.NOFOLLOW_LINKS).fileKey();
+        Object kb = java.nio.file.Files.readAttributes(b.toPath(),
+                java.nio.file.attribute.BasicFileAttributes.class,
+                java.nio.file.LinkOption.NOFOLLOW_LINKS).fileKey();
+        return ka != null && ka.equals(kb);
     }
 
     private static int run(String kind, Map<String, ExtractorSecurityCases.Case> cases,

@@ -44,9 +44,24 @@ public final class TreeManifest {
         int of(File file) throws IOException;
     }
 
+    /**
+     * The SHA-256 of a regular file's content, given its lstat size. The
+     * default reads the file; the extractor gate answers from what it
+     * recorded while extracting ({@link RecordingFileOps}), so a file whose
+     * owner cannot read it is verified without being reopened.
+     */
+    public interface Contents {
+        String sha256(File file, String relativePath, long size) throws IOException;
+    }
+
+    /** Hashes every regular file by reading it from disk. */
     public static List<String> of(File root, Modes modes) throws IOException {
+        return of(root, modes, (file, rel, size) -> sha256(file.toPath()));
+    }
+
+    public static List<String> of(File root, Modes modes, Contents contents) throws IOException {
         List<String> lines = new ArrayList<>();
-        walk(root, "", lines, modes);
+        walk(root, "", lines, modes, contents);
         java.util.Collections.sort(lines, (a, b) -> key(a).compareTo(key(b)));
         return lines;
     }
@@ -69,8 +84,8 @@ public final class TreeManifest {
         return line.substring(0, line.indexOf('\t'));
     }
 
-    private static void walk(File dir, String rel, List<String> out, Modes modes)
-            throws IOException {
+    private static void walk(File dir, String rel, List<String> out, Modes modes,
+                             Contents contents) throws IOException {
         String[] names = dir.list();
         if (names == null) return;
         Arrays.sort(names);
@@ -84,17 +99,17 @@ public final class TreeManifest {
                 out.add(child + "\tl\t0\t0\t" + Files.readSymbolicLink(path));
             } else if (attrs.isDirectory()) {
                 out.add(child + "\td\t" + Integer.toOctalString(modes.of(file)) + "\t0\t-");
-                walk(file, child, out, modes);
+                walk(file, child, out, modes, contents);
             } else if (attrs.isRegularFile()) {
                 out.add(child + "\tf\t" + Integer.toOctalString(modes.of(file)) + "\t" + attrs.size()
-                        + "\t" + sha256(path));
+                        + "\t" + contents.sha256(file, child, attrs.size()));
             } else {
                 out.add(child + "\tOTHER\t0\t0\t-");
             }
         }
     }
 
-    private static String sha256(Path path) throws IOException {
+    static String sha256(Path path) throws IOException {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             InputStream in = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS);

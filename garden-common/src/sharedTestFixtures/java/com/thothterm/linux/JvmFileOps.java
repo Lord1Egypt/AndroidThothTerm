@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -106,16 +107,38 @@ public class JvmFileOps implements FileOps {
                 LinkOption.NOFOLLOW_LINKS);
     }
 
+    /**
+     * The same two paths as {@link AndroidFileOps#chmodNoFollow}. First
+     * {@code fchmod} on an {@code O_NOFOLLOW} descriptor: OpenJDK's
+     * {@code "unix:mode"} with {@code NOFOLLOW_LINKS} is exactly
+     * {@code open(O_RDONLY|O_NOFOLLOW)} + {@code fchmod}
+     * ({@code UnixFileAttributeViews.Posix.setMode},
+     * {@code UnixPath.openForAttributeAccess}); a symlink fails with ELOOP.
+     * That open needs read permission, so a file or directory its owner
+     * cannot read (0200, 0300, 0110) fails with EACCES although chmod(2)
+     * itself needs none. Then, and only for EACCES, {@code chmod(2)} on the
+     * path, after {@code lstat} has just said it is that same regular file or
+     * directory and not a symlink; the tree has a single writer, this thread.
+     * The "unix:mode" attribute carries the sticky bit; PosixFilePermission
+     * cannot.
+     */
     @Override
     public void chmodNoFollow(File file, int mode) throws IOException {
         Type type = type(file);
         if (type != Type.REGULAR && type != Type.DIRECTORY) {
             throw new IOException("Refusing to chmod " + type + ": " + file);
         }
-        int mask = type == Type.DIRECTORY ? DIRECTORY_MODE_MASK : FILE_MODE_MASK;
-        // NOFOLLOW_LINKS: OpenJDK opens with O_NOFOLLOW and uses fchmod; the
-        // "unix:mode" attribute carries the sticky bit, PosixFilePermission cannot.
-        Files.setAttribute(file.toPath(), "unix:mode", mode & mask, LinkOption.NOFOLLOW_LINKS);
+        int masked = mode & (type == Type.DIRECTORY ? DIRECTORY_MODE_MASK : FILE_MODE_MASK);
+        Path path = file.toPath();
+        try {
+            Files.setAttribute(path, "unix:mode", masked, LinkOption.NOFOLLOW_LINKS);
+        } catch (AccessDeniedException unreadable) {
+            if (type(file) != type) {
+                throw new IOException("Refusing to chmod: " + file + " changed while being changed");
+            }
+            // chmod(2): follows a final symlink, which lstat just ruled out.
+            Files.setAttribute(path, "unix:mode", masked);
+        }
     }
 
     @Override
