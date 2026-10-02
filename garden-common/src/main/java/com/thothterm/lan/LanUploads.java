@@ -77,6 +77,8 @@ final class LanUploads {
     private final Map<String, Upload> uploads = new HashMap<>();
     /** Uploads with a file streaming in right now; never idle. */
     private final Map<Upload, Boolean> active = new HashMap<>();
+    /** Terminals whose upload is being opened right now (see {@link #begin}). */
+    private final java.util.Set<RemoteTerminals.Terminal> opening = new java.util.HashSet<>();
     private boolean closed;
 
     LanUploads(Host host, LanAuth.Clock clock, SecureRandom random, LanLog log) {
@@ -89,28 +91,42 @@ final class LanUploads {
     /** Snapshot the terminal's directory and open an upload into it. */
     Upload begin(int browser, RemoteTerminals.Terminal terminal, UploadBatch.Kind kind,
                  String folderName, long expectedBytes) throws UploadError {
+        // The checks and a reservation happen under one lock, so two begins
+        // racing for the same terminal (or the last slot) cannot both pass
+        // while the slow part -- the terminal's directory, the batch -- runs
+        // unlocked.
         synchronized (this) {
             if (closed) throw new UploadError(UploadError.Code.CANCELLED, "LAN Mode is off");
-            if (uploads.size() >= MAX_UPLOADS) throw new UploadError(UploadError.Code.BUSY, "too many uploads");
+            if (uploads.size() + opening.size() >= MAX_UPLOADS) {
+                throw new UploadError(UploadError.Code.BUSY, "too many uploads");
+            }
+            if (opening.contains(terminal)) throw new UploadError(UploadError.Code.BUSY, "terminal busy");
             for (Upload u : uploads.values()) {
                 if (u.terminal == terminal) throw new UploadError(UploadError.Code.BUSY, "terminal busy");
             }
+            opening.add(terminal);
         }
-        UploadTarget target = host.target(terminal.pty);
-        UploadBatch batch = UploadBatch.begin(host.fs(), host.journal(), target, kind, folderName,
-                expectedBytes);
-        byte[] raw = new byte[16];
-        random.nextBytes(raw);
-        Upload upload = new Upload(Base64.getUrlEncoder().withoutPadding().encodeToString(raw), browser,
-                terminal, batch, clock.nowMs());
-        synchronized (this) {
-            if (closed) {
-                batch.cancel();
-                throw new UploadError(UploadError.Code.CANCELLED, "LAN Mode is off");
+        try {
+            UploadTarget target = host.target(terminal.pty);
+            UploadBatch batch = UploadBatch.begin(host.fs(), host.journal(), target, kind, folderName,
+                    expectedBytes);
+            byte[] raw = new byte[16];
+            random.nextBytes(raw);
+            Upload upload = new Upload(Base64.getUrlEncoder().withoutPadding().encodeToString(raw),
+                    browser, terminal, batch, clock.nowMs());
+            synchronized (this) {
+                if (closed) {
+                    batch.cancel();
+                    throw new UploadError(UploadError.Code.CANCELLED, "LAN Mode is off");
+                }
+                uploads.put(upload.id, upload);
             }
-            uploads.put(upload.id, upload);
+            return upload;
+        } finally {
+            synchronized (this) {
+                opening.remove(terminal);
+            }
         }
-        return upload;
     }
 
     /** Browser {@code browser}'s open upload {@code id}, or null. */
@@ -126,6 +142,7 @@ final class LanUploads {
     void end(Upload upload) {
         synchronized (this) {
             uploads.remove(upload.id);
+            active.remove(upload);
         }
         upload.batch.cancel();
     }
