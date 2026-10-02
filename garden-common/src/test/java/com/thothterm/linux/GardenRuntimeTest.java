@@ -89,6 +89,7 @@ public class GardenRuntimeTest {
         assertEquals("xterm-256color", env.get("TERM"));
         assertEquals("C.UTF-8", env.get("LANG"));
         assertEquals("C.UTF-8", env.get("LC_ALL"));
+        assertEquals("1", env.get("SYSTEMD_IN_CHROOT"));
         assertFalse(env.containsKey("LD_PRELOAD"));
         assertFalse(env.containsKey("ENV"));
     }

@@ -233,4 +233,10 @@ public class GuestConfigTest {
                     GuestConfig.packageState("Package: sudo\nStatus: " + c[0] + "\n", "sudo"));
         }
     }
+
+    @Test
+    public void sudoersKeepsOnlyTheChrootHintAndGrantsThoth() {
+        assertEquals("Defaults:thoth env_keep += \"SYSTEMD_IN_CHROOT\"\n"
+                + "thoth ALL=(ALL:ALL) NOPASSWD: ALL\n", GuestConfig.sudoersEntry());
+    }
 }

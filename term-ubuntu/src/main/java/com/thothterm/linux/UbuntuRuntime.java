@@ -144,6 +144,14 @@ public final class UbuntuRuntime {
         env.put("TMPDIR", "/tmp");
         env.put("LANG", "C.UTF-8");
         env.put("LC_ALL", "C.UTF-8");
+        // systemd decides "chroot or not" by comparing /proc/1/root with /.
+        // Android hides PID 1 from apps (procfs hidepid), so that lookup fails
+        // and systemd reports ENOSYS ("Failed to check for chroot()
+        // environment: Function not implemented") instead of an answer. The
+        // answer is yes -- this root is not PID 1's -- and systemd (>= 257)
+        // takes it from here: systemctl then skips talking to a PID 1 that
+        // does not exist, as in any chroot, instead of failing.
+        env.put("SYSTEMD_IN_CHROOT", "1");
         env.put("PROOT_TMP_DIR", prootTmpDir);
         env.put("PROOT_LOADER", loaderPath);
         env.put("LD_LIBRARY_PATH", runtimeLibDir);

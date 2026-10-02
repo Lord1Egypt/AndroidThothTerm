@@ -1,0 +1,241 @@
+Subject: translate fchmodat2(2) with the kernel's semantics
+
+fchmodat2 (Linux 6.6, syscall 452 on every architecture) was unknown to
+PRoot: it was neither in the seccomp filter nor in the syscall tables, so it
+reached the kernel with the guest's path untranslated. glibc 2.39 and later
+implement lchmod(3) and fchmodat(..., AT_SYMLINK_NOFOLLOW) with it. With an
+absolute guest path the kernel then looked the name up on the host:
+
+  - libarchive's lchmod of every symlink it extracts failed with ENOENT,
+    which it reports as a warning: pacman printed "warning given when
+    extracting /usr/lib/... (Can't set permissions to 0777)" for each
+    symbolic link in a package, and bsdtar -p does the same;
+  - fchmodat(path, mode, AT_SYMLINK_NOFOLLOW) of a regular file, e.g.
+    Python's os.chmod(path, follow_symlinks=False), failed with ENOENT and
+    changed nothing;
+  - had the guest path existed on the host, the host file would have been
+    the one changed.
+
+It is now handled at syscall entry with calls PRoot already translates, so
+the kernel never sees it and the result does not depend on whether the
+device kernel has it:
+
+  flags 0                       fchmodat(dirfd, translated path, mode)
+  AT_SYMLINK_NOFOLLOW, symlink  -EOPNOTSUPP, exactly as Linux returns it
+  AT_SYMLINK_NOFOLLOW, other    fchmodat(translated, not followed path)
+  AT_EMPTY_PATH with ""         fchmod(dirfd, mode)
+  any other flag                -EINVAL
+
+Nothing is faked: a symlink is never chmodded and never followed, a
+regular file gets exactly the requested mode, and every error the kernel
+returns for the equivalent fchmodat reaches the tracee. libarchive treats
+EOPNOTSUPP as "symlink modes are not supported here", as on any Linux,
+so the warning is gone because the operation now behaves like Linux, not
+because it is filtered. The symlink decision is made on the translated host
+path after extensions resolved it, so a link2symlink "hard link" is the
+regular file it stands for. fake_id0 handles fchmodat2 wherever it handles
+fchmodat (EPERM emulation for the fake root, mode restoration).
+
+Verified on x86_64 Linux 6.18 with glibc 2.39: lchmod/fchmodat/raw
+fchmodat2 results under PRoot are identical to the native kernel's for a
+symlink, a regular file, a relative path, AT_EMPTY_PATH and an invalid
+flag; a libalpm-style libarchive extraction no longer warns.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0005
+
+diff -ruN a/src/extension/fake_id0/fake_id0.c b/src/extension/fake_id0/fake_id0.c
+--- a/src/extension/fake_id0/fake_id0.c
++++ b/src/extension/fake_id0/fake_id0.c
+@@ -321,6 +321,7 @@
+ 	{ PR_execve,		FILTER_SYSEXIT },
+ 	{ PR_fchmod,		FILTER_SYSEXIT },
+ 	{ PR_fchmodat,		FILTER_SYSEXIT },
++	{ PR_fchmodat2,		FILTER_SYSEXIT },
+ 	{ PR_fchown,		FILTER_SYSEXIT },
+ 	{ PR_fchown32,		FILTER_SYSEXIT },
+ 	{ PR_fchownat,		FILTER_SYSEXIT },
+@@ -446,6 +447,7 @@
+ 			break;
+ 
+ 		case PR_fchmodat:
++		case PR_fchmodat2:
+ 			node->mode = peek_reg(tracee, ORIGINAL, SYSARG_3);
+ 			break;
+ 
+@@ -1035,6 +1037,7 @@
+ 	case PR_fchown32:
+ 	case PR_lchown32:
+ 	case PR_fchmodat:
++	case PR_fchmodat2:
+ 	case PR_fchownat: 
+ 		return handle_perm_err_exit_end(tracee, config, false);
+ 
+diff -ruN a/src/syscall/enter.c b/src/syscall/enter.c
+--- a/src/syscall/enter.c
++++ b/src/syscall/enter.c
+@@ -45,6 +45,7 @@
+ #include <netpacket/packet.h> /* struct sockaddr_ll (AF_PACKET) */
+ #include <sys/ioctl.h>   /* ioctl(2): SIOCGIFMTU / SIOCGIFHWADDR */
+ #include <sys/time.h>    /* struct timeval, for SO_RCVTIMEO */
++#include <sys/stat.h>    /* lstat(2), for fchmodat2 */
+ #include "syscall/pipe_shadow.h"
+ 
+ /* ABI-stable rtnetlink constants we synthesise for the loopback reply.
+@@ -2528,6 +2529,79 @@
+ 		status = translate_path2(tracee, dirfd, path, SYSARG_2, REGULAR);
+ 		break;
+ 
++	case PR_fchmodat2: {
++		/* int fchmodat2(int dirfd, const char *path, mode_t mode,
++		 *               unsigned int flags) -- Linux 6.6.
++		 *
++		 * glibc >= 2.39 implements lchmod(3) and
++		 * fchmodat(..., AT_SYMLINK_NOFOLLOW) with it. Unknown to
++		 * PRoot, it used to reach the kernel with the untranslated
++		 * guest path: an absolute path then named a host file
++		 * (ENOENT, or a wrong file), so libarchive (pacman, bsdtar)
++		 * reported "Can't set permissions" on every symlink and a
++		 * no-follow chmod of a regular file silently did nothing.
++		 *
++		 * The kernel never sees it: it is expressed with syscalls
++		 * PRoot already translates, with the kernel's semantics:
++		 *   flags 0                      -> fchmodat(dirfd, path, mode)
++		 *   AT_SYMLINK_NOFOLLOW, symlink -> -EOPNOTSUPP, as Linux
++		 *   AT_SYMLINK_NOFOLLOW, other   -> fchmodat on the translated
++		 *                                   path, which is not a link
++		 *   AT_EMPTY_PATH and ""         -> fchmod(dirfd, mode)
++		 *   any other flag               -> -EINVAL
++		 * The symlink case is decided on the translated host path,
++		 * after extensions (link2symlink) resolved it, so a faked
++		 * hard link is a regular file here as everywhere else.  */
++		char translated[PATH_MAX];
++		struct stat statl;
++		word_t chmod_flags = peek_reg(tracee, CURRENT, SYSARG_4);
++
++		if ((chmod_flags & ~((word_t) (AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH))) != 0) {
++			status = -EINVAL;
++			break;
++		}
++
++		dirfd = peek_reg(tracee, CURRENT, SYSARG_1);
++		status = get_sysarg_path(tracee, path, SYSARG_2);
++		if (status < 0)
++			break;
++
++		if (path[0] == '\0') {
++			if ((chmod_flags & AT_EMPTY_PATH) == 0) {
++				status = -ENOENT;
++				break;
++			}
++			/* fchmod(int fd, mode_t mode) */
++			set_sysnum(tracee, PR_fchmod);
++			poke_reg(tracee, SYSARG_2, peek_reg(tracee, CURRENT, SYSARG_3));
++			status = 0;
++			break;
++		}
++
++		status = translate_path(tracee, translated, dirfd, path,
++					(chmod_flags & AT_SYMLINK_NOFOLLOW) == 0);
++		if (status < 0)
++			break;
++
++		if ((chmod_flags & AT_SYMLINK_NOFOLLOW) != 0
++		    && lstat(translated, &statl) == 0
++		    && S_ISLNK(statl.st_mode)) {
++			status = -EOPNOTSUPP;
++			break;
++		}
++
++		status = set_sysarg_path(tracee, translated, SYSARG_2);
++		if (status < 0)
++			break;
++
++		/* fchmodat(int dirfd, const char *path, mode_t mode): the
++		 * translated path is absolute, so dirfd no longer matters.  */
++		set_sysnum(tracee, PR_fchmodat);
++		poke_reg(tracee, SYSARG_4, 0);
++		status = 0;
++		break;
++	}
++
+ 	case PR_inotify_add_watch:
+ 		flags = peek_reg(tracee, CURRENT, SYSARG_3);
+ 
+diff -ruN a/src/syscall/seccomp.c b/src/syscall/seccomp.c
+--- a/src/syscall/seccomp.c
++++ b/src/syscall/seccomp.c
+@@ -356,6 +356,7 @@
+ 	{ PR_faccessat2,	FILTER_SYSEXIT },
+ 	{ PR_fchdir,		FILTER_SYSEXIT },
+ 	{ PR_fchmodat,		0 },
++	{ PR_fchmodat2,		0 },
+ 	{ PR_fchownat,		0 },
+ 	{ PR_fstatat64,		0 },
+ 	{ PR_futimesat,		0 },
+diff -ruN a/src/syscall/sysnums-arm.h b/src/syscall/sysnums-arm.h
+--- a/src/syscall/sysnums-arm.h
++++ b/src/syscall/sysnums-arm.h
+@@ -359,4 +359,5 @@
+ 	[ 439 ] = PR_faccessat2,
+ 	[ 435 ] = PR_clone3,
+ 	[ 437 ] = PR_openat2,
++	[ 452 ] = PR_fchmodat2,
+ };
+diff -ruN a/src/syscall/sysnums-arm64.h b/src/syscall/sysnums-arm64.h
+--- a/src/syscall/sysnums-arm64.h
++++ b/src/syscall/sysnums-arm64.h
+@@ -281,4 +281,5 @@
+ 	[ 435 ] = PR_clone3,
+ 	[ 437 ] = PR_openat2,
+ 	[ 439 ] = PR_faccessat2,
++	[ 452 ] = PR_fchmodat2,
+ };
+diff -ruN a/src/syscall/sysnums-i386.h b/src/syscall/sysnums-i386.h
+--- a/src/syscall/sysnums-i386.h
++++ b/src/syscall/sysnums-i386.h
+@@ -384,4 +384,5 @@
+ 	[ 435 ] = PR_clone3,
+ 	[ 437 ] = PR_openat2,
+ 	[ 439 ] = PR_faccessat2,
++	[ 452 ] = PR_fchmodat2,
+ };
+diff -ruN a/src/syscall/sysnums-sh4.h b/src/syscall/sysnums-sh4.h
+--- a/src/syscall/sysnums-sh4.h
++++ b/src/syscall/sysnums-sh4.h
+@@ -342,4 +342,5 @@
+ 	[ 435 ] = PR_clone3,
+ 	[ 437 ] = PR_openat2,
+ 	[ 439 ] = PR_faccessat2,
++	[ 452 ] = PR_fchmodat2,
+ };
+diff -ruN a/src/syscall/sysnums-x32.h b/src/syscall/sysnums-x32.h
+--- a/src/syscall/sysnums-x32.h
++++ b/src/syscall/sysnums-x32.h
+@@ -275,6 +275,7 @@
+ 	[ 316 ] = PR_renameat2,
+ 	[ 435 ] = PR_clone3,
+ 	[ 437 ] = PR_openat2,
++	[ 452 ] = PR_fchmodat2,
+ 	[ 512 ] = PR_rt_sigaction,
+ 	[ 513 ] = PR_rt_sigreturn,
+ 	[ 514 ] = PR_ioctl,
+diff -ruN a/src/syscall/sysnums-x86_64.h b/src/syscall/sysnums-x86_64.h
+--- a/src/syscall/sysnums-x86_64.h
++++ b/src/syscall/sysnums-x86_64.h
+@@ -337,4 +337,5 @@
+         [ 435 ] = PR_clone3,
+ 	[ 437 ] = PR_openat2,
+ 	[ 439 ] = PR_faccessat2,
++	[ 452 ] = PR_fchmodat2,
+ };
+diff -ruN a/src/syscall/sysnums.list b/src/syscall/sysnums.list
+--- a/src/syscall/sysnums.list
++++ b/src/syscall/sysnums.list
+@@ -72,6 +72,7 @@
+ SYSNUM(fchdir)
+ SYSNUM(fchmod)
+ SYSNUM(fchmodat)
++SYSNUM(fchmodat2)
+ SYSNUM(fchown)
+ SYSNUM(fchown32)
+ SYSNUM(fchownat)

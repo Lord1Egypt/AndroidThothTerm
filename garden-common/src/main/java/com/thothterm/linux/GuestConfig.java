@@ -140,8 +140,14 @@ final class GuestConfig {
         return PackageState.ABSENT;
     }
 
+    /**
+     * The guest user's sudo rule. sudo resets the environment, so the one
+     * variable package hooks need to see the truth about the environment
+     * ({@code SYSTEMD_IN_CHROOT}, see the runtime) is kept explicitly.
+     */
     static String sudoersEntry() {
-        return USER + " ALL=(ALL:ALL) NOPASSWD: ALL\n";
+        return "Defaults:" + USER + " env_keep += \"SYSTEMD_IN_CHROOT\"\n"
+                + USER + " ALL=(ALL:ALL) NOPASSWD: ALL\n";
     }
 
     /**

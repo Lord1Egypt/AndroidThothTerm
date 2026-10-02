@@ -5,15 +5,25 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin LANG=C.
 ok() { if [ "$1" = 0 ]; then echo "PASS $2"; else echo "FAIL $2 ${3:-}"; fi; }
 BAD='unknown trust|marginal trust|invalid or corrupted package|required key missing|not writable|could not be looked up|keyserver|failed to|error:|warning: .*(key|sign|trust)|archlinuxarm.gpg.*(missing|not found)|trustdb.*(error|fail|broken|corrupt)|permission'
 clean() { ! grep -Eiq "$BAD" "$1"; }
-# libarchive asks Android to chmod a symlink to 0777 while replacing it.
-# Android cannot chmod symlinks, but the link and its target are intact. Only
-# this exact warning is tolerated, and only after checking every named link.
+# Under PRoot without patch 0006 libarchive's lchmod of a symlink failed with
+# an errno pacman reports as "Can't set permissions to 0777". With 0006 the
+# kernel's own EOPNOTSUPP reaches libarchive, which ignores it as on any Linux,
+# so the warning should not appear at all. If it does, it is still checked,
+# never filtered blindly: every named path must be a resolving symlink, and
+# every package that owns one must pass pacman -Qkk (files and checksums).
 clean_symlink_chmod() {
   log=$1
   sed -n "s/^warning: warning given when extracting \(\/.*\) (Can't set permissions to 0777)$/\1/p" "$log" > "$log.symlinks"
   while IFS= read -r path; do
     [ -L "$path" ] && [ -e "$path" ] || return 1
   done < "$log.symlinks"
+  if [ -s "$log.symlinks" ]; then
+    # shellcheck disable=SC2046
+    owners=$(pacman -Qqo $(cat "$log.symlinks") 2>/dev/null | sort -u)
+    [ -n "$owners" ] || return 1
+    # shellcheck disable=SC2086
+    pacman -Qkk $owners > "$log.qkk" 2>&1 || return 1
+  fi
   sed "/^warning: warning given when extracting \/.* (Can't set permissions to 0777)$/d" "$log" > "$log.checked"
   clean "$log.checked"
 }
@@ -36,8 +46,19 @@ grep -q '^\[GNUPG:\] VALIDSIG 68B3537F39A313B3E574D06777193F152BDBE6A6 ' /tmp/c/
 ok $? "C current repository package $f downloaded and signature-verified (trusted)"
 cd / && rm -rf /tmp/c
 
+# Patch 0006: no-follow chmod of a symlink with an absolute guest path, the
+# way libalpm extracts. Without 0006 fchmodat2 reaches the kernel untranslated
+# and bsdtar fails with "Can't set permissions to 0777: No such file or
+# directory"; with it the kernel's own EOPNOTSUPP reaches libarchive, which
+# ignores it as on any Linux.
+rm -rf /tmp/p6 && mkdir -p /tmp/p6/src && cd /tmp/p6/src && echo x > target && ln -s target link \
+  && bsdtar -cPf ../abs.tar -s ',^,/tmp/p6/out/,' target link && cd / \
+  && bsdtar -xpPf /tmp/p6/abs.tar > /tmp/p6.log 2>&1 && [ ! -s /tmp/p6.log ] \
+  && [ -L /tmp/p6/out/link ] && [ "$(stat -c %a /tmp/p6/out/target)" = 644 ]
+ok $? "P6 symlink extraction with absolute names: no permission warning (patch 0006)" "$(head -1 /tmp/p6.log 2>/dev/null)"
+cd / && rm -rf /tmp/p6 /tmp/p6.log
 pacman -Syu --noconfirm > /tmp/d 2>&1; r=$?
-[ $r = 0 ] && clean_symlink_chmod /tmp/d && pacman -Qkk coreutils > /tmp/d.qkk 2>&1; ok $? "D pacman -Syu ($(grep -E '^Packages \(' /tmp/d | cut -d')' -f1 | tr -d 'Packages (' || true) upgraded; $(wc -l < /tmp/d.symlinks) verified symlink warnings)" "$(grep -Ei "$BAD" /tmp/d.checked 2>/dev/null | head -3)"
+[ $r = 0 ] && clean_symlink_chmod /tmp/d; ok $? "D pacman -Syu ($(grep -E '^Packages \(' /tmp/d | cut -d')' -f1 | tr -d 'Packages (' || true) upgraded; $(wc -l < /tmp/d.symlinks) symlink chmod warnings, their owners pass pacman -Qkk)" "$(grep -Ei "$BAD" /tmp/d.checked 2>/dev/null | head -3) $(grep -v ' 0 altered files' /tmp/d.qkk 2>/dev/null | head -2)"
 pacman -Syu --noconfirm > /tmp/e 2>&1; r=$?
 [ $r = 0 ] && grep -q 'there is nothing to do' /tmp/e && clean /tmp/e; ok $? "E second pacman -Syu: nothing to do"
 
@@ -59,6 +80,15 @@ ok $? "K pacman -Dk clean, pacman -Qk: $(wc -l < /tmp/k2) packages, $missing wit
 [ -s /var/lib/pacman/sync/core.db ] && [ -s /var/lib/pacman/sync/alarm.db ]; ok $? "K sync databases present after -Syu"
 
 # ---- guest checks --------------------------------------------------------
+# systemd's chroot detection: Android hides PID 1 (/proc hidepid), so without
+# SYSTEMD_IN_CHROOT systemd answers ENOSYS. The app sets it (GardenRuntime);
+# with it, detection answers "chroot" and systemctl skips PID-1 work cleanly.
+[ -e /proc/1/root ]; echo "INFO /proc/1/root $( [ $? = 0 ] && echo visible || echo 'not visible (hidepid)' ); SYSTEMD_IN_CHROOT=${SYSTEMD_IN_CHROOT:-unset}"
+env -u SYSTEMD_IN_CHROOT systemd-detect-virt --chroot > /tmp/dv0 2>&1; echo "INFO without SYSTEMD_IN_CHROOT: systemd-detect-virt --chroot exit $? $(head -1 /tmp/dv0)"
+systemd-detect-virt --chroot > /tmp/dv1 2>&1; ok $? "systemd-detect-virt --chroot: yes (app environment)" "$(head -1 /tmp/dv1)"
+systemctl daemon-reload > /tmp/dv2 2>&1; r=$?
+[ $r = 0 ] && grep -q 'Running in chroot, ignoring command' /tmp/dv2; ok $? "systemctl daemon-reload is skipped as in a chroot, exit 0" "$(head -1 /tmp/dv2)"
+
 . /etc/os-release; [ "$ID" = archarm ]; ok $? "os-release: $PRETTY_NAME (ID=$ID)"
 k=$(uname -r); [ "$k" = 6.1.0-thothterm ]; ok $? "uname -r reports PRoot's emulated release ($k), not an Arch kernel; $(uname -m)"
 v=$(su -s /bin/sh thoth -c 'sudo -n id -un' 2>&1); [ "$v" = root ]; ok $? "sudo -n id -un as thoth: $v"

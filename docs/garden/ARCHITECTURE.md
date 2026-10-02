@@ -29,7 +29,7 @@ release carries is therefore inherited, not re-implemented:
 
 | Ubuntu 0.2.0 fix | Where it lives now |
 |---|---|
-| PRoot patches 0001–0004: string.h, loader info without host tools, `/proc/self/exe` names the hard link, `--hangup-on-exit` + `PTRACE_O_EXITKILL` (0005, the kernel working directory in step with the guest's, came with 0.2.0) | `garden-common/patches/`, byte-identical to `term-ubuntu/patches/` (`ProotSourceBuildTest`) |
+| PRoot patches 0001–0004: string.h, loader info without host tools, `/proc/self/exe` names the hard link, `--hangup-on-exit` + `PTRACE_O_EXITKILL` (0005, the kernel working directory in step with the guest's, came with 0.2.0; 0006 translates `fchmodat2` with the kernel's semantics) | `garden-common/patches/`, byte-identical to `term-ubuntu/patches/` (`ProotSourceBuildTest`) |
 | Windows hang up like a terminal; `nohup` survives; nothing outlives PRoot | `GardenRuntime` argv, `ShellTermSession` (exit on EOF), `SessionHangup`, `libtermexec` SIGHUP reset |
 | Busy-window close, Exit cleanup, notification lifecycle | `Term`, `TermService`, `SessionProcesses` |
 | Safe extraction: traversal, symlink and hard-link checks, crash-safe staging, hard-link copy fallback | `TarballExtractor`, `SafeFileTree`, `RootfsManager` |
