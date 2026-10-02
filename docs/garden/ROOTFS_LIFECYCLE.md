@@ -119,4 +119,11 @@ The background administrator tools log their own duration and result.
 - `tests/garden-common/extractor/device-gate.sh MODULE ARCHIVE SHA256`: the
   same gate on a device with the APK's `AndroidFileOps`
   (`ExtractorDeviceGateTest`). This is the extractor proof for a release; a
-  GNU/toybox tar extraction (the package gates) is not.
+  GNU/toybox tar extraction (the package gates) is not. It builds the module's
+  debug APK under an isolated application id
+  (`-PthothtermQaApplicationIdSuffix=.qa.extractorgate`), reads the package
+  back out of both APK files with aapt2 and aborts unless it is exactly that
+  id (never `com.thothterm`, `.devel`, `.ubuntu`, `.debian`, `.arch`, never
+  PocketClaw), installs only with `--no-incremental`, and never uninstalls or
+  clears an app. `device-gate-selftest.sh` (run by `DeviceGateIdentityTest`)
+  checks all of that without a device.

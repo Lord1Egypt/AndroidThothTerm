@@ -75,6 +75,16 @@ android {
     }
     buildTypes {
         debug {
+            // The device extractor gate (tests/garden-common/extractor/
+            // device-gate.sh) builds under its own application id, so it can
+            // never install over, or reach the data of, an installed ThothTerm.
+            def qaSuffix = project.findProperty('thothtermQaApplicationIdSuffix')
+            if (qaSuffix != null) {
+                if (!(qaSuffix ==~ /\.qa\.[a-z][a-z0-9]*/)) {
+                    throw new GradleException("thothtermQaApplicationIdSuffix must look like .qa.name: " + qaSuffix)
+                }
+                applicationIdSuffix = qaSuffix
+            }
         }
         release {
             // R8 shrinking, optimization and obfuscation, as F-Droid asked for.
