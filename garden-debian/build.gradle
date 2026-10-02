@@ -15,7 +15,11 @@ android {
     buildToolsVersion = rootProject.ext.buildToolsVersion
     ndkVersion = rootProject.ext.ndkVersion
     defaultConfig {
-        applicationId "com.thothterm.debian"
+        // The one application id of this module (../applicationId.gradle):
+        // production, or with -PthothtermQaApplicationIdSuffix=.qa.<name> an
+        // isolated QA id for every variant. The PRoot runtime is built
+        // for exactly this id.
+        applicationId rootProject.ext.thothtermApplicationId('com.thothterm.debian')
         minSdkVersion 26
         targetSdkVersion rootProject.ext.targetSdkVersion
 
@@ -58,16 +62,6 @@ android {
     }
     buildTypes {
         debug {
-            // The device extractor gate (tests/garden-common/extractor/
-            // device-gate.sh) builds under its own application id, so it can
-            // never install over, or reach the data of, an installed ThothTerm.
-            def qaSuffix = project.findProperty('thothtermQaApplicationIdSuffix')
-            if (qaSuffix != null) {
-                if (!(qaSuffix ==~ /\.qa\.[a-z][a-z0-9]*/)) {
-                    throw new GradleException("thothtermQaApplicationIdSuffix must look like .qa.name: " + qaSuffix)
-                }
-                applicationIdSuffix = qaSuffix
-            }
         }
         release {
             // R8 shrinking, optimization and obfuscation. The only keep rules
@@ -135,6 +129,8 @@ def buildProot = tasks.register('buildProotRuntime', Exec) {
     workingDir projectDir
     commandLine 'sh', rootProject.file('garden-common/tools/build-proot.sh')
     environment 'THOTHTERM_APPLICATION_ID', android.defaultConfig.applicationId
+    // A different id must rebuild the runtime: its paths are compiled in.
+    inputs.property 'applicationId', android.defaultConfig.applicationId
     environment 'THOTHTERM_NDK_VERSION', rootProject.ext.ndkVersion
     environment 'THOTHTERM_JNI_DIR', jniOut
     environment 'THOTHTERM_RUNTIME_ASSETS', assetsOut
@@ -150,6 +146,7 @@ def buildProot = tasks.register('buildProotRuntime', Exec) {
     inputs.dir rootProject.file('third_party/libandroid-shmem')
     inputs.dir rootProject.file('garden-common/patches')
     inputs.file rootProject.file('garden-common/tools/build-proot.sh')
+    inputs.file rootProject.file('garden-common/tools/check-runtime-ids.sh')
     outputs.file new File(jniOut, 'arm64-v8a/libproot.so')
     outputs.file new File(jniOut, 'arm64-v8a/libproot_loader.so')
     outputs.file new File(assetsOut, 'arm64-v8a/libtalloc.so.2')

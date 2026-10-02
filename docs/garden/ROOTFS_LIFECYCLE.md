@@ -142,9 +142,13 @@ state and reason (`t=-` when a later session queued it).
   (`ExtractorDeviceGateTest`). This is the extractor proof for a release; a
   GNU/toybox tar extraction (the package gates) is not. It builds the module's
   debug APK under an isolated application id
-  (`-PthothtermQaApplicationIdSuffix=.qa.extractorgate`), reads the package
-  back out of both APK files with aapt2 and aborts unless it is exactly that
-  id (never `com.thothterm`, `.devel`, `.ubuntu`, `.debian`, `.arch`, never
+  (`-PthothtermQaApplicationIdSuffix=.qa.extractorgate`; `applicationId.gradle`
+  makes that the id of every variant and of the PRoot runtime), reads the
+  package back out of both APK files with aapt2, checks the APK's native
+  runtime is built for it (`check-runtime-ids.sh`), and aborts unless it is
+  exactly that id (never `com.thothterm`, `.devel`, `.ubuntu`, `.debian`, `.arch`, never
   PocketClaw), installs only with `--no-incremental`, and never uninstalls or
   clears an app. `device-gate-selftest.sh` (run by `DeviceGateIdentityTest`)
-  checks all of that without a device.
+  checks all of that without a device. For lifecycle QA, the complete
+  isolated app is installed with `tests/garden-common/qa/install-qa-app.sh
+  MODULE .qa.<name>`, under the same checks.

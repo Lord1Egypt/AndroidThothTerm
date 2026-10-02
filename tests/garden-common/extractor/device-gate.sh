@@ -18,8 +18,10 @@
 # protected packages, never PocketClaw, never an id it cannot prove. Installs
 # are always --no-incremental. The gate never uninstalls or clears any app.
 #
-# The QA app's PRoot runtime is still built for the module's own application
-# id, so it is not a usable terminal; the gate only extracts, into
+# The QA suffix sets the module's one application id (applicationId.gradle), so
+# the QA app's PRoot runtime and native code are built for the QA id too and
+# the QA app is a complete Garden app in its own storage; the gate checks that
+# from the APK (gate_check_runtime_ids). The gate itself only extracts, into
 # files/extractor-gate/ of the QA app.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -53,8 +55,10 @@ rm -f "$APK_DIR"/*.apk "$TEST_DIR"/*.apk
 APK=$(ls "$APK_DIR"/*.apk)
 TEST_APK=$(ls "$TEST_DIR"/*.apk)
 
-# The proof: the packages inside the APK files, before adb touches the device.
+# The proof: the packages inside the APK files, and the native runtime built
+# for exactly that package, before adb touches the device.
 gate_check_identity "$PKG" "$APK" "$TEST_APK"
+gate_check_runtime_ids "$PKG" "$APK"
 
 # Replacing an earlier build of the QA app itself is fine; it holds nothing.
 gate_install "$APK" -r

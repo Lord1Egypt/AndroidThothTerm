@@ -63,7 +63,9 @@ public class ArchEditionTest {
         assertEquals("aarch64", d.architecture());
         assertEquals("usr/bin/sudo", d.sudoBinary());
         String gradle = read(new File(moduleDir(), "build.gradle"));
-        assertTrue(gradle.contains("applicationId \"com.thothterm.arch\""));
+        // The production id, through the one source every variant and the
+        // PRoot runtime use (applicationId.gradle; a QA build appends .qa.<name>).
+        assertTrue(gradle.contains("applicationId rootProject.ext.thothtermApplicationId('com.thothterm.arch')"));
         assertTrue(gradle.contains("namespace = \"com.thothterm.arch\""));
     }
 

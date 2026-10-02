@@ -8,6 +8,8 @@ plugins {
 // an older one. Debian trixie, which F-Droid builds on, carries no JDK 17 at
 // all. The build now runs on whatever JDK the environment provides.
 
+def ubuntuApplicationId = rootProject.ext.thothtermApplicationId('com.thothterm.ubuntu')
+
 android {
     namespace = "com.thothterm"
 
@@ -17,7 +19,11 @@ android {
     buildToolsVersion = rootProject.ext.buildToolsVersion
     ndkVersion = rootProject.ext.ndkVersion
     defaultConfig {
-        applicationId "com.thothterm.ubuntu"
+        // The one application id of this module (../applicationId.gradle):
+        // production, or with -PthothtermQaApplicationIdSuffix=.qa.<name> an
+        // isolated QA id for every variant. The PRoot runtime and the CMake
+        // code are built for exactly this id.
+        applicationId ubuntuApplicationId
         minSdkVersion 26
         targetSdkVersion rootProject.ext.targetSdkVersion
 
@@ -40,7 +46,7 @@ android {
         buildConfigField("String", "APPLICATION_ID_SUFFIX", "\"\"")
         externalNativeBuild {
             cmake {
-                arguments "-DAPPLICATION_ID:STRING=${applicationId}"
+                arguments "-DAPPLICATION_ID:STRING=${ubuntuApplicationId}"
             }
         }
     }
@@ -75,16 +81,6 @@ android {
     }
     buildTypes {
         debug {
-            // The device extractor gate (tests/garden-common/extractor/
-            // device-gate.sh) builds under its own application id, so it can
-            // never install over, or reach the data of, an installed ThothTerm.
-            def qaSuffix = project.findProperty('thothtermQaApplicationIdSuffix')
-            if (qaSuffix != null) {
-                if (!(qaSuffix ==~ /\.qa\.[a-z][a-z0-9]*/)) {
-                    throw new GradleException("thothtermQaApplicationIdSuffix must look like .qa.name: " + qaSuffix)
-                }
-                applicationIdSuffix = qaSuffix
-            }
         }
         release {
             // R8 shrinking, optimization and obfuscation, as F-Droid asked for.
@@ -152,6 +148,10 @@ def buildProot = tasks.register('buildProotRuntime', Exec) {
     group = 'build'
     workingDir projectDir
     commandLine 'sh', 'tools/build-proot.sh'
+    // The runtime's paths are compiled in: build it for this module's one
+    // application id, and rebuild it when that id changes.
+    environment 'THOTHTERM_APPLICATION_ID', android.defaultConfig.applicationId
+    inputs.property 'applicationId', android.defaultConfig.applicationId
     // Use the NDK this module is already pinned to, so the PRoot runtime and
     // the CMake targets are produced by one toolchain locally and on a build
     // server alike.
@@ -161,6 +161,7 @@ def buildProot = tasks.register('buildProotRuntime', Exec) {
     inputs.dir rootProject.file('third_party/libandroid-shmem')
     inputs.dir file('patches')
     inputs.file file('tools/build-proot.sh')
+    inputs.file rootProject.file('garden-common/tools/check-runtime-ids.sh')
     outputs.file file('src/main/jniLibs/arm64-v8a/libproot.so')
     outputs.file file('src/main/jniLibs/arm64-v8a/libproot_loader.so')
     outputs.file file('src/main/assets/runtime/arm64-v8a/libtalloc.so.2')

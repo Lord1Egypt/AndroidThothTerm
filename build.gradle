@@ -9,6 +9,7 @@ plugins {
 apply from: 'buildTools.gradle'
 apply from: 'sdkVersion.gradle'
 apply from: 'ndkVersion.gradle'
+apply from: 'applicationId.gradle'
 
 tasks.register('clean', Delete) {
     delete rootProject.layout.buildDirectory

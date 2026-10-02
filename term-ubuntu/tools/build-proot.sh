@@ -38,7 +38,13 @@ SHMEM_COMMIT="7f0bd7e25dbdd146265aff7c6a890029e374622d"
 
 # Where the guest runtime keeps its scratch space. libandroid-shmem compiles
 # this in, and PRoot is told where to find its unbundled loader.
-APP_ID="${THOTHTERM_APPLICATION_ID:-com.thothterm.ubuntu}"
+# Required, never defaulted: the build passes the module's one application id
+# (production, or an isolated QA id; see applicationId.gradle), and a runtime
+# built for another package would point at that package's private storage.
+APP_ID="${THOTHTERM_APPLICATION_ID:?set THOTHTERM_APPLICATION_ID to the module's application id}"
+case "$APP_ID" in
+    ''|*[!A-Za-z0-9._]*|.*|*.|*..*) echo "build-proot: ERROR: bad application id '$APP_ID'" >&2; exit 1 ;;
+esac
 RUNTIME_DIR="/data/data/${APP_ID}/files/linux/runtime"
 
 REPO_ROOT="$(cd .. && pwd)"
@@ -243,6 +249,16 @@ check_alignment "$PROOT_BIN"
 check_alignment "$LOADER_BIN"
 check_alignment "$BUILD_DIR/lib/libtalloc.so.2"
 check_alignment "$BUILD_DIR/lib/libandroid-shmem.so"
+
+# The runtime belongs to exactly this application id: its compiled-in paths
+# name it, and no other ThothTerm package appears in any file we ship.
+CHECK_IDS="$REPO_ROOT/garden-common/tools/check-runtime-ids.sh"
+sh "$CHECK_IDS" "$APP_ID" "$PROOT_BIN" "$RUNTIME_DIR/loader" || die "proot is not built for $APP_ID"
+sh "$CHECK_IDS" "$APP_ID" "$LOADER_BIN" || die "the loader is not built for $APP_ID"
+sh "$CHECK_IDS" "$APP_ID" "$BUILD_DIR/lib/libtalloc.so.2" || die "libtalloc is not built for $APP_ID"
+sh "$CHECK_IDS" "$APP_ID" "$BUILD_DIR/lib/libandroid-shmem.so" "$RUNTIME_DIR/tmp/" \
+    || die "libandroid-shmem is not built for $APP_ID"
+log "runtime ids    : /data/data/$APP_ID/ only"
 
 # ------------------------------------------------------------------ install
 mkdir -p "$JNI_DIR" "$RUNTIME_ASSETS"

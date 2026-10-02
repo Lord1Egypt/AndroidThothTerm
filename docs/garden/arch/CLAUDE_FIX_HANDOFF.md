@@ -581,10 +581,11 @@ still the module's own application id, so on a phone with the primary app it
 installed over it (or, with `GATE_ALLOW_REPLACE=1`, was told to).
 
 **Redesign.**
-- **The build.** The `debug` build type of garden-arch, garden-debian and
-  term-ubuntu takes `-PthothtermQaApplicationIdSuffix=<suffix>` as
-  `applicationIdSuffix`. Gradle refuses anything not matching
-  `\.qa\.[a-z][a-z0-9]*`. Release builds are untouched, and without the
+- **The build.** *(Superseded by section 6: the suffix now sets the module's
+  one application id, for every variant and for the native runtime.)* The
+  `debug` build type of garden-arch, garden-debian and term-ubuntu took
+  `-PthothtermQaApplicationIdSuffix=<suffix>` as `applicationIdSuffix`.
+  Gradle refuses anything not matching `\.qa\.[a-z][a-z0-9]*`. Without the
   property nothing changes.
 - **The gate always builds with `.qa.extractorgate`.** The app is
   `com.thothterm.{arch,debian,ubuntu}.qa.extractorgate`, and AGP derives the
@@ -612,10 +613,8 @@ installed over it (or, with `GATE_ALLOW_REPLACE=1`, was told to).
   QA package.
 - **Refused overrides.** `GATE_PACKAGE` and `GATE_ALLOW_REPLACE` abort.
 - **Nothing removed.** The gate never uninstalls or clears any app.
-- **Limitation.** The QA app's PRoot runtime is built for the base id (PRoot
-  bakes in `/data/data/<id>/files/linux/runtime`), so the QA app is for the
-  extractor gate only; its terminal will not start. It cannot reach the
-  primary app's data: different uid.
+- **Limitation (fixed in section 6).** The QA app's PRoot runtime was built
+  for the base id (`/data/data/<id>/files/linux/runtime` is compiled in).
 
 **Proof without a device.** `device-gate-selftest.sh`, run by the unit test
 `DeviceGateIdentityTest`, uses a stub `aapt2` reading fake APKs and a stub
@@ -807,10 +806,8 @@ log, can say more.
      `OPTIONAL_SETUP_FINISHED` and a working `sudo`;
    - expect no re-extraction and `/home/thoth` unchanged throughout.
 
-   Note: the gate's `.qa.extractorgate` app cannot do this, because its PRoot
-   is built for the base id (5.3). Lifecycle checks need a build whose native
-   runtime matches its id, which this branch does not yet provide for a
-   suffixed id.
+   Use an isolated QA build for this: `tests/garden-common/qa/install-qa-app.sh
+   term-ubuntu .qa.lifecycle [full|fdroid]` (section 6).
 6. **Arch host gate** on `03a4c669…48d1`, since this container could not
    fetch it.
 7. **Earlier fixes are not regressed:**
@@ -823,3 +820,109 @@ log, can say more.
 Not done, on purpose: no release, no tag, no F-Droid MR, the Ubuntu/Trixie
 F-Droid MRs untouched, no BlackArch, nothing pushed to any other branch, no
 history rewritten.
+
+---
+
+## 6. QA VARIANT RUNTIME ISOLATION
+
+Section 5.3 left the QA app with a PRoot runtime built for the production
+id, so it could not serve lifecycle QA. Fixed. A QA build is now a complete
+Garden app in its own private storage.
+
+**One authoritative id.** The root build applies the new `applicationId.gradle`.
+Each edition sets `defaultConfig.applicationId` from
+`thothtermApplicationId('<production id>')`. Without
+`-PthothtermQaApplicationIdSuffix` this is the production id, exactly as
+before. With `=.qa.<name>` (validated: `\.qa\.[a-z][a-z0-9]*`) it is
+`<production id>.qa.<name>` for **every** variant of that invocation. The
+debug-only `applicationIdSuffix` is removed, and no build type or flavour
+changes the id, so these are all the same value:
+- the variant `applicationId`;
+- `BuildConfig.APPLICATION_ID`;
+- the manifest `${applicationId}` (permissions, `sharedUserId`);
+- the PRoot runtime build (`THOTHTERM_APPLICATION_ID =
+  android.defaultConfig.applicationId`, now also an `inputs.property`, so
+  switching ids rebuilds it);
+- term-ubuntu's CMake `PACKAGE_NAME`.
+
+**Native runtime.** Both `build-proot.sh` copies now require
+`THOTHTERM_APPLICATION_ID`. term-ubuntu's used to fall back silently to
+`com.thothterm.ubuntu`. The scripts compile
+`/data/data/<id>/files/linux/runtime/{loader,tmp/}` in, then verify every
+file they ship with the new `garden-common/tools/check-runtime-ids.sh`:
+- every compiled-in `/data/data/com.thothterm*/` path names the id;
+- no other protected id appears;
+- PRoot carries `<runtime>/loader` and libandroid-shmem carries
+  `<runtime>/tmp/`.
+
+The build fails otherwise.
+
+At runtime the app still points PRoot at its own files on every launch
+(`PROOT_LOADER` from its `nativeLibraryDir`, `PROOT_TMP_DIR` from its files
+directory), and the Java code names no production id or path.
+
+**Installing the QA app.**
+- **Gate.** `device-gate.sh` runs `gate_check_runtime_ids` after the aapt2
+  identity check and before adb is touched. It unzips the APK's
+  `lib/arm64-v8a` and `assets/runtime/arm64-v8a` and runs the same checker,
+  requiring the QA id's loader and tmp paths (and, for Ubuntu,
+  `libexec-t1plus`'s id).
+- **Lifecycle QA.** The new
+  `tests/garden-common/qa/install-qa-app.sh MODULE .qa.<name> [full|fdroid]`
+  builds that variant with the suffix and runs the same mandatory checks:
+  - aapt2 must read exactly `<production id>.qa.<name>`;
+  - protected ids and PocketClaw abort;
+  - the runtime must be built for the QA id;
+  - the install is `--no-incremental` only.
+
+  It never uninstalls or clears anything.
+
+**Tests and checks run here.**
+
+| What | Result |
+|---|---|
+| `QaRuntimeIsolationTest` (new) | 5/5. It checks one id per edition and that no variant suffix exists; that the PRoot build uses that id and is rebuilt when it changes; that both `build-proot.sh` require the id, compile in exactly the strings they then require, and check all four files; that the protected lists in `applicationId.gradle`, `check-runtime-ids.sh` and `apk-identity.sh` are identical; and that Java and assets name no production id or `/data/.../com.thothterm` path. It fails on the previous build files and on an injected production path |
+| `runtime-ids-selftest.sh` (run by the test above) | OK. The checker accepts a production or QA file for its own id, and refuses the other's, a production socket name, bare `com.thothterm`, another edition, another QA id, a missing required string or file, and malformed ids. PRoot's termux help text is ignored |
+| `runtime-ids-host-check.sh` (real compiled code) | RUNTIME IDS HOST CHECK PASS, 24/24. PRoot (all garden-common patches) and `shmem.c` were compiled for this host for each production id and its `.qa.lifecycle` id; each is accepted for its own id and refused for the other |
+| `device-gate-selftest.sh` (via `DeviceGateIdentityTest`) | OK, with new cases on real zip APKs. A QA APK with the production runtime, a production libandroid-shmem, another QA id's runtime, missing libraries, an Ubuntu `libexec-t1plus` with the production id, or an unreadable or missing APK all abort; production APKs are still accepted for their own id. Also covered: `install-qa-app.sh`'s QA-id shape, identity, guard order, and refusal of bad suffixes before Gradle or adb. 24 failures against the previous gate and build files |
+| `applicationId.gradle` under real Gradle 8.14.3 (scratch project, no AGP) | no property → production ids; `.qa.lifecycle` / `.qa.extractorgate` → suffixed ids for all three editions; `bad`, `.qa.Lifecycle`, empty and `.qa.x/y` fail the build. This run caught and fixed a name clash (an ext closure named like the `-P` property shadowed it) |
+| JVM suites | garden 151 (the 4 known environment-only failures), ubuntu 129 (1), Arch edition 25/25 (`identity` updated to the single source), Debian 17/17 |
+
+**Finding along the way.** glibc's `<paths.h>` defines `_PATH_TMP`, which
+silently overrides `-D_PATH_TMP` when compiled on the host. Bionic's
+`<paths.h>` defines none (AOSP `libc/include/paths.h`, checked through
+GitHub's AOSP mirror), so on Android the value from `build-proot.sh` is the
+one compiled in. If an NDK ever changes that, the new build check fails the
+build instead of shipping `/tmp/`.
+
+**Not run here.**
+- No AGP or Android build: Google Maven is still blocked.
+- No NDK, so the arm64 runtime was not built.
+- No aapt2 or unzip on a real APK.
+- No device.
+
+**Codex:**
+1. `./gradlew -PthothtermQaApplicationIdSuffix=.qa.lifecycle :garden-arch:assembleFullDebug`.
+   Expect the build log line `runtime ids    : /data/data/com.thothterm.arch.qa.lifecycle/ only`.
+   Then check:
+   - `aapt2 dump badging` shows the QA id;
+   - `unzip -p <apk> lib/arm64-v8a/libproot.so | strings | grep /data/data/`
+     shows only that id;
+   - a plain build without the property still shows `com.thothterm.arch`.
+2. Install with `tests/garden-common/qa/install-qa-app.sh garden-arch .qa.lifecycle`
+   (likewise garden-debian and term-ubuntu, full and fdroid). Then run the
+   lifecycle plan in the QA app:
+   - terminal launch;
+   - patch 0006;
+   - HOME preservation;
+   - missing bash;
+   - missing runtime library;
+   - repair, interrupted repair, explicit reinstall;
+   - `SYSTEMD_IN_CHROOT`;
+   - pacman.
+
+   Before and after, record the protected apps' `dumpsys package`
+   `firstInstallTime`/`lastUpdateTime` and check they are unchanged.
+3. In the QA app's terminal, a SysV shared-memory user (e.g.
+   `python3 -c "import sysv_ipc"` or any `shmget` with a key) should create
+   its key link under `/data/data/<QA id>/files/linux/runtime/tmp/`.

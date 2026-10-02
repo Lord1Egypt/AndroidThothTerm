@@ -1,0 +1,47 @@
+// The one application id of each edition. Every variant, the PRoot runtime
+// build (garden-common/tools/build-proot.sh, term-ubuntu/tools/build-proot.sh)
+// and term-ubuntu's CMake code read it from android.defaultConfig.applicationId,
+// which the edition sets from thothtermApplicationId(...) below.
+//
+// Without -PthothtermQaApplicationIdSuffix it is the production id, exactly as
+// before. With -PthothtermQaApplicationIdSuffix=.qa.<name> EVERY variant of
+// that invocation is <production id>.qa.<name>, and the PRoot runtime and
+// native code are built for that id, so the QA app is a complete Garden app in
+// its own private storage (/data/data/<QA id>/), never a production one. See
+// tests/garden-common/extractor/device-gate.sh and
+// docs/garden/arch/CLAUDE_FIX_HANDOFF.md, "QA VARIANT RUNTIME ISOLATION".
+
+ext.thothtermProtectedApplicationIds = [
+        'com.thothterm',
+        'com.thothterm.devel',
+        'com.thothterm.ubuntu',
+        'com.thothterm.debian',
+        'com.thothterm.arch',
+]
+
+/**
+ * The validated QA suffix, or '' for a production build. (Not named like the
+ * property: findProperty would then return this closure.)
+ */
+ext.thothtermQaSuffix = { ->
+    def suffix = rootProject.findProperty('thothtermQaApplicationIdSuffix')
+    if (suffix == null) return ''
+    suffix = suffix.toString()
+    if (!(suffix ==~ /\.qa\.[a-z][a-z0-9]*/)) {
+        throw new GradleException(
+                "thothtermQaApplicationIdSuffix must look like .qa.<name> (lower-case letters and digits): " + suffix)
+    }
+    return suffix
+}
+
+/** The application id of the edition whose production id is {@code productionId}. */
+ext.thothtermApplicationId = { String productionId ->
+    if (!thothtermProtectedApplicationIds.contains(productionId)) {
+        throw new GradleException("not a ThothTerm production application id: " + productionId)
+    }
+    def id = productionId + thothtermQaSuffix()
+    if (id != productionId && thothtermProtectedApplicationIds.contains(id)) {
+        throw new GradleException("a QA build may not use a production application id: " + id)
+    }
+    return id
+}
