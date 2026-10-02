@@ -51,29 +51,23 @@ public final class SafeFileTree {
             throw new IOException("Refusing to delete outside the staging root: " + node);
         }
 
-        if (ops.isSymlink(node)) {
-            deleteNodeEntry(node);
-            return;
-        }
-        if (!ops.exists(node)) return;
-
-        if (ops.isDirectory(node)) {
-            ops.setMode(node, OWNER_RWX);
-            File[] children = node.listFiles();
-            if (children != null) {
-                for (File child : children) {
-                    deleteNode(ops, rootPath, child);
+        FileOps.Type type = ops.type(node);
+        switch (type) {
+            case NONE:
+                return;
+            case DIRECTORY:
+                ops.setMode(node, OWNER_RWX);
+                String[] children = node.list();
+                if (children != null) {
+                    for (String child : children) {
+                        deleteNode(ops, rootPath, new File(node, child));
+                    }
                 }
-            }
-            deleteNodeEntry(node);
-        } else {
-            deleteNodeEntry(node);
-        }
-    }
-
-    private static void deleteNodeEntry(File file) throws IOException {
-        if (!file.delete()) {
-            throw new IOException("Cannot delete: " + file);
+                ops.rmdir(node);
+                return;
+            default:
+                // A symlink is removed itself; its target is never touched.
+                ops.unlink(node);
         }
     }
 }

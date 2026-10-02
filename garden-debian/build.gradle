@@ -77,6 +77,10 @@ android {
         // garden-common's device and unit tests, which every edition runs.
         androidTest {
             java.srcDirs += rootProject.file('garden-common/src/editionAndroidTest/java')
+            // The extractor gate: the same security cases, on the device,
+            // with the APK's own AndroidFileOps.
+            java.srcDirs += rootProject.file('garden-common/src/sharedAndroidTest/java')
+            java.srcDirs += rootProject.file('garden-common/src/sharedTestFixtures/java')
         }
         test {
             java.srcDirs += rootProject.file('garden-common/src/editionTest/java')

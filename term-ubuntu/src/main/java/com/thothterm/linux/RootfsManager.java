@@ -14,6 +14,22 @@
  * limitations under the License.
  */
 
+/*
+ * Copyright (C) 2026 ThothTerm.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.thothterm.linux;
 
 import android.annotation.SuppressLint;
@@ -26,45 +42,71 @@ import android.system.OsConstants;
 import androidx.preference.PreferenceManager;
 
 import com.thothterm.R;
+import com.thothterm.linux.RootfsLifecycle.Condition;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.GZIPInputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Owns the embedded Ubuntu image: state, first-run extraction, checksum
- * verification, and readiness. Extraction is crash-safe (staging directory
- * renamed only after verification) and performed once.
+ * Owns the edition's Linux environment: its lifecycle, first-run extraction,
+ * verification and readiness.
+ *
+ * <p>The lifecycle rule ({@link RootfsLifecycle}): only a genuinely
+ * never-installed environment is set up automatically. A damaged one is
+ * classified and at most repaired without touching guest data; replacing the
+ * system takes an explicit, confirmed reset, which moves {@code /home} into the
+ * new system instead of deleting it. Nothing in this class deletes an
+ * installed rootfs.</p>
+ *
+ * <p>Setup reports explicit stages: the extraction percentage covers the
+ * archive only, then "Finalizing" and "Preparing administrator tools". Only
+ * bounded, offline work happens before the terminal opens; anything that
+ * needs the network runs in the background afterwards and never blocks a
+ * terminal.</p>
  */
 public final class RootfsManager {
     public interface Listener {
         void onStatus(String message);
 
+        /** Download progress (bytes), before extraction starts. */
+        void onDownloadProgress(int percent);
+
+        /** Archive extraction progress; 100 means the archive is fully extracted. */
         void onProgress(int percent, long entries);
 
         void onComplete();
 
         void onError(String message, Throwable cause);
+
+        /**
+         * The environment needs a decision only the user can make (damaged,
+         * or an unfinished reset). Nothing destructive has happened.
+         */
+        void onAttentionNeeded(Condition condition);
     }
 
     private static final String LINUX_ROOT = "linux";
+    /** Only the full flavour packages an archive here; its presence is the switch. */
     private static final String DISTRO_DIR = "ubuntu-26.04";
     private static final String IMAGE_ASSET = "ubuntu/image.properties";
     private static final String ROOTFS_ASSET_DIR = "ubuntu";
-    private static final String RUNTIME_ASSET_DIR = "runtime/arm64-v8a";
     private static final String SUDO_ASSET_DIR = "sudo";
     private static final String SUDO_STAGE_DIR = "var/cache/thothterm/packages";
+    private static final String RUNTIME_ASSET_DIR = "runtime/arm64-v8a";
     private static final long PROVISION_TIMEOUT_SECONDS = 180;
     /** PRoot's fake_id0 elevates only on the setuid bit; force it on the real binary. */
     private static final int SUDO_SETUID_MODE = 04755;
@@ -87,6 +129,7 @@ public final class RootfsManager {
     private final File linuxDir;
     private final File rootfsDir;
     private final File stagingDir;
+    private final RootfsLifecycle.Layout layout;
     /** Verified archive for builds that do not embed one; unused otherwise. */
     private final File downloadedImage;
     private final File stateFile;
@@ -97,7 +140,8 @@ public final class RootfsManager {
     private final File nativeLibDir;
     private final FileOps fileOps = new AndroidFileOps();
 
-    private ImageInfo image;
+    private final ImageInfo image;
+    private final boolean embeddedRootfs = com.thothterm.BuildConfig.EMBEDDED_ROOTFS;
     private volatile Listener listener;
     private volatile boolean running;
     private volatile boolean failed;
@@ -105,21 +149,34 @@ public final class RootfsManager {
     private volatile int percent;
     private volatile long entries;
     private volatile Throwable lastError;
+    /** The user confirmed a reset in this process (the marker file persists it). */
+    private volatile boolean resetConfirmed;
+
+    /** Network or slow guest work that must never block a terminal. */
+    private final ExecutorService background = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r, "ThothTerm-admin-tools");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private final AtomicBoolean adminToolsQueued = new AtomicBoolean();
+    /** Serializes guest package work; deliberately not {@code this}. */
+    private final Object adminLock = new Object();
 
     private RootfsManager(Context context) {
         this.appContext = context.getApplicationContext();
         File filesDir = appContext.getFilesDir();
+        this.image = loadImage();
         this.linuxDir = new File(new File(filesDir, LINUX_ROOT), DISTRO_DIR);
-        this.rootfsDir = new File(linuxDir, "rootfs");
+        this.layout = new RootfsLifecycle.Layout(linuxDir);
+        this.rootfsDir = layout.rootfs;
         this.prootRootfsPath = canonicalPath(rootfsDir);
-        this.stagingDir = new File(linuxDir, "rootfs.staging");
+        this.stagingDir = layout.staging;
         this.downloadedImage = new File(linuxDir, "ubuntu-base.tar.gz");
-        this.stateFile = new File(linuxDir, "state.properties");
+        this.stateFile = layout.stateFile;
         this.runtimeDir = new File(new File(filesDir, LINUX_ROOT), "runtime");
         this.runtimeLibDir = new File(runtimeDir, "lib");
         this.prootTmpDir = new File(runtimeDir, "tmp");
         this.nativeLibDir = new File(appContext.getApplicationInfo().nativeLibraryDir);
-        this.image = loadImage();
     }
 
     public static void init(Context context) {
@@ -136,6 +193,11 @@ public final class RootfsManager {
             throw new IllegalStateException("RootfsManager not initialized");
         }
         return manager;
+    }
+
+    /** True when this APK carries the rootfs archive (the full flavour). */
+    public boolean isRootfsEmbedded() {
+        return embeddedRootfs;
     }
 
     public boolean isSupportedDevice() {
@@ -192,23 +254,53 @@ public final class RootfsManager {
         return image;
     }
 
-    public boolean isReady() {
-        if (image == null) return false;
+    // ---- lifecycle -------------------------------------------------------------
 
-        RootfsState state = RootfsState.read(stateFile);
-        if (!state.matches(image)) return false;
-        if (!new File(rootfsDir, "usr/bin/bash").exists()) return false;
-        return new File(runtimeLibDir, "libtalloc.so.2").exists();
+    /**
+     * Where the environment stands, from a few {@code lstat} calls. An I/O
+     * failure while looking is never read as "not installed".
+     */
+    public Condition condition() {
+        if (image == null) return Condition.INSTALLED_DAMAGED;
+        try {
+            RootfsLifecycle.Facts facts = RootfsLifecycle.probe(fileOps, layout,
+                    RootfsState.read(stateFile).isInstalled(),
+                    UbuntuRuntime.GUEST_ENTRY_POINTS, runtimeFiles());
+            Condition condition = RootfsLifecycle.assess(facts);
+            if (condition != Condition.INSTALLED_HEALTHY
+                    && condition != Condition.NOT_INSTALLED) {
+                ThothLog.w(LogCategory.ROOTFS, "Environment condition=" + condition + " " + facts);
+            }
+            return condition;
+        } catch (IOException e) {
+            ThothLog.e(LogCategory.ROOTFS, "Cannot inspect the Linux environment", e);
+            return Condition.INSTALLED_DAMAGED;
+        }
+    }
+
+    public boolean isReady() {
+        return image != null && condition() == Condition.INSTALLED_HEALTHY;
+    }
+
+    private List<File> runtimeFiles() {
+        List<File> files = new ArrayList<>();
+        for (String name : RUNTIME_LIBS) files.add(new File(runtimeLibDir, name));
+        return files;
     }
 
     public void setListener(Listener newListener) {
         this.listener = newListener;
-        if (isReady()) {
+        if (running) {
+            notifyStatus();
+            return;
+        }
+        Condition condition = condition();
+        if (condition == Condition.INSTALLED_HEALTHY) {
             notifyComplete();
         } else if (failed) {
             notifyError();
-        } else if (running) {
-            notifyStatus();
+        } else if (needsUser(condition)) {
+            notifyAttention(condition);
         }
     }
 
@@ -221,9 +313,11 @@ public final class RootfsManager {
      * so the user must be asked before anything is downloaded.
      */
     public boolean needsImageDownload() {
-        if (com.thothterm.BuildConfig.EMBEDDED_ROOTFS) return false;
-        if (isReady()) return false;
-        return image != null && !new RootfsDownloader(downloadedImage, image).isVerified();
+        if (embeddedRootfs || image == null) return false;
+        Condition condition = condition();
+        boolean wantsArchive = condition == Condition.NOT_INSTALLED
+                || (condition == Condition.EXPLICIT_RESET_REQUESTED && resetConfirmed);
+        return wantsArchive && !new RootfsDownloader(downloadedImage, image).isVerified();
     }
 
     /** Megabytes to download, for the consent screen. */
@@ -241,13 +335,30 @@ public final class RootfsManager {
         return image == null ? "" : image.ubuntuVersion();
     }
 
+    /** True for the conditions that wait for the user instead of running. */
+    private boolean needsUser(Condition condition) {
+        return condition == Condition.INSTALLED_DAMAGED
+                || (condition == Condition.EXPLICIT_RESET_REQUESTED && !resetConfirmed);
+    }
+
+    /**
+     * Does whatever the current condition allows without asking: a first
+     * install, re-staging app runtime files, finishing an install in place, or
+     * a reset the user confirmed. A damaged installation is reported through
+     * {@link Listener#onAttentionNeeded} and left exactly as it is.
+     */
     public void start() {
-        if (isReady()) {
+        if (running) {
+            notifyStatus();
+            return;
+        }
+        Condition condition = condition();
+        if (condition == Condition.INSTALLED_HEALTHY) {
             notifyComplete();
             return;
         }
-        if (running) {
-            notifyStatus();
+        if (needsUser(condition)) {
+            notifyAttention(condition);
             return;
         }
         running = true;
@@ -259,12 +370,36 @@ public final class RootfsManager {
     }
 
     /**
+     * The user confirmed "reinstall the system files, keep /home". Recorded on
+     * disk first, so an interrupted reset is visible after a restart.
+     */
+    public void requestReset() throws IOException {
+        if (fileOps.type(layout.resetMarker) == FileOps.Type.NONE) {
+            fileOps.createNew(layout.resetMarker, 0600).close();
+        }
+        resetConfirmed = true;
+        ThothLog.w(LogCategory.ROOTFS, "System reset confirmed by the user; /home is preserved");
+    }
+
+    /** Withdraws a reset that has not started replacing anything. */
+    public void cancelReset() throws IOException {
+        if (running) throw new IOException("A reset is running");
+        if (fileOps.type(layout.previous) != FileOps.Type.NONE) {
+            throw new IOException("A reset is half-way; it must be completed or rolled back");
+        }
+        if (fileOps.type(layout.resetMarker) != FileOps.Type.NONE) fileOps.unlink(layout.resetMarker);
+        resetConfirmed = false;
+        SafeFileTree.deleteTree(fileOps, linuxDir, stagingDir);
+        ThothLog.i(LogCategory.ROOTFS, "System reset cancelled");
+    }
+
+    /**
      * Supplies the image bytes. For a build without an embedded archive this
      * downloads first; {@link RootfsDownloader} verifies the SHA-256 before the
      * file is promoted, so nothing unverified ever reaches the extractor.
      */
-    private InputStream openImageStream() throws IOException {
-        if (com.thothterm.BuildConfig.EMBEDDED_ROOTFS) {
+    private InputStream openImageStream(SetupTimeline timeline) throws IOException {
+        if (embeddedRootfs) {
             return appContext.getAssets().open(ROOTFS_ASSET_DIR + "/" + image.assetName());
         }
         RootfsDownloader downloader = new RootfsDownloader(downloadedImage, image);
@@ -272,16 +407,15 @@ public final class RootfsManager {
             publish(appContext.getString(R.string.ubuntu_downloading));
             final long expected = image.compressedSize();
             downloader.download((done, total) ->
-                    publishProgress(done, expected > 0 ? expected : total, 0));
-            // Extraction reports its own 0..100; without this the monotonic
-            // guard in publishProgress would swallow all of it.
-            percent = 0;
-            publish(appContext.getString(R.string.ubuntu_preparing));
+                    publishDownload(done, expected > 0 ? expected : total));
+            ThothLog.i(LogCategory.ROOTFS, timeline.mark(
+                    SetupTimeline.Stage.DOWNLOAD_COMPLETE, "bytes=" + expected));
         }
         return new java.io.FileInputStream(downloadedImage);
     }
 
     private void runPrepare() {
+        SetupTimeline timeline = SetupTimeline.start();
         try {
             if (image == null) {
                 throw new IOException("Embedded image metadata is missing");
@@ -302,17 +436,69 @@ public final class RootfsManager {
             }
             ThothLog.i(LogCategory.RUNTIME, "ARM64 compatibility verified");
 
-            publish("Preparing Linux environment\u2026");
-            copyRuntimeLibraries();
-            extractRootfs();
-            ensureRealSudo(rootfsDir);
+            // A reset interrupted half-way is completed or rolled back first;
+            // both keep /home.
+            if (RootfsLifecycle.recover(fileOps, layout)) {
+                ThothLog.w(LogCategory.ROOTFS, "Completed an interrupted reset; /home kept");
+                finishNewSystem(timeline);
+            }
+
+            Condition condition = condition();
+            ThothLog.i(LogCategory.ROOTFS, "Preparing condition=" + condition);
+            switch (condition) {
+                case NOT_INSTALLED:
+                    publish(appContext.getString(R.string.ubuntu_preparing));
+                    copyRuntimeLibraries();
+                    installFresh(timeline);
+                    break;
+                case APP_RUNTIME_DAMAGED:
+                    // App-owned files outside the rootfs; the guest is untouched.
+                    copyRuntimeLibraries();
+                    break;
+                case REPAIR_REQUIRED:
+                    // A rootfs with its entry points but no completion record:
+                    // finish it in place, as every session start does anyway.
+                    publish(appContext.getString(R.string.ubuntu_finalizing, "Ubuntu"));
+                    copyRuntimeLibraries();
+                    setupRootfs(rootfsDir, false);
+                    writeState();
+                    ThothLog.i(LogCategory.ROOTFS, timeline.mark(
+                            SetupTimeline.Stage.STATE_WRITTEN, "repair-in-place"));
+                    break;
+                case EXPLICIT_RESET_REQUESTED:
+                    if (!resetConfirmed) {
+                        running = false;
+                        notifyAttention(condition);
+                        return;
+                    }
+                    copyRuntimeLibraries();
+                    resetSystemKeepingHome(timeline);
+                    break;
+                case INSTALLED_DAMAGED:
+                    running = false;
+                    notifyAttention(condition);
+                    return;
+                case INSTALLED_HEALTHY:
+                default:
+                    break;
+            }
+
+            if (condition() != Condition.INSTALLED_HEALTHY) {
+                throw new IOException("The Linux environment is still not usable: " + condition());
+            }
+            prepareAdminToolsOffline(timeline);
             failed = false;
+            ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.TERMINAL_HANDOFF, ""));
+            ThothLog.i(LogCategory.ROOTFS, timeline.summary());
+            running = false;
             notifyComplete();
+            scheduleAdminTools("after setup");
         } catch (Throwable t) {
             failed = true;
             lastError = t;
-            ThothLog.e(LogCategory.ROOTFS, "Extraction failed type="
+            ThothLog.e(LogCategory.ROOTFS, "Preparation failed type="
                     + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
+            ThothLog.i(LogCategory.ROOTFS, timeline.summary());
             cleanupStagingQuietly();
             running = false;
             notifyError();
@@ -324,9 +510,15 @@ public final class RootfsManager {
     /**
      * Best-effort removal of the staging tree after a failure. A cleanup
      * failure is logged separately and never replaces the original error.
+     * Staging never holds user data: /home moves into it only as the last
+     * step of a reset, which {@link RootfsLifecycle#recover} completes.
      */
     private void cleanupStagingQuietly() {
         try {
+            if (fileOps.type(layout.previous) != FileOps.Type.NONE) {
+                ThothLog.w(LogCategory.ROOTFS, "Reset in progress; staging kept for recovery");
+                return;
+            }
             ThothLog.d(LogCategory.ROOTFS, "Staging cleanup started");
             SafeFileTree.deleteTree(fileOps, linuxDir, stagingDir);
             ThothLog.i(LogCategory.ROOTFS, "Staging cleanup complete");
@@ -359,75 +551,129 @@ public final class RootfsManager {
         ThothLog.d(LogCategory.ROOTFS, "Runtime libraries staged");
     }
 
-    private void extractRootfs() throws Exception {
+    /** First run: nothing exists, so nothing can be replaced. */
+    private void installFresh(SetupTimeline timeline) throws Exception {
+        stageVerifiedArchive(timeline);
+        setupRootfs(stagingDir, true);
+        ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.SETUP_ROOTFS_COMPLETE, ""));
+        RootfsLifecycle.markStagingComplete(fileOps, layout);
+        RootfsLifecycle.promoteFreshInstall(fileOps, layout);
+        ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.ROOTFS_PROMOTED, ""));
+        finishNewSystem(timeline);
+    }
+
+    /**
+     * The confirmed reset: a new, verified system replaces the old one and
+     * the old {@code /home} is moved into it ({@link RootfsLifecycle}).
+     */
+    private void resetSystemKeepingHome(SetupTimeline timeline) throws Exception {
+        int prootCount = GuestProcesses.countProot(new File("/proc"), prootPath(),
+                android.os.Process.myPid());
+        if (prootCount != 0) {
+            // Moving a system out from under running guest processes is not
+            // safe; the user closes the windows (and LAN Mode) first.
+            throw new IOException("Close every terminal window and turn LAN Mode off"
+                    + " before reinstalling (" + prootCount + " Linux process(es) running)");
+        }
+        ThothLog.w(LogCategory.ROOTFS, "System reset started; /home will be moved, not copied");
+        stageVerifiedArchive(timeline);
+        setupRootfs(stagingDir, true);
+        ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.SETUP_ROOTFS_COMPLETE, ""));
+        RootfsLifecycle.markStagingComplete(fileOps, layout);
+        RootfsLifecycle.replaceSystemKeepingHome(fileOps, layout);
+        ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.ROOTFS_PROMOTED, "reset"));
+        finishNewSystem(timeline);
+    }
+
+    /**
+     * After a new system is in place: managed configuration (again, now that
+     * the preserved /home is there), the completion record, and the reset
+     * marker is cleared.
+     */
+    private void finishNewSystem(SetupTimeline timeline) throws IOException {
+        publish(appContext.getString(R.string.ubuntu_finalizing, "Ubuntu"));
+        setupRootfs(rootfsDir, false);
+        writeState();
+        ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.STATE_WRITTEN, ""));
+        if (fileOps.type(layout.resetMarker) != FileOps.Type.NONE) fileOps.unlink(layout.resetMarker);
+        resetConfirmed = false;
+        deleteVerifiedDownload();
+    }
+
+    /** Extracts and verifies the pinned archive into a fresh staging tree. */
+    private void stageVerifiedArchive(SetupTimeline timeline) throws Exception {
         ThothLog.i(LogCategory.ROOTFS, "Extraction started image=" + image.imageId()
                 + " version=" + image.ubuntuVersion());
 
         ThothLog.d(LogCategory.ROOTFS, "Staging cleanup started");
         SafeFileTree.deleteTree(fileOps, linuxDir, stagingDir);
-        if (stagingDir.exists()) {
+        if (fileOps.type(stagingDir) != FileOps.Type.NONE) {
             throw new IOException("Cannot clear staging directory");
         }
         ThothLog.i(LogCategory.ROOTFS, "Staging cleanup complete");
 
         long usable = usableSpace();
         if (!StorageSpace.isSufficient(usable, image.uncompressedSize())) {
-            ThothLog.w(LogCategory.STORAGE, "Insufficient storage for Ubuntu extraction");
-            throw new IOException("Not enough free storage to prepare Ubuntu");
+            ThothLog.w(LogCategory.STORAGE, "Insufficient storage for rootfs extraction");
+            throw new IOException("Not enough free storage to prepare "
+                    + "Ubuntu");
         }
-
-        if (!stagingDir.mkdirs()) {
-            throw new IOException("Cannot create staging directory");
-        }
+        fileOps.mkdir(stagingDir, 0700);
 
         final long expectedSize = image.compressedSize();
         // Both flavours extract the same bytes: "full" streams them out of the
         // APK, "fdroid" out of the archive it downloaded and verified first.
-        InputStream source = openImageStream();
-        CountingInputStream counting = new CountingInputStream(source);
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        java.security.DigestInputStream digesting =
-                new java.security.DigestInputStream(counting, digest);
-        GZIPInputStream gzip = new GZIPInputStream(digesting, 64 * 1024);
-
-        TarballExtractor extractor = new TarballExtractor(
-                fileOps, stagingDir,
-                count -> publishProgress(counting.getCount(), expectedSize, count));
+        InputStream source = openImageStream(timeline);
+        percent = 0;
+        publish(appContext.getString(R.string.ubuntu_extracting));
+        RootfsArchive.Result result;
         try {
-            extractor.extract(gzip);
+            result = RootfsArchive.extract(source, stagingDir, fileOps,
+                    (bytes, count) -> publishProgress(bytes, expectedSize, count));
         } finally {
-            closeQuietly(gzip);
+            closeQuietly(source);
         }
-
-        String actualSha = toHex(digest.digest());
-        if (!actualSha.equalsIgnoreCase(image.upstreamSha256())) {
-            ThothLog.w(LogCategory.SECURITY, "Ubuntu rootfs checksum mismatch");
-            throw new IOException("Ubuntu rootfs checksum mismatch");
-        }
-        publishProgress(expectedSize, expectedSize, extractor.extractedEntries());
-        ThothLog.d(LogCategory.ROOTFS, "Archive entries processed count="
-                + extractor.extractedEntries()
-                + " rejected=" + extractor.rejectedEntries()
-                + " skipped=" + extractor.skippedSpecialEntries());
-        if (extractor.hardlinkFallbacks() > 0) {
+        ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.ARCHIVE_EXTRACTED,
+                result.summary()));
+        if (result.hardlinkFallbacks > 0) {
             ThothLog.w(LogCategory.ROOTFS,
-                    "Hardlink fallback used count=" + extractor.hardlinkFallbacks()
+                    "Hardlink fallback used count=" + result.hardlinkFallbacks
                             + " (Android SELinux forbids untrusted-app hardlinks)");
         }
-
-        if (!new File(stagingDir, "usr/bin/bash").exists()
-                || !new File(stagingDir, "etc/os-release").exists()) {
-            throw new IOException("Extracted rootfs is incomplete");
+        try {
+            RootfsArchive.verify(result, image.upstreamSha256());
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.SECURITY, "Rootfs archive refused: " + e.getMessage());
+            throw e;
         }
+        ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.ARCHIVE_VERIFIED,
+                "sha256=" + result.sha256));
+        // The extraction stage ends here; the bar reaches 100 before any later stage.
+        publishProgress(expectedSize, expectedSize, result.entries);
 
-        setupRootfs(stagingDir, true);
-
-        SafeFileTree.deleteTree(fileOps, linuxDir, rootfsDir);
-        if (!stagingDir.renameTo(rootfsDir)) {
-            throw new IOException("Cannot finalize extracted rootfs");
+        for (String entry : UbuntuRuntime.GUEST_ENTRY_POINTS) {
+            File resolved = GuestPaths.resolve(fileOps, stagingDir, entry, true);
+            if (resolved == null || fileOps.type(resolved) != FileOps.Type.REGULAR) {
+                throw new IOException("Extracted rootfs is incomplete: no " + entry);
+            }
         }
-        writeState();
-        ThothLog.i(LogCategory.ROOTFS, "Extraction complete");
+        if (fileOps.type(new File(stagingDir, "etc/os-release")) == FileOps.Type.NONE) {
+            throw new IOException("Extracted rootfs is incomplete: no /etc/os-release");
+        }
+        publish(appContext.getString(R.string.ubuntu_finalizing, "Ubuntu"));
+    }
+
+    /** The F-Droid flavour's verified archive is not needed once installed. */
+    private void deleteVerifiedDownload() {
+        if (embeddedRootfs) return;
+        try {
+            if (fileOps.type(downloadedImage) == FileOps.Type.REGULAR) {
+                fileOps.unlink(downloadedImage);
+                ThothLog.i(LogCategory.STORAGE, "Downloaded rootfs archive removed after install");
+            }
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.STORAGE, "Cannot remove the downloaded rootfs archive");
+        }
     }
 
     @SuppressLint("UsableSpace") // Safe fallback when StorageManager cannot report a quota.
@@ -445,127 +691,132 @@ public final class RootfsManager {
         return linuxDir.getParentFile().getUsableSpace();
     }
 
-    /** Refreshes app-managed integration without re-extracting or replacing user data. */
+    /**
+     * Refreshes app-managed integration without re-extracting or replacing
+     * user data. Called on the UI thread for every new window, so it only
+     * writes managed files: guest provisioning (sudo, keyring) is queued in
+     * the background and never delays the terminal.
+     */
     public synchronized void prepareSession() throws IOException {
         if (!isReady()) throw new IOException("Linux environment is not ready");
         setupRootfs(rootfsDir, false);
-        ensureRealSudo(rootfsDir);
+        if (sudoState(rootfsDir) == GuestConfig.PackageState.INSTALLED) {
+            forceSudoSetuid(rootfsDir);
+        }
+        if (needsAdminTools()) scheduleAdminTools("session start");
     }
 
+    // ---- managed guest configuration ---------------------------------------
+
     private void setupRootfs(File root, boolean installSkeleton) throws IOException {
-        File home = new File(root, "home/thoth");
-        if (!home.exists() && !home.mkdirs()) {
-            throw new IOException("Cannot create Linux home directory");
-        }
+        File home = guestDir(root, "/home/thoth");
 
         File skel = new File(root, "etc/skel");
-        if (installSkeleton && skel.isDirectory()) {
-            copyDirectoryContents(skel, home);
+        if (installSkeleton && fileOps.isDirectory(skel)) {
+            copySkeleton(skel, home);
         }
 
-        installBashIntegration(new File(home, ".bashrc"));
+        managed("bash integration", () -> {
+            File bashrc = new File(home, ".bashrc");
+            writeGuest(root, bashrc,
+                    ShellIntegration.updateBashrc(ManagedFiles.read(fileOps, root, bashrc)));
+        });
 
         setupUserAccount(root);
         removeManagedSudoHelper(root);
         setupSudo(root);
 
-        File profileDir = new File(root, "etc/profile.d");
-        if (!profileDir.exists() && !profileDir.mkdirs()) {
-            throw new IOException("Cannot create profile.d directory");
-        }
-        File localeFix = new File(profileDir, "01-locale-fix.sh");
-        writeTextIfChanged(localeFix, GuestConfig.localeFixScript());
+        File profileDir = guestDir(root, "/etc/profile.d");
+        managed("locale fix", () -> writeGuest(root, new File(profileDir, "01-locale-fix.sh"),
+                GuestConfig.localeFixScript()));
 
         setupDebconfFrontend(root);
-        writeRuntimeConfigVersion(root);
+        File managedDir = guestDir(root, "/etc/thothterm");
+        managed("runtime config version", () -> writeRuntimeConfigVersion(root));
 
-        copyManagedAsset("linux/thothterm-ubuntu.sh",
-                new File(profileDir, "thothterm-ubuntu.sh"));
+        copyManagedAsset(root, "linux/thothterm-ubuntu.sh",
+                new File(profileDir, "thothterm-ubuntu.sh"), -1);
 
-        File binDir = new File(root, "usr/local/bin");
-        if (!binDir.exists() && !binDir.mkdirs()) {
-            throw new IOException("Cannot create managed command directory");
-        }
-        File thothfetch = new File(binDir, "thothfetch");
-        copyManagedAsset("linux/thothfetch", thothfetch);
-        fileOps.setMode(thothfetch, 0755);
+        File binDir = guestDir(root, "/usr/local/bin");
+        copyManagedAsset(root, "linux/thothfetch", new File(binDir, "thothfetch"), 0755);
+        copyManagedAsset(root, "linux/fastfetch-fit", new File(binDir, "fastfetch-fit"), 0755);
 
-        File fastfetchFit = new File(binDir, "fastfetch-fit");
-        copyManagedAsset("linux/fastfetch-fit", fastfetchFit);
-        fileOps.setMode(fastfetchFit, 0755);
-
-        File managedDir = new File(root, "etc/thothterm");
-        if (!managedDir.exists() && !managedDir.mkdirs()) {
-            throw new IOException("Cannot create managed configuration directory");
-        }
         File welcomeEnabled = new File(managedDir, "welcome-enabled");
         boolean showWelcome = PreferenceManager.getDefaultSharedPreferences(appContext)
                 .getBoolean("ubuntu_show_welcome", true);
         if (showWelcome) {
-            writeTextIfChanged(welcomeEnabled, "enabled\n");
-        } else if (welcomeEnabled.exists() && !welcomeEnabled.delete()) {
-            throw new IOException("Cannot disable welcome banner");
+            managed("welcome", () -> writeGuest(root, welcomeEnabled, "enabled\n"));
+        } else if (fileOps.isRegularFile(welcomeEnabled)) {
+            fileOps.unlink(welcomeEnabled);
         }
 
-        File hostname = new File(root, "etc/hostname");
-        if (!hostname.exists() || "android".equals(readText(hostname).trim())) {
-            writeText(hostname, "thothterm\n");
-        }
-        File hosts = new File(root, "etc/hosts");
-        writeTextIfChanged(hosts,
-                GuestConfig.ensureHosts(hosts.isFile() ? readText(hosts) : ""));
-        File group = new File(root, "etc/group");
-        writeTextIfChanged(group, GuestConfig.ensureGroups(
-                group.isFile() ? readText(group) : "", android.os.Process.myUid()));
+        managed("hostname", () -> {
+            File hostname = new File(root, "etc/hostname");
+            String current = ManagedFiles.read(fileOps, root, hostname);
+            if (current.isEmpty() || "android".equals(current.trim())) {
+                writeGuest(root, hostname, "thothterm\n");
+            }
+        });
+        managed("hosts", () -> {
+            File hosts = new File(root, "etc/hosts");
+            writeGuest(root, hosts, GuestConfig.ensureHosts(ManagedFiles.read(fileOps, root, hosts)));
+        });
+        managed("Android groups", () -> {
+            File group = new File(root, "etc/group");
+            writeGuest(root, group, GuestConfig.ensureGroups(
+                    ManagedFiles.read(fileOps, root, group), android.os.Process.myUid()));
+        });
         File resolv = new File(root, "etc/resolv.conf");
         if (fileOps.isSymlink(resolv)) {
-            if (!resolv.delete()) throw new IOException("Cannot prepare resolver mount point");
-            writeText(resolv, "# Runtime resolver is bind-mounted by ThothTerm.\n");
+            // PRoot bind-mounts the Android resolver over this path; it must be
+            // a plain file, never a link into the guest or out of it.
+            fileOps.unlink(resolv);
+            writeGuest(root, resolv, "# Runtime resolver is bind-mounted by ThothTerm.\n");
         }
-        File tmp = new File(root, "tmp");
-        if (!tmp.exists() && !tmp.mkdirs()) throw new IOException("Cannot create /tmp");
+        File tmp = guestDir(root, "/tmp");
         fileOps.setMode(tmp, 0777);
     }
 
     private void setupUserAccount(File root) throws IOException {
         File passwd = new File(root, "etc/passwd");
-        if (passwd.isFile()) {
-            writeTextIfChanged(passwd, GuestConfig.ensurePasswd(readText(passwd)));
+        if (guestIsFile(root, passwd)) {
+            managed("/etc/passwd", () -> writeGuest(root, passwd,
+                    GuestConfig.ensurePasswd(ManagedFiles.read(fileOps, root, passwd))));
         }
 
         File group = new File(root, "etc/group");
-        if (group.isFile()) {
-            writeTextIfChanged(group, GuestConfig.ensureGroup(readText(group)));
+        if (guestIsFile(root, group)) {
+            managed("/etc/group", () -> writeGuest(root, group, GuestConfig.ensureGroup(
+                    ManagedFiles.read(fileOps, root, group))));
         }
 
         File shadow = new File(root, "etc/shadow");
-        if (shadow.isFile()) {
-            writeTextIfChanged(shadow, GuestConfig.ensureShadow(readText(shadow)));
+        if (guestIsFile(root, shadow)) {
+            managed("/etc/shadow", () -> writeGuest(root, shadow,
+                    GuestConfig.ensureShadow(ManagedFiles.read(fileOps, root, shadow))));
         }
     }
 
     private void setupSudo(File root) throws IOException {
-        File sudoersDir = new File(root, "etc/sudoers.d");
-        if (!sudoersDir.exists() && !sudoersDir.mkdirs()) {
-            throw new IOException("Cannot create sudoers.d directory");
-        }
+        File sudoersDir = guestDir(root, "/etc/sudoers.d");
         File thothSudoers = new File(sudoersDir, "thoth");
-        writeTextIfChanged(thothSudoers, GuestConfig.sudoersEntry());
-        fileOps.setMode(thothSudoers, 0440);
+        managed("sudoers entry", () -> writeGuest(root, thothSudoers,
+                GuestConfig.sudoersEntry(), 0440));
 
         // sudo/visudo require every sudoers.d file to be mode 0440; the package
         // README is not a conffile and can arrive with a laxer mode, which makes
         // `visudo -c` report "bad permissions" even though the syntax is valid.
         File sudoersReadme = new File(sudoersDir, "README");
-        if (sudoersReadme.isFile()) {
+        if (fileOps.isRegularFile(sudoersReadme)) {
             fileOps.setMode(sudoersReadme, 0440);
         }
 
-        // Real Ubuntu sudo is the only elevation path; drop the v2 passwordless
+        // The real sudo is the only elevation path; drop the v2 passwordless
         // su customization so su returns to its stock policy.
         File pamSu = new File(root, "etc/pam.d/su");
-        if (pamSu.isFile()) {
-            writeTextIfChanged(pamSu, GuestConfig.removePasswordlessSu(readText(pamSu)));
+        if (guestIsFile(root, pamSu)) {
+            managed("/etc/pam.d/su", () -> writeGuest(root, pamSu,
+                    GuestConfig.removePasswordlessSu(ManagedFiles.read(fileOps, root, pamSu))));
         }
     }
 
@@ -577,13 +828,14 @@ public final class RootfsManager {
      */
     private void removeManagedSudoHelper(File root) {
         File helper = new File(new File(root, "usr/local/bin"), "sudo");
-        if (!helper.isFile()) return;
+        if (!fileOps.isRegularFile(helper)) return;
         try {
-            if (GuestConfig.isManagedSudoHelper(readText(helper))) {
-                if (helper.delete()) {
+            if (GuestConfig.isManagedSudoHelper(ManagedFiles.read(fileOps, root, helper))) {
+                try {
+                    fileOps.unlink(helper);
                     ThothLog.i(LogCategory.INSTALLER,
                             "Removed managed su-backed sudo helper");
-                } else {
+                } catch (IOException e) {
                     ThothLog.w(LogCategory.INSTALLER,
                             "Could not remove managed sudo helper");
                 }
@@ -597,51 +849,132 @@ public final class RootfsManager {
     }
 
     private void setupDebconfFrontend(File root) throws IOException {
-        File debconfDir = new File(root, "var/cache/debconf");
-        if (!debconfDir.exists() && !debconfDir.mkdirs()) {
-            throw new IOException("Cannot create debconf cache directory");
-        }
+        File debconfDir = guestDir(root, "/var/cache/debconf");
 
         File configDat = new File(debconfDir, "config.dat");
-        if (configDat.isFile()) {
-            writeTextIfChanged(configDat,
-                    GuestConfig.ensureDebconfFrontendConfig(readText(configDat)));
+        if (guestIsFile(root, configDat)) {
+            managed("debconf config.dat", () -> writeGuest(root, configDat,
+                    GuestConfig.ensureDebconfFrontendConfig(
+                            ManagedFiles.read(fileOps, root, configDat))));
         }
 
         File templatesDat = new File(debconfDir, "templates.dat");
-        if (templatesDat.isFile()) {
-            writeTextIfChanged(templatesDat,
-                    GuestConfig.ensureDebconfFrontendTemplate(readText(templatesDat)));
+        if (guestIsFile(root, templatesDat)) {
+            managed("debconf templates.dat", () -> writeGuest(root, templatesDat,
+                    GuestConfig.ensureDebconfFrontendTemplate(
+                            ManagedFiles.read(fileOps, root, templatesDat))));
         }
     }
 
     /** Records the managed guest-configuration schema applied to this rootfs. */
     private void writeRuntimeConfigVersion(File root) throws IOException {
-        File managedDir = new File(root, "etc/thothterm");
-        if (!managedDir.exists() && !managedDir.mkdirs()) {
-            throw new IOException("Cannot create managed configuration directory");
-        }
-        writeTextIfChanged(new File(managedDir, "runtime-config-version"),
+        File managedDir = guestDir(root, "/etc/thothterm");
+        writeGuest(root, new File(managedDir, "runtime-config-version"),
                 GuestConfig.RUNTIME_CONFIG_VERSION + "\n");
     }
 
+    // ---- administrator tools (sudo) -------------------------------------------
+
+    /** True when sudo still needs work that may need the network. */
+    private boolean needsAdminTools() {
+        return sudoState(rootfsDir) != GuestConfig.PackageState.INSTALLED;
+    }
+
     /**
-     * Ensures the genuine Ubuntu {@code sudo} package is installed from the
-     * bundled offline packages and that PRoot's setuid-bit elevation can work.
-     * The embedded Canonical rootfs is never modified; this is a post-extraction
-     * layer. Best effort: any failure is logged and retried on the next session,
-     * and it never blocks the terminal from opening.
+     * The part of administrator-tool setup that is local and bounded, done
+     * before the terminal opens with its own visible stage: the setuid bit on
+     * an installed sudo, or finishing an interrupted package configuration.
+     * Anything that needs the network is left to {@link #scheduleAdminTools}.
      */
-    private synchronized void ensureRealSudo(File root) {
-        GuestConfig.PackageState state = sudoState(root);
+    private void prepareAdminToolsOffline(SetupTimeline timeline) {
+        publish(appContext.getString(R.string.ubuntu_admin_tools));
+        GuestConfig.PackageState state = sudoState(rootfsDir);
         if (state == GuestConfig.PackageState.INSTALLED) {
-            forceSudoSetuid(root);
-            return;
+            forceSudoSetuid(rootfsDir);
+        } else if (state == GuestConfig.PackageState.UNFINISHED) {
+            finishInterruptedSudo(rootfsDir);
+        } else if (embeddedRootfs) {
+            // The full flavour bundles Ubuntu's own sudo packages: a local,
+            // bounded install, so it belongs to setup.
+            installBundledSudo(rootfsDir);
         }
-        if (state == GuestConfig.PackageState.UNFINISHED) {
-            // An interrupted dpkg run -- typically an upgrade -- left sudo
-            // unpacked but not configured. Finish it in place; installing the
-            // bundled copy would downgrade the newer version it unpacked.
+        ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.ADMIN_TOOLS_READY,
+                "sudo=" + sudoState(rootfsDir)));
+    }
+
+    /**
+     * Queues the network part of administrator-tool setup on one background
+     * thread. Calls while one is queued or running are coalesced. It never
+     * blocks a terminal; until it finishes, {@code sudo} may be unavailable,
+     * which the log records.
+     */
+    private void scheduleAdminTools(String reason) {
+        if (!adminToolsQueued.compareAndSet(false, true)) return;
+        ThothLog.i(LogCategory.ROOTFS, "Administrator tools queued in the background (" + reason + ")");
+        background.execute(() -> {
+            long start = System.nanoTime();
+            try {
+                ensureRealSudo(rootfsDir);
+            } finally {
+                adminToolsQueued.set(false);
+                ThothLog.i(LogCategory.ROOTFS, "Background administrator tools finished ms="
+                        + (System.nanoTime() - start) / 1_000_000L
+                        + " sudo=" + sudoState(rootfsDir));
+            }
+        });
+    }
+
+    /**
+     * Ensures the genuine Ubuntu {@code sudo} package is installed and that
+     * PRoot's setuid-bit elevation can work. Ubuntu Base ships no sudo: the full
+     * flavour installs the bundled packages, the F-Droid flavour installs it
+     * from Ubuntu's archive (network). The Canonical rootfs is never modified;
+     * this is a post-extraction layer. Best effort: any failure is logged and
+     * retried on the next session. Runs only on the background thread
+     * ({@link #scheduleAdminTools}), so it never blocks a terminal.
+     */
+    private void ensureRealSudo(File root) {
+        // Not the manager's monitor: prepareSession() takes that on the UI
+        // thread and must never wait for a package install.
+        synchronized (adminLock) {
+            GuestConfig.PackageState state = sudoState(root);
+            if (state == GuestConfig.PackageState.INSTALLED) {
+                forceSudoSetuid(root);
+                return;
+            }
+            if (state == GuestConfig.PackageState.UNFINISHED) {
+                finishInterruptedSudo(root);
+                return;
+            }
+            if (embeddedRootfs) {
+                installBundledSudo(root);
+                return;
+            }
+            try {
+                // No bundled .deb payload in this build: install sudo from
+                // Ubuntu's own archive, so apt verifies it with the distribution's
+                // signing keys rather than us re-implementing that check.
+                runProvisioning(root, sudoAptInstallScript());
+                boolean setuid = forceSudoSetuid(root);
+                String report = runProvisioning(root, sudoVerifyScript());
+                ThothLog.i(LogCategory.ROOTFS, "sudo provisioning complete setuid="
+                        + setuid + " report=" + report.replace('\n', ' ').trim());
+            } catch (Throwable t) {
+                ThothLog.e(LogCategory.ROOTFS, "sudo provisioning failed type="
+                        + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
+            }
+        }
+    }
+
+    /**
+     * An interrupted dpkg run -- typically an upgrade -- left sudo unpacked
+     * but not configured. Finish it in place, offline; installing a copy
+     * would downgrade the newer version it unpacked.
+     */
+    private void finishInterruptedSudo(File root) {
+        // Not the manager's monitor: prepareSession() takes that on the UI
+        // thread and must never wait for a package install.
+        synchronized (adminLock) {
             try {
                 runProvisioning(root, dpkgConfigureScript());
                 boolean setuid = forceSudoSetuid(root);
@@ -652,46 +985,46 @@ public final class RootfsManager {
                 ThothLog.e(LogCategory.ROOTFS, "sudo configuration failed type="
                         + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
             }
-            return;
-        }
-        try {
-            if (com.thothterm.BuildConfig.EMBEDDED_ROOTFS) {
-                stageSudoPackages(root);
-                runProvisioning(root, sudoInstallScript());
-            } else {
-                // No bundled .deb payload in this build: install sudo from
-                // Ubuntu's own archive, so apt verifies it with the
-                // distribution's signing keys rather than us re-implementing
-                // that check.
-                runProvisioning(root, sudoAptInstallScript());
-            }
-            boolean setuid = forceSudoSetuid(root);
-            String report = runProvisioning(root, sudoVerifyScript());
-            ThothLog.i(LogCategory.ROOTFS, "sudo provisioning complete setuid="
-                    + setuid + " report=" + report.replace('\n', ' ').trim());
-        } catch (Throwable t) {
-            ThothLog.e(LogCategory.ROOTFS, "sudo provisioning failed type="
-                    + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
         }
     }
 
-    /** Where sudo stands in the guest's dpkg database. */
+    /** Where sudo stands in the guest's package database. */
     private GuestConfig.PackageState sudoState(File root) {
         File status = new File(root, "var/lib/dpkg/status");
-        if (!status.isFile()) return GuestConfig.PackageState.ABSENT;
+        if (!fileOps.isRegularFile(status)) return GuestConfig.PackageState.ABSENT;
         try {
-            return GuestConfig.packageState(readText(status), "sudo");
+            return GuestConfig.packageState(ManagedFiles.read(fileOps, root, status), "sudo");
         } catch (IOException e) {
             ThothLog.w(LogCategory.ROOTFS, "Cannot read dpkg status");
             return GuestConfig.PackageState.ABSENT;
         }
     }
 
-    private void stageSudoPackages(File root) throws IOException {
-        File stage = new File(root, SUDO_STAGE_DIR);
-        if (!stage.exists() && !stage.mkdirs()) {
-            throw new IOException("Cannot create sudo package staging directory");
+    /**
+     * Installs Ubuntu's own sudo from the packages bundled in the full
+     * flavour: offline and bounded. Best effort; a failure is logged and the
+     * next session retries in the background.
+     */
+    private void installBundledSudo(File root) {
+        // Not the manager's monitor: prepareSession() takes that on the UI
+        // thread and must never wait for a package install.
+        synchronized (adminLock) {
+            try {
+                stageSudoPackages(root);
+                runProvisioning(root, sudoInstallScript());
+                boolean setuid = forceSudoSetuid(root);
+                String report = runProvisioning(root, sudoVerifyScript());
+                ThothLog.i(LogCategory.ROOTFS, "bundled sudo installed setuid="
+                        + setuid + " report=" + report.replace('\n', ' ').trim());
+            } catch (Throwable t) {
+                ThothLog.e(LogCategory.ROOTFS, "bundled sudo install failed type="
+                        + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
+            }
         }
+    }
+
+    private void stageSudoPackages(File root) throws IOException {
+        File stage = guestDir(root, "/" + SUDO_STAGE_DIR);
         String[] assets = appContext.getAssets().list(SUDO_ASSET_DIR);
         int count = 0;
         if (assets != null) {
@@ -701,7 +1034,9 @@ public final class RootfsManager {
                 OutputStream out = null;
                 try {
                     in = appContext.getAssets().open(SUDO_ASSET_DIR + "/" + name);
-                    out = new FileOutputStream(new File(stage, name));
+                    File target = new File(stage, name);
+                    if (fileOps.type(target) != FileOps.Type.NONE) fileOps.unlink(target);
+                    out = fileOps.createNew(target, 0644);
                     copyStream(in, out);
                     count++;
                 } finally {
@@ -768,22 +1103,30 @@ public final class RootfsManager {
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 
     /**
-     * Forces the real setuid bit on {@code /usr/bin/sudo.ws} from Java, bypassing
-     * PRoot's chmod shim. PRoot's fake_id0 extension grants fake euid 0 only when
-     * the executed binary carries S_ISUID, and the Android-side extraction masks
-     * setuid bits, so this explicit chmod is the required PRoot adjustment.
+     * Forces the real setuid bit on {@code /usr/bin/sudo.ws} from Java,
+     * bypassing PRoot's chmod shim. PRoot's fake_id0 extension grants fake euid
+     * 0 only when the executed binary carries S_ISUID, and the Android-side
+     * extraction masks setuid bits, so this explicit chmod is the required
+     * PRoot adjustment. The binary is resolved inside the guest and must be a
+     * regular file; a symlink is never chmodded.
      */
     private boolean forceSudoSetuid(File root) {
-        File sudo = new File(root, "usr/bin/sudo.ws");
-        if (!sudo.isFile()) return false;
+        File sudo;
         try {
+            sudo = GuestPaths.resolve(fileOps, root, "/usr/bin/sudo.ws", true);
+            if (sudo == null || fileOps.type(sudo) != FileOps.Type.REGULAR) return false;
+        } catch (IOException e) {
+            return false;
+        }
+        try {
+            if ((Os.lstat(sudo.getAbsolutePath()).st_mode & OsConstants.S_ISUID) != 0) return true;
             Os.chmod(sudo.getAbsolutePath(), SUDO_SETUID_MODE);
         } catch (ErrnoException e) {
             ThothLog.w(LogCategory.ROOTFS,
-                    "Cannot chmod /usr/bin/sudo.ws: " + e.getMessage());
+                    "Cannot chmod the sudo binary: " + e.getMessage());
         }
         try {
-            return (Os.stat(sudo.getAbsolutePath()).st_mode & OsConstants.S_ISUID) != 0;
+            return (Os.lstat(sudo.getAbsolutePath()).st_mode & OsConstants.S_ISUID) != 0;
         } catch (ErrnoException e) {
             return false;
         }
@@ -806,7 +1149,7 @@ public final class RootfsManager {
         final StringBuilder output = new StringBuilder();
         Thread reader = new Thread(() -> {
             try {
-                output.append(readText(process.getInputStream()));
+                output.append(new String(readAll(process.getInputStream()), "UTF-8"));
             } catch (IOException ignored) {
             }
         }, "ThothTerm-sudo-provision");
@@ -839,10 +1182,7 @@ public final class RootfsManager {
         return report;
     }
 
-    private void installBashIntegration(File bashrc) throws IOException {
-        String original = bashrc.isFile() ? readText(bashrc) : "";
-        writeTextIfChanged(bashrc, ShellIntegration.updateBashrc(original));
-    }
+    // ---- state, metadata, notification ----------------------------------------
 
     private void writeState() throws IOException {
         RootfsState state = new RootfsState();
@@ -875,9 +1215,21 @@ public final class RootfsManager {
         if (current != null) current.onStatus(text);
     }
 
+    private volatile int downloadPercent = -1;
+
+    private void publishDownload(long doneBytes, long totalBytes) {
+        int value = ExtractionProgress.percent(doneBytes, totalBytes);
+        if (value <= downloadPercent && value != 100) return;
+        downloadPercent = value;
+        Listener current = listener;
+        if (current != null) current.onDownloadProgress(value);
+    }
+
     private void publishProgress(long consumedBytes, long totalBytes, long entryCount) {
         entries = entryCount;
         int value = ExtractionProgress.percent(consumedBytes, totalBytes);
+        // 100 is reserved for "archive fully extracted and verified".
+        if (value == 100 && consumedBytes < totalBytes) value = 99;
         if (value <= percent && value != 100) return;
         percent = value;
         Listener current = listener;
@@ -887,13 +1239,18 @@ public final class RootfsManager {
     private void notifyStatus() {
         Listener current = listener;
         if (current == null) return;
-        if (!message.isEmpty()) current.onStatus(message);
         if (percent > 0) current.onProgress(percent, entries);
+        if (!message.isEmpty()) current.onStatus(message);
     }
 
     private void notifyComplete() {
         Listener current = listener;
         if (current != null) current.onComplete();
+    }
+
+    private void notifyAttention(Condition condition) {
+        Listener current = listener;
+        if (current != null) current.onAttentionNeeded(condition);
     }
 
     private void notifyError() {
@@ -905,75 +1262,94 @@ public final class RootfsManager {
         current.onError(text, lastError);
     }
 
-    private void copyDirectoryContents(File source, File destination) throws IOException {
-        File[] children = source.listFiles();
-        if (children == null) return;
-        for (File child : children) {
-            File target = new File(destination, child.getName());
-            if (child.isDirectory()) {
-                if (!target.exists() && !target.mkdirs()) {
-                    throw new IOException("Cannot create " + target);
-                }
-                copyDirectoryContents(child, target);
-            } else if (!target.exists()) {
-                InputStream in = null;
-                OutputStream out = null;
+    // ---- guest file helpers ---------------------------------------------------
+
+    private interface ManagedStep {
+        void run() throws IOException;
+    }
+
+    /**
+     * A file the user made unmanageable (not UTF-8, a link out of the
+     * rootfs, a directory) is left as it is and logged; it never blocks a
+     * terminal. Any other I/O failure propagates.
+     */
+    private static void managed(String what, ManagedStep step) throws IOException {
+        try {
+            step.run();
+        } catch (ManagedFiles.UnmanageableException e) {
+            ThothLog.w(LogCategory.ROOTFS, "Left " + what + " unmanaged: " + e.getMessage());
+        }
+    }
+
+    private void writeGuest(File root, File file, String text) throws IOException {
+        ManagedFiles.writeIfChanged(fileOps, root, file, text, -1);
+    }
+
+    private void writeGuest(File root, File file, String text, int mode) throws IOException {
+        ManagedFiles.writeIfChanged(fileOps, root, file, text, mode);
+    }
+
+    private boolean guestIsFile(File root, File file) throws IOException {
+        File resolved = GuestPaths.resolve(fileOps, root, GuestPaths.guestPath(root, file), true);
+        return resolved != null && fileOps.type(resolved) == FileOps.Type.REGULAR;
+    }
+
+    /** A guest directory, resolved inside the guest and created if missing. */
+    private File guestDir(File root, String guestPath) throws IOException {
+        File dir = GuestPaths.resolve(fileOps, root, guestPath, true);
+        if (dir == null) throw new IOException("Symlink loop at " + guestPath);
+        ManagedFiles.ensureDirectories(fileOps, root, dir);
+        return dir;
+    }
+
+    private void copyManagedAsset(File root, String assetName, File destination, int mode)
+            throws IOException {
+        InputStream input = appContext.getAssets().open(assetName);
+        String text;
+        try {
+            byte[] bytes = readAll(input);
+            text = ManagedFiles.decode(bytes);
+            if (text == null) throw new IOException("Managed asset is not UTF-8: " + assetName);
+        } finally {
+            input.close();
+        }
+        managed(assetName, () -> writeGuest(root, destination, text, mode));
+    }
+
+    /** Copies the image's skeleton into a new home; nothing is followed. */
+    private void copySkeleton(File source, File destination) throws IOException {
+        String[] names = source.list();
+        if (names == null) return;
+        for (String name : names) {
+            File from = new File(source, name);
+            File to = new File(destination, name);
+            FileOps.Type type = fileOps.type(from);
+            if (fileOps.type(to) != FileOps.Type.NONE) continue;
+            if (type == FileOps.Type.DIRECTORY) {
+                fileOps.mkdir(to, fileOps.permissions(from) & 0777);
+                copySkeleton(from, to);
+            } else if (type == FileOps.Type.SYMLINK) {
+                fileOps.symlink(fileOps.readlink(from), to);
+            } else if (type == FileOps.Type.REGULAR) {
+                InputStream in = fileOps.openNoFollow(from);
                 try {
-                    in = new FileInputStream(child);
-                    out = new FileOutputStream(target);
-                    copyStream(in, out);
+                    OutputStream out = fileOps.createNew(to, fileOps.permissions(from) & 0777);
+                    try {
+                        copyStream(in, out);
+                    } finally {
+                        out.close();
+                    }
                 } finally {
-                    closeQuietly(out);
-                    closeQuietly(in);
+                    in.close();
                 }
             }
         }
     }
 
-    private void writeText(File file, String text) throws IOException {
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            throw new IOException("Cannot create " + parent);
-        }
-        OutputStream out = new FileOutputStream(file);
-        try {
-            out.write(text.getBytes("UTF-8"));
-        } finally {
-            out.close();
-        }
-    }
-
-    private void writeTextIfChanged(File file, String text) throws IOException {
-        if (file.isFile() && text.equals(readText(file))) return;
-        writeText(file, text);
-    }
-
-    private void copyManagedAsset(String assetName, File destination) throws IOException {
-        InputStream input = appContext.getAssets().open(assetName);
-        try {
-            writeTextIfChanged(destination, readText(input));
-        } finally {
-            input.close();
-        }
-    }
-
-    private String readText(File file) throws IOException {
-        InputStream in = new FileInputStream(file);
-        try {
-            return readText(in);
-        } finally {
-            in.close();
-        }
-    }
-
-    private String readText(InputStream in) throws IOException {
-        byte[] buffer = new byte[8192];
-        StringBuilder text = new StringBuilder();
-        int read;
-        while ((read = in.read(buffer)) > 0) {
-            text.append(new String(buffer, 0, read, "UTF-8"));
-        }
-        return text.toString();
+    private static byte[] readAll(InputStream in) throws IOException {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        copyStream(in, out);
+        return out.toByteArray();
     }
 
     private static void copyStream(InputStream in, OutputStream out) throws IOException {
@@ -985,12 +1361,7 @@ public final class RootfsManager {
     }
 
     static String toHex(byte[] bytes) {
-        StringBuilder builder = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) {
-            builder.append(Character.forDigit((b >> 4) & 0xF, 16));
-            builder.append(Character.forDigit(b & 0xF, 16));
-        }
-        return builder.toString();
+        return RootfsArchive.toHex(bytes);
     }
 
     private static void closeQuietly(java.io.Closeable closeable) {
@@ -998,32 +1369,6 @@ public final class RootfsManager {
         try {
             closeable.close();
         } catch (IOException ignored) {
-        }
-    }
-
-    private static final class CountingInputStream extends java.io.FilterInputStream {
-        private long count;
-
-        CountingInputStream(InputStream in) {
-            super(in);
-        }
-
-        long getCount() {
-            return count;
-        }
-
-        @Override
-        public int read() throws IOException {
-            int value = super.read();
-            if (value >= 0) count++;
-            return value;
-        }
-
-        @Override
-        public int read(byte[] buffer, int offset, int length) throws IOException {
-            int read = super.read(buffer, offset, length);
-            if (read > 0) count += read;
-            return read;
         }
     }
 }

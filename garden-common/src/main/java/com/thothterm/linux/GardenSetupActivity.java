@@ -17,6 +17,7 @@
 package com.thothterm.linux;
 
 import android.content.Intent;
+import android.widget.Toast;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -25,10 +26,13 @@ import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
+
 import com.thothterm.AppCompatActivity;
 import com.thothterm.LogsActivity;
 import com.thothterm.R;
 import com.thothterm.TermActivity;
+import com.thothterm.linux.RootfsLifecycle.Condition;
 
 /**
  * Launcher screen for a Garden edition. On first run it prepares the rootfs;
@@ -39,6 +43,10 @@ import com.thothterm.TermActivity;
  * does not — the F-Droid flavour — first shows what would be downloaded and
  * waits: {@link RootfsManager#start()} is not called until the user accepts, so
  * nothing executable is fetched without a deliberate choice.
+ *
+ * <p>An installed environment that is damaged is never reinstalled from here
+ * on its own: the screen explains it, and a reinstall (which keeps /home)
+ * happens only after the user confirms it in a dialog.</p>
  */
 public class GardenSetupActivity extends AppCompatActivity
         implements RootfsManager.Listener {
@@ -51,6 +59,9 @@ public class GardenSetupActivity extends AppCompatActivity
     private ProgressBar progress;
     private View actions;
     private View consentActions;
+    private View attentionActions;
+    private Button resetButton;
+    private Button resetCancel;
     /** True while waiting for an answer; blocks the automatic start in onResume. */
     private boolean awaitingConsent;
 
@@ -91,6 +102,23 @@ public class GardenSetupActivity extends AppCompatActivity
         logs.setOnClickListener(view ->
                 startActivity(new Intent(this, LogsActivity.class)));
 
+        attentionActions = findViewById(R.id.setup_attention_actions);
+        resetButton = findViewById(R.id.setup_reset);
+        resetCancel = findViewById(R.id.setup_reset_cancel);
+        resetButton.setOnClickListener(view -> onResetPressed(manager));
+        resetCancel.setOnClickListener(view -> {
+            try {
+                manager.cancelReset();
+            } catch (java.io.IOException e) {
+                Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+            attentionActions.setVisibility(View.GONE);
+            showPreparing();
+            manager.start();
+        });
+        findViewById(R.id.setup_attention_logs).setOnClickListener(view ->
+                startActivity(new Intent(this, LogsActivity.class)));
+
         consent = findViewById(R.id.setup_consent);
         consentActions = findViewById(R.id.setup_consent_actions);
         Button accept = findViewById(R.id.setup_consent_accept);
@@ -120,6 +148,49 @@ public class GardenSetupActivity extends AppCompatActivity
         });
 
         if (manager.needsImageDownload()) askForConsent(manager);
+    }
+
+    private void showPreparing() {
+        if (status != null) status.setText(R.string.garden_preparing);
+        if (hint != null) hint.setText(R.string.garden_prepare_once);
+        if (progress != null) {
+            progress.setVisibility(View.VISIBLE);
+            progress.setIndeterminate(true);
+        }
+    }
+
+    /**
+     * Reinstalling the system is the one destructive action, so it always goes
+     * through this dialog; the default is to do nothing.
+     */
+    private void onResetPressed(RootfsManager manager) {
+        if (manager.condition() == Condition.EXPLICIT_RESET_REQUESTED) {
+            confirmedReset(manager);
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.garden_reset_confirm_title)
+                .setMessage(R.string.garden_reset_confirm_body)
+                .setNegativeButton(R.string.garden_reset_confirm_no, null)
+                .setPositiveButton(R.string.garden_reset_confirm_yes,
+                        (dialog, which) -> confirmedReset(manager))
+                .show();
+    }
+
+    private void confirmedReset(RootfsManager manager) {
+        try {
+            manager.requestReset();
+        } catch (java.io.IOException e) {
+            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+            return;
+        }
+        attentionActions.setVisibility(View.GONE);
+        if (manager.needsImageDownload()) {
+            askForConsent(manager);
+            return;
+        }
+        showPreparing();
+        manager.start();
     }
 
     private void askForConsent(RootfsManager manager) {
@@ -166,6 +237,46 @@ public class GardenSetupActivity extends AppCompatActivity
         main.post(() -> {
             if (status != null) status.setText(message);
             if (hint != null) hint.setText(R.string.garden_prepare_once);
+            // A named stage after extraction has no percentage of its own.
+            if (progress != null && progress.getProgress() >= 100) {
+                progress.setIndeterminate(true);
+            }
+        });
+    }
+
+    @Override
+    public void onDownloadProgress(int percent) {
+        main.post(() -> {
+            if (progress == null) return;
+            progress.setIndeterminate(false);
+            progress.setProgress(percent);
+            if (status != null) {
+                status.setText(getString(R.string.garden_downloading_percent, percent));
+            }
+        });
+    }
+
+    @Override
+    public void onAttentionNeeded(Condition condition) {
+        main.post(() -> {
+            hideConsent();
+            if (progress != null) progress.setVisibility(View.GONE);
+            if (actions != null) actions.setVisibility(View.GONE);
+            boolean pendingReset = condition == Condition.EXPLICIT_RESET_REQUESTED;
+            if (status != null) {
+                status.setText(pendingReset ? R.string.garden_reset_pending_title
+                        : R.string.garden_damaged_title);
+            }
+            if (hint != null) {
+                hint.setText(pendingReset ? R.string.garden_reset_pending_body
+                        : R.string.garden_damaged_body);
+            }
+            if (resetButton != null) {
+                resetButton.setText(pendingReset ? R.string.garden_reset_continue
+                        : R.string.garden_reset_action);
+            }
+            if (resetCancel != null) resetCancel.setVisibility(pendingReset ? View.VISIBLE : View.GONE);
+            if (attentionActions != null) attentionActions.setVisibility(View.VISIBLE);
         });
     }
 

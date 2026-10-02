@@ -92,6 +92,21 @@ android {
         aidl = true
         buildConfig = true
     }
+    sourceSets {
+        // The rootfs extractor and its no-follow file operations are shared
+        // with every Garden edition: one implementation, one security suite.
+        main {
+            java.srcDirs += rootProject.file('garden-common/src/shared/java')
+        }
+        test {
+            java.srcDirs += rootProject.file('garden-common/src/sharedTest/java')
+            java.srcDirs += rootProject.file('garden-common/src/sharedTestFixtures/java')
+        }
+        androidTest {
+            java.srcDirs += rootProject.file('garden-common/src/sharedAndroidTest/java')
+            java.srcDirs += rootProject.file('garden-common/src/sharedTestFixtures/java')
+        }
+    }
     packaging {
         jniLibs {
             // Required so the PRoot runtime and its loader land on disk with the

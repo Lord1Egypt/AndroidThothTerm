@@ -17,6 +17,8 @@
 package com.thothterm.linux;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,17 @@ import java.util.Map;
  */
 public final class GardenRuntime {
     public static final String LINUX_HOME = "/home/thoth";
+    /** The guest's login shell, as every window runs it. */
+    public static final String GUEST_SHELL = "/bin/bash";
+    /** The guest's su, which drops a window from fake root to the user. */
+    public static final String GUEST_SU = "/usr/bin/su";
+    /**
+     * The guest files a terminal cannot start without. The lifecycle checks
+     * them (resolved inside the guest) to tell a healthy installation from a
+     * damaged one; a missing one never triggers a reinstall.
+     */
+    public static final List<String> GUEST_ENTRY_POINTS =
+            Collections.unmodifiableList(Arrays.asList(GUEST_SHELL, GUEST_SU));
 
     private final String prootPath;
     private final String loaderPath;
@@ -75,10 +88,10 @@ public final class GardenRuntime {
         // ("invalid option -- 'i'"), which closed the session window.
         // "-m" preserves the PRoot environment (notably LD_LIBRARY_PATH, which
         // the PRoot loader needs for every later guest execve).
-        argv.add("/usr/bin/su");
+        argv.add(GUEST_SU);
         argv.add("-m");
         argv.add("-s");
-        argv.add("/bin/bash");
+        argv.add(GUEST_SHELL);
         argv.add("thoth");
         return argv;
     }
@@ -123,7 +136,7 @@ public final class GardenRuntime {
         env.put("HOME", LINUX_HOME);
         env.put("USER", "thoth");
         env.put("LOGNAME", "thoth");
-        env.put("SHELL", "/bin/bash");
+        env.put("SHELL", GUEST_SHELL);
         env.put("TERM", terminalType == null ? "xterm-256color" : terminalType);
         env.put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
         env.put("TMPDIR", "/tmp");

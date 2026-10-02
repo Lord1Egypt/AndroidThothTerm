@@ -35,7 +35,7 @@ public class SafeFileTreeTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private final TarballExtractorTest.JvmFileOps ops = new TarballExtractorTest.JvmFileOps();
+    private final JvmFileOps ops = new JvmFileOps();
 
     @Test
     public void removesReadOnlyDirectories() throws Exception {

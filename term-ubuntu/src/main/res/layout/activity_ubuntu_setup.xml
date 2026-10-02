@@ -111,6 +111,40 @@
             android:indeterminate="true"
             android:max="100"/>
 
+        <!-- Shown only when the installed environment needs a decision
+             (damaged, or a reinstall that did not finish). Nothing
+             destructive happens without the confirmation dialog. -->
+        <LinearLayout
+            android:id="@+id/setup_attention_actions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/setup_reset"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ubuntu_reset_action"/>
+
+            <Button
+                android:id="@+id/setup_reset_cancel"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ubuntu_reset_cancel"
+                android:visibility="gone"/>
+
+            <Button
+                android:id="@+id/setup_attention_logs"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ubuntu_view_logs"/>
+
+        </LinearLayout>
+
         <LinearLayout
             android:id="@+id/setup_actions"
             android:layout_width="wrap_content"

@@ -34,6 +34,17 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    sourceSets {
+        // The rootfs extractor and its no-follow file operations, compiled
+        // into every edition and into term-ubuntu, so all share one
+        // implementation and one set of security tests.
+        main {
+            java.srcDirs += 'src/shared/java'
+        }
+        test {
+            java.srcDirs += ['src/sharedTest/java', 'src/sharedTestFixtures/java']
+        }
+    }
 }
 
 dependencies {

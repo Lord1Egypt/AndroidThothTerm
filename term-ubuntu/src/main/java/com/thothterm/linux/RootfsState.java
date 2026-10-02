@@ -87,6 +87,17 @@ public final class RootfsState {
         }
     }
 
+    /**
+     * True once a first install finished, whatever image it came from. A
+     * newer app may pin a newer image; that governs new installs only. An
+     * installed guest is kept up to date by its own package manager and holds
+     * the user's home, so it is never re-extracted because the pin moved.
+     */
+    public boolean isInstalled() {
+        return complete && !imageId.isEmpty() && !imageSha256.isEmpty();
+    }
+
+    /** True when this install came from exactly the image the app pins now. */
     public boolean matches(ImageInfo image) {
         return complete
                 && schemaVersion == image.schemaVersion()
