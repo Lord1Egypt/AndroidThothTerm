@@ -5,11 +5,17 @@
 #
 #   tests/garden-common/extractor/device-gate.sh MODULE [ARCHIVE.tar.gz SHA256]
 #
-# MODULE is garden-arch, garden-debian or term-ubuntu. Builds and installs the
-# debug APK and its androidTest APK for the module's full flavour, so it needs
-# the Android SDK/NDK and one device on adb. It extracts into
-# files/extractor-gate/ of the app under test and never touches an installed
-# Linux environment. Uses run-as, so the debug build must be installed.
+# MODULE is garden-arch, garden-debian or term-ubuntu. Builds the module's full
+# debug APK and its androidTest APK, so it needs the Android SDK/NDK and one
+# device on adb, and installs both with "adb install --no-incremental" (an
+# incremental install is how a primary app's data was lost before). It
+# extracts into files/extractor-gate/ of the app under test and never touches
+# its Linux environment.
+#
+# The app under test is the module's application id. If that package is
+# already installed -- for example the phone's primary ThothTerm -- the script
+# stops, unless GATE_ALLOW_REPLACE=1 says replacing it is intended. Prefer a
+# build with an isolated application id and set GATE_PACKAGE to it.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../../.." && pwd)
@@ -22,7 +28,16 @@ case "$MODULE" in
 esac
 PKG=${GATE_PACKAGE:-$PKG}
 cd "$REPO"
-./gradlew ":$MODULE:installFullDebug" ":$MODULE:installFullDebugAndroidTest"
+if adb shell pm path "$PKG" 2>/dev/null | grep -q '^package:' && [ "${GATE_ALLOW_REPLACE:-0}" != 1 ]; then
+    echo "STOP: $PKG is installed on this device. Use an isolated application id"
+    echo "(GATE_PACKAGE=...) or set GATE_ALLOW_REPLACE=1 if replacing it is intended."
+    exit 3
+fi
+./gradlew ":$MODULE:assembleFullDebug" ":$MODULE:assembleFullDebugAndroidTest"
+APK=$(ls "$MODULE"/build/outputs/apk/full/debug/*.apk | head -1)
+TEST_APK=$(ls "$MODULE"/build/outputs/apk/androidTest/full/debug/*.apk | head -1)
+adb install --no-incremental -r "$APK"
+adb install --no-incremental -r -t "$TEST_APK"
 EXTRA=""
 if [ $# -ge 2 ]; then
     actual=$(sha256sum "$1" | cut -d' ' -f1)
