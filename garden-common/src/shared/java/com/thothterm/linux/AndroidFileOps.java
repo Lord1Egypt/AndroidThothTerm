@@ -30,9 +30,10 @@ import java.io.OutputStream;
 
 /**
  * {@link FileOps} on Android, through the system calls themselves
- * ({@code android.system.Os}) so the no-follow guarantees are explicit:
+ * ({@code android.system.Os}, public SDK API only -- see
+ * {@code PublicSdkApiTest}) so the no-follow guarantees are explicit:
  * {@code lstat}, {@code open(O_CREAT|O_EXCL|O_NOFOLLOW)}, {@code fchmod} on the
- * open descriptor, {@code unlink}, {@code link}, {@code symlink},
+ * open descriptor, {@code remove} (unlink), {@code link}, {@code symlink},
  * {@code rename}. setuid and setgid bits from an archive are never applied:
  * in a rootless app-private installation they are meaningless and only add
  * risk. A directory keeps its sticky bit ({@code /tmp} is 1777).
@@ -242,10 +243,21 @@ public final class AndroidFileOps implements FileOps {
         }
     }
 
+    /**
+     * The public SDK has no {@code Os.unlink}; {@code Os.remove} is
+     * {@code remove(3)}, which in bionic is {@code unlink(2)} and falls back
+     * to {@code rmdir(2)} only when unlink fails with EISDIR. unlink(2) never
+     * follows a final symlink: a link, dangling or not, is removed itself and
+     * its target is untouched. A directory is refused first, so this never
+     * acts as rmdir; the installation tree has a single writer, this thread.
+     */
     @Override
     public void unlink(File file) throws IOException {
+        if (type(file) == Type.DIRECTORY) {
+            throw new IOException("Is a directory: " + file);
+        }
         try {
-            Os.unlink(file.getAbsolutePath());
+            Os.remove(file.getAbsolutePath());
         } catch (ErrnoException e) {
             throw io("unlink", file, e);
         }

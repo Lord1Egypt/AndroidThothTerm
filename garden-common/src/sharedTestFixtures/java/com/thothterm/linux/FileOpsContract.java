@@ -50,6 +50,10 @@ public final class FileOpsContract {
         c.put("chmodWorksOnUnreadableFile", FileOpsContract::chmodWorksOnUnreadableFile);
         c.put("mkdirRefusesDanglingSymlink", FileOpsContract::mkdirRefusesDanglingSymlink);
         c.put("unlinkRemovesLinkNotTarget", FileOpsContract::unlinkRemovesLinkNotTarget);
+        c.put("unlinkOfDanglingSymlinkRemovesTheLink", FileOpsContract::unlinkOfDanglingSymlinkRemovesTheLink);
+        c.put("unlinkOfSymlinkToDirectoryRemovesTheLink",
+                FileOpsContract::unlinkOfSymlinkToDirectoryRemovesTheLink);
+        c.put("unlinkRefusesADirectory", FileOpsContract::unlinkRefusesADirectory);
         c.put("rmdirRefusesSymlinkToDirectory", FileOpsContract::rmdirRefusesSymlinkToDirectory);
         c.put("openNoFollowRefusesSymlink", FileOpsContract::openNoFollowRefusesSymlink);
         c.put("symlinkRefusesExisting", FileOpsContract::symlinkRefusesExisting);
@@ -145,6 +149,33 @@ public final class FileOpsContract {
         ops.unlink(new File(dir, "link"));
         eq(false, Files.exists(dir.toPath().resolve("link"), LinkOption.NOFOLLOW_LINKS), "link gone");
         eq("t", read(dir, "target"), "target kept");
+    }
+
+    static void unlinkOfDanglingSymlinkRemovesTheLink(FileOps ops, File dir) throws Exception {
+        Files.createSymbolicLink(dir.toPath().resolve("dangling"), Paths.get("nowhere"));
+        ops.unlink(new File(dir, "dangling"));
+        eq(false, Files.exists(dir.toPath().resolve("dangling"), LinkOption.NOFOLLOW_LINKS), "link gone");
+    }
+
+    static void unlinkOfSymlinkToDirectoryRemovesTheLink(FileOps ops, File dir) throws Exception {
+        Path real = Files.createDirectory(dir.toPath().resolve("real"));
+        write(real.toFile(), "keep", "k");
+        Files.createSymbolicLink(dir.toPath().resolve("link"), real);
+        ops.unlink(new File(dir, "link"));
+        eq(false, Files.exists(dir.toPath().resolve("link"), LinkOption.NOFOLLOW_LINKS), "link gone");
+        eq(true, Files.isDirectory(real, LinkOption.NOFOLLOW_LINKS), "target directory kept");
+        eq("k", read(real.toFile(), "keep"), "target contents kept");
+    }
+
+    static void unlinkRefusesADirectory(FileOps ops, File dir) throws Exception {
+        Path empty = Files.createDirectory(dir.toPath().resolve("empty"));
+        try {
+            ops.unlink(empty.toFile());
+            throw new AssertionError("unlink removed a directory");
+        } catch (IOException expected) {
+            // a directory is never unlinked (remove(3) would rmdir it)
+        }
+        eq(true, Files.isDirectory(empty, LinkOption.NOFOLLOW_LINKS), "directory kept");
     }
 
     static void rmdirRefusesSymlinkToDirectory(FileOps ops, File dir) throws Exception {
