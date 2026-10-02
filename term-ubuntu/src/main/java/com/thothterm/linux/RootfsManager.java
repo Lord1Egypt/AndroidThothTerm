@@ -774,7 +774,7 @@ public final class RootfsManager {
             writeGuest(root, resolv, "# Runtime resolver is bind-mounted by ThothTerm.\n");
         }
         File tmp = guestDir(root, "/tmp");
-        fileOps.setMode(tmp, 0777);
+        fileOps.setMode(tmp, 01777);
     }
 
     private void setupUserAccount(File root) throws IOException {

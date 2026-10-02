@@ -61,7 +61,7 @@ public final class ExtractorGate {
             RootfsArchive.verify(result, sha256);
             report.line("PASS archive verified: sha256 matches, 0 rejected entries");
             List<String> expected = TreeManifest.read(manifest);
-            List<String> actual = TreeManifest.of(staging);
+            List<String> actual = TreeManifest.of(staging, ops::permissions);
             List<String> diff = TreeManifest.diff(expected, actual, 40);
             if (!diff.isEmpty()) {
                 for (String line : diff) report.line("DIFF " + line);

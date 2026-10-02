@@ -99,7 +99,10 @@ public final class FileOpsContract {
         OutputStream out = ops.createNew(new File(dir, "f"), 04755);
         out.write("x".getBytes(UTF8));
         out.close();
-        eq(0755, ExtractorSecurityCases.Fixture.mode(new File(dir, "f")), "setuid masked");
+        eq(0755, ops.permissions(new File(dir, "f")), "setuid masked");
+        java.nio.file.Files.createDirectory(dir.toPath().resolve("d"));
+        ops.chmodNoFollow(new File(dir, "d"), 03777);
+        eq(01777, ops.permissions(new File(dir, "d")), "directory keeps sticky, loses setgid");
     }
 
     static void chmodRefusesSymlinkAndLeavesTarget(FileOps ops, File dir) throws Exception {

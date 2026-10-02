@@ -78,7 +78,7 @@ public class JvmFileOps implements FileOps {
                 StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE),
                 java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
                         permissions(0600)));
-        final int finalMode = mode & 0777;
+        final int finalMode = mode & FILE_MODE_MASK;
         return new FilterOutputStream(Channels.newOutputStream(channel)) {
             private boolean closed;
 
@@ -112,9 +112,10 @@ public class JvmFileOps implements FileOps {
         if (type != Type.REGULAR && type != Type.DIRECTORY) {
             throw new IOException("Refusing to chmod " + type + ": " + file);
         }
-        // NOFOLLOW_LINKS: OpenJDK opens with O_NOFOLLOW and uses fchmod.
-        Files.getFileAttributeView(file.toPath(), PosixFileAttributeView.class,
-                LinkOption.NOFOLLOW_LINKS).setPermissions(permissions(mode & 0777));
+        int mask = type == Type.DIRECTORY ? DIRECTORY_MODE_MASK : FILE_MODE_MASK;
+        // NOFOLLOW_LINKS: OpenJDK opens with O_NOFOLLOW and uses fchmod; the
+        // "unix:mode" attribute carries the sticky bit, PosixFilePermission cannot.
+        Files.setAttribute(file.toPath(), "unix:mode", mode & mask, LinkOption.NOFOLLOW_LINKS);
     }
 
     @Override

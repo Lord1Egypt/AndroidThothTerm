@@ -78,6 +78,7 @@ public final class ExtractorSecurityCases {
         cases.put("malformedUtf8Rejected", ExtractorSecurityCases::malformedUtf8Rejected);
         cases.put("rootEntryAccepted", ExtractorSecurityCases::rootEntryAccepted);
         cases.put("fileOverDirectoryRejected", ExtractorSecurityCases::fileOverDirectoryRejected);
+        cases.put("setgidDirectoryMasked", ExtractorSecurityCases::setgidDirectoryMasked);
         cases.put("specialBitsMasked", ExtractorSecurityCases::specialBitsMasked);
         cases.put("legitimateLinksSupported", ExtractorSecurityCases::legitimateLinksSupported);
         cases.put("specialFilesSkipped", ExtractorSecurityCases::specialFilesSkipped);
@@ -309,8 +310,20 @@ public final class ExtractorSecurityCases {
                 .dir("tmp", 01777)
                 .build());
         f.assertOutsideUntouched();
-        checkEquals(0755, Fixture.mode(new File(f.root, "usr/bin/suid")), "setuid dropped");
-        checkEquals(0777, Fixture.mode(new File(f.root, "tmp")), "sticky dropped");
+        checkEquals(0755, ops.permissions(new File(f.root, "usr/bin/suid")), "setuid dropped");
+        checkEquals(01777, ops.permissions(new File(f.root, "tmp")), "a directory keeps sticky");
+    }
+
+    static void setgidDirectoryMasked(FileOps ops, File dir) throws Exception {
+        Fixture f = new Fixture(ops, dir);
+        f.extract(new TarBuilder()
+                .dir("srv", 02775)
+                .file("srv/sticky-file", "x".getBytes(UTF8), 01644)
+                .build());
+        f.assertOutsideUntouched();
+        checkEquals(0775, ops.permissions(new File(f.root, "srv")), "setgid dropped");
+        checkEquals(0644, ops.permissions(new File(f.root, "srv/sticky-file")),
+                "no sticky on a file");
     }
 
     static void legitimateLinksSupported(FileOps ops, File dir) throws Exception {

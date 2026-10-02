@@ -36,6 +36,11 @@ import java.io.OutputStream;
  * Both must satisfy the same contract; the shared contract test checks it.</p>
  */
 public interface FileOps {
+    /** The permission bits a directory may carry: rwx for all, plus sticky. */
+    int DIRECTORY_MODE_MASK = 01777;
+    /** The permission bits a regular file may carry: never setuid or setgid. */
+    int FILE_MODE_MASK = 0777;
+
     /** What a path itself is, as {@code lstat(2)} reports it. */
     enum Type {
         /** Nothing exists at the path (ENOENT). */
@@ -62,7 +67,8 @@ public interface FileOps {
     /**
      * Creates a new regular file exclusively ({@code O_CREAT|O_EXCL|O_NOFOLLOW}):
      * fails if anything, including a dangling symlink, exists at the path.
-     * The file starts owner-only; {@code mode} (masked to 0777) is applied to
+     * The file starts owner-only; {@code mode} (masked to 0777: no setuid,
+     * setgid or sticky on a file) is applied to
      * the open descriptor when the stream is closed, so it can never land on
      * another inode.
      */
@@ -72,9 +78,9 @@ public interface FileOps {
     InputStream openNoFollow(File file) throws IOException;
 
     /**
-     * Sets permission bits (masked to 0777: setuid, setgid and sticky are never
-     * applied) on a regular file or directory. A symlink is refused, never
-     * followed.
+     * Sets permission bits on a regular file or directory. setuid and setgid
+     * are never applied; the sticky bit is kept on a directory only (a guest's
+     * {@code /tmp} is 1777). A symlink is refused, never followed.
      */
     void chmodNoFollow(File file, int mode) throws IOException;
 

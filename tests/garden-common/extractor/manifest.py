@@ -4,11 +4,11 @@
 Reads the archive with Python's tarfile (names strict UTF-8) and prints, for
 every path the app's extractor must create, one line:
 
-    <path>\t<d|f|l>\t<mode octal, masked to 0777>\t<size>\t<sha256 | link target>
+    <path>\t<d|f|l>\t<mode octal: 01777 for a directory, 0777 for a file>\t<size>\t<sha256 | link target>
 
 The app's extractor gate (host and device) walks the tree it extracted and
 prints the same lines; the two must be identical. Rules mirrored from
-TarballExtractor: setuid/setgid/sticky dropped; device/FIFO entries skipped;
+TarballExtractor: setuid/setgid dropped, sticky kept on directories only; device/FIFO entries skipped;
 "./" is the root; a hardlink materializes as a regular file with its target's
 content; a parent the archive never lists is 0755. An entry the extractor must
 refuse (absolute, "..", through a symlink) is reported and fails the script,
@@ -47,7 +47,7 @@ def main(path):
                 order.append(parent)
         else:
             if m.isdir():
-                entries[name] = ("d", m.mode & 0o777, 0, "-")
+                entries[name] = ("d", m.mode & 0o1777, 0, "-")
             elif m.isreg():
                 data = tar.extractfile(m).read()
                 entries[name] = ("f", m.mode & 0o777, len(data), hashlib.sha256(data).hexdigest())

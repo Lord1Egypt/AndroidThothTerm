@@ -35,9 +35,9 @@ import java.io.OutputStream;
  * ({@code android.system.Os}) so the no-follow guarantees are explicit:
  * {@code lstat}, {@code open(O_CREAT|O_EXCL|O_NOFOLLOW)}, {@code fchmod} on the
  * open descriptor, {@code unlink}, {@code link}, {@code symlink},
- * {@code rename}. Permissions are masked to {@code 0777}: setuid, setgid and
- * sticky bits from an archive are never applied. In a rootless app-private
- * installation they are meaningless and only add risk.
+ * {@code rename}. setuid and setgid bits from an archive are never applied:
+ * in a rootless app-private installation they are meaningless and only add
+ * risk. A directory keeps its sticky bit ({@code /tmp} is 1777).
  */
 public final class AndroidFileOps implements FileOps {
     /** O_CLOEXEC exists in OsConstants from API 27; the app's minimum is 26. */
@@ -89,7 +89,7 @@ public final class AndroidFileOps implements FileOps {
         } catch (ErrnoException e) {
             throw io("create", file, e);
         }
-        final int finalMode = mode & 0777;
+        final int finalMode = mode & FILE_MODE_MASK;
         return new FileOutputStream(fd) {
             private boolean closed;
 
@@ -134,7 +134,6 @@ public final class AndroidFileOps implements FileOps {
     @Override
     public void chmodNoFollow(File file, int mode) throws IOException {
         String path = file.getAbsolutePath();
-        int masked = mode & 0777;
         FileDescriptor fd;
         try {
             // O_NOFOLLOW: a symlink fails with ELOOP instead of being followed.
@@ -149,14 +148,18 @@ public final class AndroidFileOps implements FileOps {
                 throw new IOException("Refusing to chmod " + type + ": " + file);
             }
             try {
-                Os.chmod(path, masked);
+                Os.chmod(path, mode & (type == Type.DIRECTORY ? DIRECTORY_MODE_MASK : FILE_MODE_MASK));
             } catch (ErrnoException chmodError) {
                 throw io("chmod", file, chmodError);
             }
             return;
         }
         try {
-            Os.fchmod(fd, masked);
+            int kind = Os.fstat(fd).st_mode;
+            if (!OsConstants.S_ISREG(kind) && !OsConstants.S_ISDIR(kind)) {
+                throw new IOException("Refusing to chmod a special file: " + file);
+            }
+            Os.fchmod(fd, mode & (OsConstants.S_ISDIR(kind) ? DIRECTORY_MODE_MASK : FILE_MODE_MASK));
         } catch (ErrnoException e) {
             throw io("fchmod", file, e);
         } finally {

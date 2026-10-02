@@ -23,17 +23,15 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.PosixFilePermission;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 /**
  * What an extracted tree actually is, one line per path, in the format of
  * {@code tests/garden-common/extractor/manifest.py}:
- * {@code path, d|f|l, mode (octal, 0777), size, sha256 or link target}.
+ * {@code path, d|f|l, mode (octal), size, sha256 or link target}.
  * Observed with java.nio and never through the operations under test; works
  * on the JVM and on Android (API 26+).
  */
@@ -41,9 +39,14 @@ public final class TreeManifest {
     private TreeManifest() {
     }
 
-    public static List<String> of(File root) throws IOException {
+    /** Reads the permission bits (07777) of a path itself. */
+    public interface Modes {
+        int of(File file) throws IOException;
+    }
+
+    public static List<String> of(File root, Modes modes) throws IOException {
         List<String> lines = new ArrayList<>();
-        walk(root, "", lines);
+        walk(root, "", lines, modes);
         java.util.Collections.sort(lines, (a, b) -> key(a).compareTo(key(b)));
         return lines;
     }
@@ -66,7 +69,8 @@ public final class TreeManifest {
         return line.substring(0, line.indexOf('\t'));
     }
 
-    private static void walk(File dir, String rel, List<String> out) throws IOException {
+    private static void walk(File dir, String rel, List<String> out, Modes modes)
+            throws IOException {
         String[] names = dir.list();
         if (names == null) return;
         Arrays.sort(names);
@@ -79,22 +83,15 @@ public final class TreeManifest {
             if (attrs.isSymbolicLink()) {
                 out.add(child + "\tl\t0\t0\t" + Files.readSymbolicLink(path));
             } else if (attrs.isDirectory()) {
-                out.add(child + "\td\t" + Integer.toOctalString(mode(path)) + "\t0\t-");
-                walk(file, child, out);
+                out.add(child + "\td\t" + Integer.toOctalString(modes.of(file)) + "\t0\t-");
+                walk(file, child, out, modes);
             } else if (attrs.isRegularFile()) {
-                out.add(child + "\tf\t" + Integer.toOctalString(mode(path)) + "\t" + attrs.size()
+                out.add(child + "\tf\t" + Integer.toOctalString(modes.of(file)) + "\t" + attrs.size()
                         + "\t" + sha256(path));
             } else {
                 out.add(child + "\tOTHER\t0\t0\t-");
             }
         }
-    }
-
-    private static int mode(Path path) throws IOException {
-        Set<PosixFilePermission> perms = Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS);
-        int mode = 0;
-        for (PosixFilePermission p : perms) mode |= 0400 >> p.ordinal();
-        return mode;
     }
 
     private static String sha256(Path path) throws IOException {
