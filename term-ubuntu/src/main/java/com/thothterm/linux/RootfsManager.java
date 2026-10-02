@@ -374,6 +374,9 @@ public final class RootfsManager {
      * disk first, so an interrupted reset is visible after a restart.
      */
     public void requestReset() throws IOException {
+        if (!linuxDir.isDirectory() && !linuxDir.mkdirs()) {
+            throw new IOException("Cannot create " + linuxDir);
+        }
         if (fileOps.type(layout.resetMarker) == FileOps.Type.NONE) {
             fileOps.createNew(layout.resetMarker, 0600).close();
         }
@@ -617,6 +620,10 @@ public final class RootfsManager {
             ThothLog.w(LogCategory.STORAGE, "Insufficient storage for rootfs extraction");
             throw new IOException("Not enough free storage to prepare "
                     + "Ubuntu");
+        }
+        // On a first install nothing below files/linux exists yet.
+        if (!linuxDir.isDirectory() && !linuxDir.mkdirs()) {
+            throw new IOException("Cannot create " + linuxDir);
         }
         fileOps.mkdir(stagingDir, 0700);
 
