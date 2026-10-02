@@ -1,5 +1,15 @@
 # ThothTerm Rolling — local Codex continuation
 
+> **Superseded in part (2026-10-02).** The forensic review
+> (`SONNET55_REVIEW.md`) and the remediation on
+> `claude/arch-security-hardening-from-3585730` (`CLAUDE_FIX_HANDOFF.md`)
+> changed several things this file describes as settled: the extractor (a
+> symlink escape and non-UTF-8 name mangling), the rootfs lifecycle (automatic
+> re-extraction could delete /home), the "Can't set permissions to 0777"
+> warning (a PRoot defect, fixed by patch 0006, not an Android limitation),
+> the systemd chroot ENOSYS (Android hides PID 1), and the gate scripts. The
+> results below were measured before those changes and must be re-run.
+
 Updated 2026-09-30 after physical testing of the extractor fix and the clean
 release rebuild. Base **c49bb03**; branch
 `codex/arch-v0.1.0-from-c49bb03`; code HEAD before this handoff update

@@ -98,7 +98,13 @@ public class ArchEditionTest {
     @Test
     public void theBuilderNeverWeakensSignatureChecking() throws Exception {
         String builder = read(new File(moduleDir(), "rootfs/build-rootfs.sh"));
-        String code = builder.replaceAll("(?m)^\\s*#.*$", "");
+        // The one place the weak level names may appear: the check that
+        // refuses them in the shipped pacman.conf, globally and per repository.
+        String refuseWeak = "grep -Eqx \"Never|Optional|TrustAll|PackageNever|PackageOptional"
+                + "|PackageTrustAll\" /tmp/siglevels.shipped";
+        assertTrue("the shipped signature levels are checked", builder.contains(refuseWeak));
+        assertTrue(builder.contains("$C SigLevel | tr \" \" \"\\n\" | grep -qx Required"));
+        String code = builder.replaceAll("(?m)^\\s*#.*$", "").replace(refuseWeak, "");
         assertFalse(code.contains("SigLevel = Never"));
         assertFalse(code.contains("TrustAll"));
         assertFalse(code.contains("--nodeps"));

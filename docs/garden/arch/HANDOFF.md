@@ -37,7 +37,9 @@ usage limit). Nothing is tagged or released yet. Read this first, then
   sudo via pacman (never -Sy). No debconf on pacman guests.
 - **Data-loss fix** (same commit): `isReady()` no longer needs the install to
   match the current pin — a future app with a newer rootfs pin would have
-  re-extracted over /home/thoth.
+  re-extracted over /home/thoth. (Incomplete: any other failed readiness probe
+  still re-extracted over /home; replaced by the lifecycle in
+  `docs/garden/ROOTFS_LIFECYCLE.md`.)
 - **Shared tests** (a167bc3): PageAlignmentTest and TerminalZoomGestureTest
   moved to `garden-common/src/editionTest` / `editionAndroidTest`; Trixie uses them too.
 - **emulatorview fix** (1a15273): DCS/SOS/PM/APC strings are consumed. Found on

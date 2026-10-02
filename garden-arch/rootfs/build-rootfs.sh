@@ -266,6 +266,18 @@ sed -i "s/^#DisableSandboxFilesystem$/# ThothTerm: Android kernels provide no La
 grep -qx "DisableSandboxFilesystem" $T/etc/pacman.conf
 grep -qx "#DisableSandboxSyscalls" $T/etc/pacman.conf
 grep -q "^DownloadUser = alpm" $T/etc/pacman.conf
+# Every package stays signature-checked: the shipped configuration, globally
+# and for every repository, requires signatures and never relaxes them
+# (DatabaseOptional, the Arch default for databases, is not a package level).
+C="pacman-conf --config $T/etc/pacman.conf"
+$C SigLevel | tr " " "\n" | grep -qx Required
+{ $C SigLevel; for r in $($C --repo-list); do $C --repo "$r" SigLevel; done; } \
+    | tr " " "\n" > /tmp/siglevels.shipped
+if grep -Eqx "Never|Optional|TrustAll|PackageNever|PackageOptional|PackageTrustAll" /tmp/siglevels.shipped; then
+    echo "the image would relax signature checking: $(sort -u /tmp/siglevels.shipped | tr "\n" " ")" >&2
+    exit 1
+fi
+sort -u /tmp/siglevels.shipped > /out/siglevels.txt
 
 cp $T/etc/pacman.conf /out/pacman.conf
 cp $T/etc/pacman.d/mirrorlist /out/mirrorlist

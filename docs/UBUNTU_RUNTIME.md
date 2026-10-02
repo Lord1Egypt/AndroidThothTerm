@@ -180,16 +180,24 @@ Flow (`RootfsManager`):
 1. Read `assets/ubuntu/image.properties`.
 2. Copy runtime host libraries to `runtime/lib`.
 3. Delete any stale staging directory; extract into `rootfs.staging`.
-4. Verify the SHA-256 of the compressed stream against the pinned value.
-5. Require `usr/bin/bash` and `etc/os-release` in staging.
+4. Verify the SHA-256 of the whole compressed file against the pinned value,
+   and require that no archive entry was refused.
+5. Require the guest entry points (`/bin/bash`, `/usr/bin/su`) and
+   `etc/os-release` in staging.
 6. Prepare `/home/thoth` (copy `/etc/skel`, append the prompt), write
    `/etc/profile.d/thothterm-ubuntu.sh` and `/etc/hostname`.
-7. Delete any incomplete `rootfs`, atomically rename `rootfs.staging` to
-   `rootfs`, and only then write `state.properties` with `complete=true`.
+7. Promote staging to `rootfs` -- only if no `rootfs` exists; a first install
+   never replaces anything -- and only then write `state.properties` with
+   `complete=true`.
 
 The presence of the `rootfs` directory alone is never treated as proof of a
-valid installation; `isReady()` requires a complete state manifest matching the
-current image id and SHA-256 plus sentinels.
+valid installation, and a missing state record is never treated as
+"not installed" either. The full lifecycle -- what happens to a damaged,
+half-installed or pin-moved installation, and the reset that keeps `/home` --
+is in `docs/garden/ROOTFS_LIFECYCLE.md`. Readiness no longer depends on the
+pinned image: an earlier version required the state to match the current pin,
+so a rootfs pin change in an app update would have re-extracted over the
+user's home.
 
 ### Safe archive extraction
 
@@ -199,16 +207,21 @@ safety logic can be unit-tested:
 - rejects absolute names, `..` components, and NUL bytes; such entries are
   refused and counted (`SECURITY` log);
 - verifies each 512-byte header checksum;
-- writes only after resolving the destination parent's canonical path and
-  confirming it is inside the extraction root (defeats symlink-parent escapes);
+- never extracts through a symlink and never follows the final component:
+  files are created with `O_CREAT|O_EXCL|O_NOFOLLOW`, an existing link is
+  unlinked, hardlink targets are walked the same way (the earlier
+  canonical-path check left a dangling-symlink-then-file write outside the
+  root possible; see `docs/garden/ROOTFS_LIFECYCLE.md`);
 - preserves directories, regular files, symlinks, hardlinks, and permission
-  bits; skips device/FIFO entries;
-- drops setuid/setgid/sticky bits (meaningless in a rootless app and a needless
-  risk);
+  bits; skips device/FIFO entries; keeps literal backslashes in names;
+- drops setuid/setgid (meaningless in a rootless app and a needless risk);
+  a directory keeps its sticky bit;
 - ignores unknown pax records and handles GNU long names and pax `path`/`linkpath`.
 
-Validated against the real Ubuntu tarball: 6,564 entries, 0 rejected, symlinks
-and coreutils hardlinks preserved, `usr/bin/bash` present.
+Validated against the real Ubuntu tarball with
+`tests/garden-common/extractor/host-gate.sh`: 6,564 entries, 0 rejected, the
+extracted tree identical to an independent manifest. The device proof is
+`tests/garden-common/extractor/device-gate.sh term-ubuntu ...`.
 
 ## Runtime launch
 
@@ -282,6 +295,10 @@ external-storage permission flow, and the Linux `HOME` stays app-private.
 
 - First-run failure: the setup screen offers **Retry** and **View logs**; no
   state is marked ready, and a partial staging directory is never used.
+- A damaged installation (for example a missing `/bin/bash` after an
+  interrupted upgrade) is never re-extracted on its own: the setup screen
+  explains it and offers **Reinstall system files**, which keeps `/home`, behind
+  a confirmation dialog.
 - Full reset: Android Settings → Apps → ThothTerm Ubuntu → Storage → Clear
   data, or `adb shell pm clear com.thothterm.ubuntu`. This removes the extracted
   rootfs and state; the next launch re-extracts from the APK.

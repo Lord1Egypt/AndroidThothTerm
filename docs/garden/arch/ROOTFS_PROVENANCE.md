@@ -50,7 +50,11 @@ missing files. The installed package list is in the local
 For Android's PRoot environment the image enables only
 `DisableSandboxFilesystem`, because the phone kernel lacks Landlock.
 `DisableSandboxSyscalls`, `DownloadUser = alpm`, and
-`SigLevel = Required DatabaseOptional` remain in effect. The archive keeps
+`SigLevel = Required DatabaseOptional` remain in effect. (The builder revision
+above checked the sandbox lines and refused `SigLevel = Never` only in the
+builder's own configuration; the shipped configuration's levels are now
+checked by `build-rootfs.sh` itself, from a later revision, and on the device
+by `tests/garden-arch/device/interrupt.sh`.) The archive keeps
 a signed archlinuxarm-keyring package for first-run trust verification. It
 ships no pacman private key, pacman keyring home, sync databases, package
 cache, lock, log, machine ID, SSH host keys, or populated user HOME.
@@ -78,6 +82,14 @@ keyring provisioning, two no-op final updates, install/remove/reinstall,
 interrupted transaction repair, DNS/TLS, library loading, and upgrading an
 old image. Log: `/tmp/codex-arch-gate-fresh-final.log` on the local workstation.
 
+That gate unpacks its rootfs copies with tar, not with the app's extractor,
+which is how it missed the backslash defect the app's own extraction later
+showed. It is package-manager evidence only. Extractor evidence for this
+archive must come from `tests/garden-common/extractor/device-gate.sh
+garden-arch` (and `host-gate.sh`), which has not been run on it yet; the
+gate scripts were also tightened after that run (interrupt.sh, zero.sh,
+stale.sh), so the 78/0 result is for the earlier scripts.
+
 ## Corresponding sources
 
 The local `arch-rootfs-work/sources-codex-final/` collection contains one
@@ -94,6 +106,13 @@ the wrong order. Each source file matched a published checksum exactly, and
 `makepkg --verifysource` passed using a temporary corrected order. Its source
 archive includes both the unmodified upstream recipe and the exact verified
 checksum-order correction. No checksum value was weakened or skipped.
+Not proven: a recipe whose own checksums do not verify could not have produced
+the binary with a checksum-verifying `makepkg`, so the shipped binary was
+probably built from another revision of the recipe (or with verification
+skipped). The sources above match the recipe's hashes; that they are the
+sources of this exact binary is an inference, and the reuse of 135 source rows
+from an earlier recollection (rather than one collection from the final
+captured inputs) is a second reason to recollect once before publication.
 
 The corresponding rootfs archive and source archives are local review
 artifacts. Do not publish them, create the rootfs tag, or use them for an
