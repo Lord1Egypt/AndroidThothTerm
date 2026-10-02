@@ -926,3 +926,233 @@ build instead of shipping `/tmp/`.
 3. In the QA app's terminal, a SysV shared-memory user (e.g.
    `python3 -c "import sysv_ipc"` or any `shmget` with a key) should create
    its key link under `/data/data/<QA id>/files/linux/runtime/tmp/`.
+
+---
+
+## 7. POST-CODEX-QA ROUND 2 REMEDIATION
+
+Source: `docs/garden/arch/CODEX_QA_839F935.md` on `codex/qa-839f935-report`
+(`421b094`), read in full; that branch was not touched. Commits on this
+branch:
+- `3b5d746`: findings 1 and 2;
+- `6472e61`: finding 3;
+- this commit: PRoot host-check preflight and this section.
+
+### 7.1 JVM FileOps chmod contract
+
+**Root cause.** `JvmFileOps.chmodNoFollow` used
+`Files.setAttribute(path, "unix:mode", m, NOFOLLOW_LINKS)`. OpenJDK
+implements that as `open(path, O_RDONLY|O_NOFOLLOW)` followed by
+`fchmod(fd)`:
+- `UnixFileAttributeViews.Posix.setMode` with `followLinks == false`;
+- `UnixPath.openForAttributeAccess(false)`;
+- checked in jdk17u's sources.
+
+Opening read-only needs read permission. A file or directory its owner
+cannot read (0200, 0300, 0110, 0000) therefore fails with EACCES, although
+`chmod(2)` needs none. Root bypasses the check, which is why my root
+container never saw it and Codex, as an ordinary user, did. Reproduced here
+as `nobody`: the old code throws exactly Codex's
+`AccessDeniedException: …/chmodWorksOnUnreadableFile/wo`.
+
+**Fix.** `JvmFileOps` now does exactly what `AndroidFileOps` already does on
+the device:
+1. `lstat`: anything but a regular file or directory, a symlink in
+   particular, is refused;
+2. `fchmod` on an `O_NOFOLLOW` descriptor; a symlink would fail with ELOOP;
+3. only if that fails with `AccessDeniedException`, `lstat` again, and if
+   the path is still the same regular file or directory, `chmod(2)`.
+
+The masks are unchanged:
+- files: 0777, so setuid and setgid are never applied;
+- directories: 01777, so the sticky bit is kept.
+
+**Why no-follow still holds.** The fallback runs only when no-follow
+`fchmod` was impossible. It acts on a path `lstat` has just shown is not a
+symlink, inside a tree with a single writer (the extracting thread). That
+is the same argument and the same code shape as `AndroidFileOps`, whose
+EACCES path is unchanged. Nothing follows symlinks in general.
+
+**New contract cases** run on the JVM and through `ExtractorGate` on the
+device (`AndroidFileOps`):
+- `chmodOfUnreadableFileStillMasksSetuid`: 0200 → 06755 gives 0755, and
+  0000 → 0110;
+- `chmodRefusesSymlinkToUnreadableTarget`: refused, target stays 0200, also
+  through `setMode`;
+- `chmodWorksOnDirectory`: 0755 → 0700;
+- `chmodWorksOnUnreadableDirectoryKeepingSticky`: 0300 → 03777 gives 01777,
+  and 0300 → 0755;
+- `chmodRefusesSymlinkToDirectory`: target directory unchanged.
+
+`chmodWorksOnUnreadableFile` (0200 → 0640) is unchanged. `FileOpsContractTest`
+passes as `nobody` and as root, and fails as `nobody` on the old
+`JvmFileOps`.
+
+### 7.2 Manifest verifier and owner-unreadable final modes
+
+**Root cause.** `TreeManifest.of` computed every regular file's SHA-256 by
+reopening it after extraction. `usr/lib/dbus-daemon-launch-helper` ends at
+mode 0110, so a non-root gate could not reopen it. The data was correct,
+but the verification design was not.
+
+**New architecture.** The content check moves to the moment the content
+exists:
+- **During extraction.** `RecordingFileOps` (`sharedTestFixtures`) wraps the
+  real `FileOps` and records the SHA-256 and length of exactly the bytes the
+  extractor writes to each new file, as they pass through.
+  - Records follow inodes: a hard link shares its target's record, `unlink`
+    drops a name, `rename` moves names.
+  - A record is complete only when its stream is closed.
+- **After extraction.** `ExtractorGate` builds the tree listing with
+  `TreeManifest.of(root, modes, contents)`:
+  - path, type, mode and size come from `lstat`;
+  - symlink targets come from `readlink`;
+  - content is the extraction record (`ContentCheck`).
+- **The comparison.** That listing is compared with the independent Python
+  manifest, as before:
+  - every regular file must have a complete record whose length equals its
+    on-disk size;
+  - a file its owner can read (decided from the mode bits, so root behaves
+    the same) is also re-read from disk and must equal its record;
+  - an owner-unreadable file is never reopened and its mode is never
+    touched;
+  - every real hard link must share its target's inode (`fileKey`).
+
+**The required properties hold:**
+- the mode stays 0110;
+- no content check is skipped;
+- the manifest is still independent (Python `tarfile`);
+- no root is needed;
+- symlinks are only read by `readlink`.
+
+The same gate code runs on the device with `AndroidFileOps`.
+
+`ExtractorGateVerifierTest` (sharedTest) covers four cases:
+- a synthetic archive with a setuid 0110 `dbus-daemon-launch-helper`, a
+  hard link, a symlink and the Trixie non-ASCII certificate name passes; the
+  helper stays 0110, and the report states 4 files, 3 re-read, 1
+  owner-unreadable `[usr/lib/dbus-daemon-launch-helper=110]`, and 1 hard
+  link;
+- a wrong manifest digest for the 0110 file fails with a DIFF, and the mode
+  stays 0110;
+- on-disk tampering, a size mismatch and a file the extractor never wrote
+  are each caught;
+- records follow hard links, a replaced target and rename.
+
+### 7.3 Ubuntu SDK 36 `GestureBackNavigation`
+
+Google's lint docs for this check (`googlesamples/android-custom-lint-rules`)
+say it flags both `KEYCODE_BACK` interception in `onKeyUp` and any
+`onBackPressed()` override. From Android 16, for SDK 36 targets, a back
+gesture dispatches no key event, so the old code silently skipped the
+terminal's back semantics on gestures.
+
+**Implementation, identical in `term-ubuntu` and `garden-common`:**
+- `BackAction.decide(...)`, a pure function: finish a text selection, then
+  hide an action bar set to hide, then `BACK_KEY_STOPS_SERVICE` /
+  `CLOSES_ACTIVITY` / `CLOSES_WINDOW`. Back-sends-ESC/TAB stays with the
+  terminal view; reaching the activity it does nothing, exactly like the old
+  `return false`.
+- `Term.handleBackAction()` executes that decision.
+- An `OnBackPressedCallback`, registered in `onCreate` with
+  `getOnBackPressedDispatcher().addCallback(this, …)`, calls it. That ties it
+  to the lifecycle: active while started, removed when destroyed.
+  - AndroidX Activity 1.8.2 is already a dependency, and `Term` is an
+    `AppCompatActivity`.
+  - Before Android 13 the classic back reaches it, so behaviour there is
+    unchanged.
+  - From 13 on, AndroidX registers the platform `OnBackInvokedDispatcher`
+    callback.
+- The existing view key listener (hide the action bar before the terminal
+  view consumes BACK) calls the same method.
+- `onKeyUp` no longer handles `KEYCODE_BACK`, and nothing overrides
+  `onBackPressed`. There is no suppression, `tools:ignore` or lint config
+  change.
+
+The Garden copy had the same code. Its lint did not report it, because the
+copy lives in the `garden-common` library. It is fixed the same way.
+
+**Tests:**
+- `BackActionTest`: Ubuntu 5/5, Garden 5/5;
+- `BackNavigationSourceTest`: 2/2. It checks that both `Term`s register the
+  dispatcher callback, route all three paths through `handleBackAction()`,
+  have no `KEYCODE_BACK` in `onKeyUp`/`onKeyDown`/`onKeyLongPress` and no
+  `onBackPressed`, and that the two `BackAction` copies are byte-identical.
+- `Term.java` (both), compiled with stubs carrying the real AndroidX
+  signatures (`OnBackPressedCallback(boolean)`,
+  `OnBackPressedDispatcher.addCallback(LifecycleOwner, …)`,
+  `getOnBackPressedDispatcher()`): no error in the new code. The remaining
+  errors are the pre-existing stub gaps (`ActivityResult*`, `setIcon`,
+  `doShowAbout`).
+
+Terminal readiness is untouched: `RootfsManager`, `SetupState` and the
+`TERMINAL_READY` ordering are not in this diff.
+
+### 7.4 Results here
+
+| Check | Result |
+|---|---|
+| garden-common linux + shared JVM suite as `nobody` | 153/153, excluding `ProotRuntimeHostTest`, which needs the host C compiler (7.5). Earlier, with that compiler: 155 run, 1 failure (EXITKILL, this container's ptrace; it fails identically at `839f935`) |
+| term-ubuntu linux + shared JVM suite as `nobody` | 131/131, same exclusion |
+| LAN (`LanUploadTest` / `LanServerTest` / `LanAuthTest`) | garden-common 52/52, term-ubuntu 51/51 |
+| Edition tests | Arch 25/25, Trixie 17/17 (local subset; Codex's Gradle counts are 28 and 20) |
+| Runtime-id guards | `QaRuntimeIsolationTest` (in the suite above), `runtime-ids-selftest.sh` OK, `device-gate-selftest.sh` OK |
+| **Standard host gate, Ubuntu**, as `nobody` | **exit 0**. 6564 entries, 0 rejected, 6564-path manifest match; content of 5522 files = extraction record, all re-read identical; 115 hard links share inodes |
+| **Standard host gate, Trixie**, as `nobody` | **exit 0**. 7050 entries, 7049 paths, 0 rejected; `NetLock_Arany_=Class_Gold=_Főtanúsítvány.crt` present with its exact UTF-8 bytes and in the matching manifest |
+| **Standard host gate, Arch** | **not run**: `03a4c669…` returns HTTP 404 from this container and is on no branch |
+| Arch-shaped synthetic archive through the standard `host-gate.sh`, as `nobody` | exit 0. Setuid 0110 `dbus-daemon-launch-helper` and a 0000 `etc/gshadow` verified without reopening; both keep their modes (`stat`: 110 and 0); hard link inode check passes. The **old** gate on the same archive fails exactly as in Codex's report (chmod contract plus `AccessDeniedException`) |
+| `:garden-common:testDebugUnitTest`, `:term-ubuntu:lintFullDebug` | **not run**: no real Gradle, AGP or lint here. Google Maven is blocked, and Maven Central has only lint 25.3 (2017), which predates this check. **No lint PASS is claimed** |
+
+### 7.5 Environment incident
+
+While testing the PRoot host-check preflight, I wrote a stub through a
+symlink and **overwrote this cloud container's
+`/usr/bin/x86_64-linux-gnu-gcc-13`** (the system gcc driver). Restoring it
+from the matching `gcc-13-x86-64-linux-gnu` package (verified md5) was not
+permitted in this session.
+
+Consequences:
+- Nothing in the repository or branch is affected.
+- This container's C compiler is unusable, so the C-based host checks were
+  not re-run in this round: `runtime-ids-host-check.sh` (24/24 at
+  `839f935`), `tests/garden-common/proot/host-check.sh`, and
+  `ProotRuntimeHostTest`. None of their sources changed except the
+  preflight below.
+
+### 7.6 PRoot host-check preflight
+
+`tests/garden-common/proot/host-check.sh` now checks gcc, make, patch,
+bsdtar and a compilable `<archive.h>` first. If any is missing it prints
+"ENVIRONMENT BLOCKED (not a PRoot result)" with install hints and exits 2.
+PRoot and libarchive are unchanged. The positive path (header found) was
+checked before the incident; the negative path was checked with a
+simulated missing header.
+
+### 7.7 Still unverified (physical; nothing here changes that)
+
+None of this is turned into a PASS by JVM or host tests:
+- `AndroidFileOps` malicious cases and fd exhaustion;
+- the isolated QA PRoot launch;
+- HOME preservation;
+- patch 0006 and fchmodat2, and pacman permission warnings;
+- `SYSTEMD_IN_CHROOT`;
+- LAN sign-out fd cleanup;
+- Ubuntu terminal-readiness timing;
+- F-Droid wrong-hash, partial and retry paths;
+- predictive back on Android 13+ and 16, and the back key before 13.
+
+**One check for Codex on the Arch archive.** On Android, `link(2)` is denied
+and a hard link is materialized by copying its target through
+`openNoFollow`. A hard link whose target's final mode is owner-unreadable
+would therefore fail on the device. Neither Ubuntu nor Trixie has any (0
+owner-unreadable files). For Arch, run:
+
+```sh
+python3 -c "import tarfile,sys;t=tarfile.open(sys.argv[1]);r={m.name.lstrip('./'):m.mode for m in t if m.isreg()};print([(m.name,m.linkname) for m in t if m.islnk() and not r.get(m.linkname.lstrip('./'),0o400)&0o400])" <arch.tar.gz>
+```
+
+An empty list means no exposure.
+
+Not done, on purpose: no tag, no release, no F-Droid MR change, no
+BlackArch, the Codex report branch untouched.
+

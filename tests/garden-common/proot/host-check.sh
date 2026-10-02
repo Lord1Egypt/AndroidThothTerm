@@ -14,6 +14,23 @@ W=${WORK:-$(mktemp -d)}
 fail=0
 ok() { if [ "$1" = 0 ]; then echo "PASS $2"; else echo "FAIL $2"; fail=1; fi; }
 
+# Host prerequisites first: a missing one is an environment block (exit 2),
+# never a PRoot verdict.
+missing=""
+for tool in gcc make patch bsdtar; do
+    command -v "$tool" >/dev/null 2>&1 || missing="$missing $tool"
+done
+if command -v gcc >/dev/null 2>&1 \
+        && ! printf '#include <archive.h>\n' | gcc -E -x c - >/dev/null 2>&1; then
+    missing="$missing archive.h(libarchive-dev/libarchive-devel)"
+fi
+if [ -n "$missing" ]; then
+    echo "ENVIRONMENT BLOCKED (not a PRoot result): missing$missing"
+    echo "  Debian/Ubuntu: apt install build-essential libarchive-dev libarchive-tools"
+    echo "  Fedora:        dnf install gcc make patch libarchive-devel bsdtar"
+    exit 2
+fi
+
 [ -f "$REPO/third_party/proot/src/GNUmakefile" ] || { echo "run: git submodule update --init third_party/proot"; exit 2; }
 
 # talloc, as tools/build-proot.sh builds it, but for this host.
