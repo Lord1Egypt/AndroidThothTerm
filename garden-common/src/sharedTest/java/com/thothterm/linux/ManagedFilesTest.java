@@ -136,4 +136,21 @@ public class ManagedFilesTest {
         assertEquals(0600, ops.permissions(shadow));
         assertFalse("no temporary file left", new File(root, "etc/.shadow.thothterm-new").exists());
     }
+
+    @Test
+    public void writesIntoAnOwnerReadOnlyDirectoryAndRestoresIt() throws Exception {
+        File root = temporaryFolder.newFolder("ro-dir");
+        File dir = new File(root, "etc/ro");
+        Files.createDirectories(dir.toPath());
+        File file = new File(dir, "conf");
+        Files.write(file.toPath(), "old".getBytes(StandardCharsets.UTF_8));
+        ops.chmodNoFollow(dir, 0555);
+        try {
+            assertTrue(ManagedFiles.writeIfChanged(ops, root, file, "new", -1));
+            assertEquals("new", new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8));
+            assertEquals("directory mode restored", 0555, ops.permissions(dir));
+        } finally {
+            ops.chmodNoFollow(dir, 0755);
+        }
+    }
 }

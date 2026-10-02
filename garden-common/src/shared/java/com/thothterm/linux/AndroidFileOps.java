@@ -24,8 +24,6 @@ import android.system.StructStat;
 
 import java.io.File;
 import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -89,45 +87,118 @@ public final class AndroidFileOps implements FileOps {
         } catch (ErrnoException e) {
             throw io("create", file, e);
         }
-        final int finalMode = mode & FILE_MODE_MASK;
-        return new FileOutputStream(fd) {
-            private boolean closed;
-
-            @Override
-            public void close() throws IOException {
-                if (closed) return;
-                closed = true;
-                IOException failure = null;
-                try {
-                    // The descriptor, not the path: the mode lands on exactly
-                    // the inode this stream created.
-                    Os.fchmod(fd, finalMode);
-                } catch (ErrnoException e) {
-                    failure = io("fchmod", file, e);
-                }
-                super.close();
-                if (failure != null) throw failure;
-            }
-        };
+        return new DescriptorOutputStream(fd, file, mode & FILE_MODE_MASK);
     }
 
     @Override
     public InputStream openNoFollow(File file) throws IOException {
         try {
-            FileDescriptor fd = Os.open(file.getAbsolutePath(),
-                    OsConstants.O_RDONLY | OsConstants.O_NOFOLLOW | CLOEXEC, 0);
-            return new FileInputStream(fd) {
-                private boolean closed;
-
-                @Override
-                public void close() throws IOException {
-                    if (closed) return;
-                    closed = true;
-                    super.close();
-                }
-            };
+            return new DescriptorInputStream(Os.open(file.getAbsolutePath(),
+                    OsConstants.O_RDONLY | OsConstants.O_NOFOLLOW | CLOEXEC, 0), file);
         } catch (ErrnoException e) {
             throw io("open", file, e);
+        }
+    }
+
+    /**
+     * Writes straight to the descriptor with {@code write(2)}. Android's
+     * {@code FileOutputStream(FileDescriptor)} does not own the descriptor and
+     * would never close it: one leaked descriptor per extracted file. Closing
+     * applies the mode with {@code fchmod} on this descriptor, then closes it.
+     */
+    private static final class DescriptorOutputStream extends OutputStream {
+        private final FileDescriptor fd;
+        private final File file;
+        private final int mode;
+        private boolean closed;
+
+        DescriptorOutputStream(FileDescriptor fd, File file, int mode) {
+            this.fd = fd;
+            this.file = file;
+            this.mode = mode;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            write(new byte[]{(byte) b}, 0, 1);
+        }
+
+        @Override
+        public void write(byte[] buffer, int offset, int length) throws IOException {
+            if (closed) throw new IOException("Stream closed: " + file);
+            while (length > 0) {
+                int written;
+                try {
+                    written = Os.write(fd, buffer, offset, length);
+                } catch (ErrnoException e) {
+                    throw io("write", file, e);
+                }
+                offset += written;
+                length -= written;
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (closed) return;
+            closed = true;
+            IOException failure = null;
+            try {
+                // The descriptor, not the path: the mode lands on exactly the
+                // inode this stream created.
+                Os.fchmod(fd, mode);
+            } catch (ErrnoException e) {
+                failure = io("fchmod", file, e);
+            }
+            try {
+                Os.close(fd);
+            } catch (ErrnoException e) {
+                if (failure == null) failure = io("close", file, e);
+            }
+            if (failure != null) throw failure;
+        }
+    }
+
+    /** Reads with {@code read(2)} and closes the descriptor it owns. */
+    private static final class DescriptorInputStream extends InputStream {
+        private final FileDescriptor fd;
+        private final File file;
+        private boolean closed;
+
+        DescriptorInputStream(FileDescriptor fd, File file) {
+            this.fd = fd;
+            this.file = file;
+        }
+
+        @Override
+        public int read() throws IOException {
+            byte[] one = new byte[1];
+            int n = read(one, 0, 1);
+            return n <= 0 ? -1 : one[0] & 0xFF;
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length) throws IOException {
+            if (closed) throw new IOException("Stream closed: " + file);
+            if (length == 0) return 0;
+            int n;
+            try {
+                n = Os.read(fd, buffer, offset, length);
+            } catch (ErrnoException e) {
+                throw io("read", file, e);
+            }
+            return n == 0 ? -1 : n;
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (closed) return;
+            closed = true;
+            try {
+                Os.close(fd);
+            } catch (ErrnoException e) {
+                throw io("close", file, e);
+            }
         }
     }
 

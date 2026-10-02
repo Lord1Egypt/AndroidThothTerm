@@ -101,15 +101,25 @@ public final class ManagedFiles {
 
         File parent = target.getParentFile();
         ensureDirectories(ops, root, parent);
-        File temp = new File(parent, "." + target.getName() + ".thothterm-new");
-        if (ops.type(temp) != FileOps.Type.NONE) ops.unlink(temp);
-        OutputStream out = ops.createNew(temp, finalMode);
+        // The rename needs write permission on the directory. A directory the
+        // image ships owner-read-only (the app owns every guest file) gets it
+        // for the duration of the write, as the guest's fake root would.
+        int parentMode = ops.permissions(parent);
+        boolean unlock = (parentMode & 0300) != 0300;
+        if (unlock) ops.chmodNoFollow(parent, parentMode | 0300);
         try {
-            out.write(text.getBytes(UTF8));
+            File temp = new File(parent, "." + target.getName() + ".thothterm-new");
+            if (ops.type(temp) != FileOps.Type.NONE) ops.unlink(temp);
+            OutputStream out = ops.createNew(temp, finalMode);
+            try {
+                out.write(text.getBytes(UTF8));
+            } finally {
+                out.close();
+            }
+            ops.rename(temp, target);
         } finally {
-            out.close();
+            if (unlock) ops.chmodNoFollow(parent, parentMode);
         }
-        ops.rename(temp, target);
         return true;
     }
 
