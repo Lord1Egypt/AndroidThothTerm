@@ -32,7 +32,10 @@
     <string name="ubuntu_downloading_percent">Downloading Ubuntu\u2026 %1$d%%</string>
     <string name="ubuntu_extracting">Extracting Ubuntu\u2026</string>
     <string name="ubuntu_finalizing">Finalizing %1$s environment\u2026</string>
-    <string name="ubuntu_admin_tools">Preparing administrator tools\u2026</string>
+    <!-- Optional provisioning (sudo) after the terminal is ready; never blocks it. -->
+    <string name="optional_setup_failed">Administrator tools (sudo) could not be set up. The terminal works normally; retry from the menu.</string>
+    <string name="optional_setup_retry">Retry administrator tools setup</string>
+    <string name="optional_setup_retrying">Setting up administrator tools in the background\u2026</string>
     <string name="ubuntu_damaged_title">Your Ubuntu environment needs attention.</string>
     <string name="ubuntu_damaged_body">Files the terminal needs are missing from the installed system, for example after an interrupted package update. Nothing has been changed or deleted.\n\nYou can reinstall the system files. Your home directory (/home) is moved into the new system unchanged. Everything else (installed packages, /etc, /root, /opt) is replaced.\n\nView the logs for details.</string>
     <string name="ubuntu_reset_pending_title">A system reinstall was started but not finished.</string>

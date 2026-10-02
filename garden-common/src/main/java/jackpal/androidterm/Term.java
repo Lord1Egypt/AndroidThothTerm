@@ -58,6 +58,7 @@ import com.thothterm.WindowListActivity;
 import com.thothterm.compat.SoftInputCompat;
 import com.thothterm.lan.LanController;
 import com.thothterm.lan.LanModeActivity;
+import com.thothterm.linux.OptionalSetup;
 import com.thothterm.linux.RootfsManager;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
@@ -507,10 +508,23 @@ public class Term extends AppCompatActivity
                 ? R.string.lan_state_active : R.string.lan_state_off));
     }
 
+    /**
+     * Optional provisioning (sudo) runs after the terminal opened and never
+     * blocks it; a failure is said once and leaves a retry in the menu.
+     */
+    private final OptionalSetup.Listener mOptionalSetupListener = status -> runOnUiThread(() -> {
+        if (status == OptionalSetup.Status.FAILED) {
+            ScreenMessage.show(getApplicationContext(), R.string.optional_setup_failed);
+        }
+        invalidateOptionsMenu();
+    });
+
     @Override
     protected void onResume() {
         super.onResume();
         ThothLog.d(LogCategory.UI, "Term activity resumed");
+        RootfsManager.get().optionalSetup().addListener(mOptionalSetupListener);
+        invalidateOptionsMenu();
         LanController.get().addListener(mLanListener);
         showLanState();
         mUploadUi.attach();
@@ -519,6 +533,7 @@ public class Term extends AppCompatActivity
     @Override
     public void onPause() {
         super.onPause();
+        RootfsManager.get().optionalSetup().removeListener(mOptionalSetupListener);
         LanController.get().removeListener(mLanListener);
         mUploadUi.detach();
 
@@ -611,6 +626,9 @@ public class Term extends AppCompatActivity
             doToggleKeepScreenOn();
         } else if (id == R.id.menu_toggle_wifilock) {
             doToggleWifiLock();
+        } else if (id == R.id.menu_retry_optional_setup) {
+            RootfsManager.get().retryOptionalSetup();
+            ScreenMessage.show(getApplicationContext(), R.string.optional_setup_retrying);
         }
         // Hide the action bar if appropriate
         if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES) {
@@ -758,6 +776,8 @@ public class Term extends AppCompatActivity
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.findItem(R.id.menu_retry_optional_setup).setVisible(
+                RootfsManager.get().optionalSetup().status() == OptionalSetup.Status.FAILED);
         menu.findItem(R.id.menu_toggle_keep_screen_on)
                 .setTitle(ScreenAwake.menuTitle(mScreenAwake.menu()));
         MenuItem wifiLockItem = menu.findItem(R.id.menu_toggle_wifilock);

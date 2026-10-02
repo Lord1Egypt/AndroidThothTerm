@@ -66,6 +66,54 @@ public class LifecycleSourceGuardTest {
         }
     }
 
+    /**
+     * The terminal never waits for optional provisioning: setup reaches
+     * TERMINAL_READY and hands off before anything optional is queued, and
+     * the optional work never extracts, resets or deletes anything.
+     */
+    @Test
+    public void theTerminalNeverWaitsForOptionalProvisioning() throws Exception {
+        for (String path : MANAGERS) {
+            String source = read(path);
+            String prepare = body(source, "private void runPrepare()");
+            for (String call : new String[]{"prepareAdminToolsOffline(", "ensureRealSudo(",
+                    "installBundledSudo(", "finishInterruptedSudo(", "runProvisioning(",
+                    "forceSudoSetuid("}) {
+                assertFalse(path + ": runPrepare runs optional provisioning: " + call,
+                        prepare.contains(call));
+            }
+            assertFalse(path, source.contains("prepareAdminToolsOffline"));
+            // The one guest command setup itself runs: on Arch, an offline
+            // pacman keyring (pacman-key --init/--populate from the image's
+            // own keyring package) is part of the install record, as in
+            // finishNewSystem. It needs no network.
+            assertFalse(path, prepare.replace("if (isPacman()) ensurePacmanKeyringNow();", "")
+                    .contains("ensurePacmanKeyringNow("));
+            int ready = prepare.indexOf("SetupTimeline.Stage.TERMINAL_READY");
+            int complete = prepare.indexOf("notifyComplete();");
+            int handoff = prepare.indexOf("SetupTimeline.Stage.TERMINAL_HANDOFF");
+            int optional = prepare.indexOf("scheduleAdminTools(\"after setup\"");
+            assertTrue(path + ": TERMINAL_READY, then the handoff, then optional setup",
+                    ready > 0 && ready < complete && complete < handoff && handoff < optional);
+
+            String run = body(source, "private void runOptionalSetup(");
+            for (String forbidden : new String[]{"stageVerifiedArchive(", "installFresh(",
+                    "resetSystemKeepingHome(", "replaceSystemKeepingHome(", "deleteTree(",
+                    "requestReset(", "writeState(", "setupRootfs("}) {
+                assertFalse(path + ": optional setup must not " + forbidden, run.contains(forbidden));
+            }
+            assertTrue(path + ": optional setup reports its outcome",
+                    run.contains("optionalSetup.finished(ok, why)"));
+        }
+    }
+
+    private static String body(String source, String signature) {
+        int start = source.indexOf(signature);
+        assertTrue("no " + signature, start >= 0);
+        int end = source.indexOf("\n    }\n", start);
+        return source.substring(start, end);
+    }
+
     @Test
     public void bothEditionsUseTheSharedExtractor() {
         assertFalse(new File(repo(), "term-ubuntu/src/main/java/com/thothterm/linux/TarballExtractor.java").exists());

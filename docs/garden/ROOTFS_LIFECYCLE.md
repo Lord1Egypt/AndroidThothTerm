@@ -77,32 +77,48 @@ and an absolute guest link can never send a write to an Android path. Files are
 decoded whole as strict UTF-8 (a file that is not UTF-8 is left exactly as it
 is) and replaced atomically.
 
-## Setup stages and timings
+## Setup states, stages and timings
+
+The terminal depends only on the core setup. `SetupState` names where an
+environment stands:
+
+| State | Meaning |
+|---|---|
+| `NOT_INSTALLED` | first run, nothing installed |
+| `CORE_SETUP_RUNNING` | download, extraction, verification, managed configuration, promotion, state record |
+| `TERMINAL_READY` | the core is complete; the terminal opens now |
+| `OPTIONAL_SETUP_PENDING` | terminal usable; optional provisioning queued or running in the background |
+| `OPTIONAL_SETUP_FAILED` | terminal usable; optional provisioning failed, reported, retryable |
+| `HEALTHY` | terminal usable; optional provisioning done |
+| `REPAIR_REQUIRED` | installed but not healthy (see the conditions above); never fixed by optional provisioning |
 
 The percentage on the setup screen is the archive only: download progress is
 shown separately ("Downloading ... N%"), and 100% means the archive is fully
-extracted and its checksum verified. Then named stages follow:
+extracted and its checksum verified. Then "Finalizing <distro> environment..."
+covers managed configuration, promotion, the pacman keyring (Arch: offline,
+from the image's own keyring package) and the state record. Then the setup
+screen hands off to the terminal.
 
-1. "Finalizing <distro> environment..." -- managed configuration, promotion,
-   the pacman keyring (Arch), the state record
-2. "Preparing administrator tools..." -- only local, bounded work: the setuid
-   bit on an installed sudo, finishing an interrupted dpkg configuration, or
-   (Ubuntu full flavour) installing the bundled sudo packages
-
-Anything that needs the network -- installing sudo from the distribution's
-archive (Ubuntu F-Droid flavour, or a guest where it was removed), recreating
-a missing pacman keyring -- runs on one background thread after the terminal
-has opened and never blocks it; `prepareSession()`, which runs on the UI thread
-for every new window, no longer runs guest provisioning at all. Until the
-background work finishes, `sudo` may be unavailable; the log says when it is
-done.
+**Optional provisioning** -- sudo: the setuid bit on an installed sudo,
+finishing an interrupted configuration, installing ThothTerm Ubuntu's bundled
+sudo packages (full flavour), installing sudo from the distribution's archive
+(network; Ubuntu F-Droid flavour or a guest where it was removed), recreating a
+missing pacman keyring -- runs on one background thread only after the
+handoff (`OptionalSetup`). It never blocks a terminal, never re-extracts and
+never touches `/home`. If it fails, the terminal stays usable, a message says
+so once, and the terminal menu shows "Retry administrator tools setup"; the
+next session start also retries. Until it finishes, `sudo` may be unavailable.
+`prepareSession()`, which runs on the UI thread for every new window, runs no
+guest provisioning.
 
 `SetupTimeline` logs (category ROOTFS) a line per stage with milliseconds
 since setup started: `DOWNLOAD_COMPLETE`, `ARCHIVE_EXTRACTED` (entries,
-rejected, hardlink fallbacks, bytes), `ARCHIVE_VERIFIED`,
-`SETUP_ROOTFS_COMPLETE`, `ROOTFS_PROMOTED`, `KEYRING_PROVISIONED`,
-`STATE_WRITTEN`, `ADMIN_TOOLS_READY`, `TERMINAL_HANDOFF`, and a summary line.
-The background administrator tools log their own duration and result.
+rejected, hardlink fallbacks, bytes; plus a warning with the hardlink fallback
+count), `ARCHIVE_VERIFIED`, `SETUP_ROOTFS_COMPLETE`, `ROOTFS_PROMOTED`,
+`KEYRING_PROVISIONED` (Arch), `STATE_WRITTEN`, `TERMINAL_READY`,
+`TERMINAL_HANDOFF`, a summary line, then `OPTIONAL_SETUP_STARTED` and
+`OPTIONAL_SETUP_FINISHED` or `OPTIONAL_SETUP_FAILED` with its duration, sudo
+state and reason (`t=-` when a later session queued it).
 
 ## Tests
 
@@ -111,8 +127,13 @@ The background administrator tools log their own duration and result.
   untouched), the `FileOps` no-follow contract, lifecycle transitions and the
   crash matrix, guest path resolution, managed files, archive digest.
 - `LifecycleSourceGuardTest`: neither `RootfsManager` deletes or renames over
-  the rootfs itself, both promote only through `RootfsLifecycle`, and
-  `prepareSession()` runs no guest provisioning.
+  the rootfs itself, both promote only through `RootfsLifecycle`,
+  `prepareSession()` runs no guest provisioning, setup reaches `TERMINAL_READY`
+  and hands off before anything optional is queued, and optional provisioning
+  never extracts, resets, deletes or rewrites managed files.
+- `SetupStateTest`: every optional outcome leaves a healthy installation
+  usable and never changes what the core decided; optional runs are coalesced
+  (one of 16 concurrent queues wins), fail, retry and succeed.
 - `tests/garden-common/extractor/host-gate.sh ARCHIVE SHA256`: the shared
   policy on a real archive against an independent Python manifest (JVM
   `FileOps`; not proof of `AndroidFileOps`).

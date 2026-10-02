@@ -33,8 +33,14 @@ public final class SetupTimeline {
         ROOTFS_PROMOTED,
         KEYRING_PROVISIONED,
         STATE_WRITTEN,
-        ADMIN_TOOLS_READY,
-        TERMINAL_HANDOFF
+        /** The core is complete: the terminal may open ({@link SetupState#TERMINAL_READY}). */
+        TERMINAL_READY,
+        /** The setup screen was told to open the terminal. */
+        TERMINAL_HANDOFF,
+        /** Optional provisioning (sudo, keyring), after the handoff, in the background. */
+        OPTIONAL_SETUP_STARTED,
+        OPTIONAL_SETUP_FINISHED,
+        OPTIONAL_SETUP_FAILED
     }
 
     private final long origin;
@@ -51,10 +57,21 @@ public final class SetupTimeline {
     /** Records a stage and returns the log line for it. */
     public synchronized String mark(Stage stage, String detail) {
         long ms = (System.nanoTime() - origin) / 1_000_000L;
-        String line = "Setup stage " + stage.name() + " t=" + ms + "ms"
-                + (detail == null || detail.isEmpty() ? "" : " " + detail);
         marks.add(stage.name() + "=" + ms);
-        return line;
+        return line(stage, "t=" + ms + "ms", detail);
+    }
+
+    /**
+     * The log line for a stage outside a first-run setup (optional
+     * provisioning queued by a later session), where there is no origin.
+     */
+    public static String unscheduled(Stage stage, String detail) {
+        return line(stage, "t=-", detail);
+    }
+
+    private static String line(Stage stage, String time, String detail) {
+        return "Setup stage " + stage.name() + " " + time
+                + (detail == null || detail.isEmpty() ? "" : " " + detail);
     }
 
     public synchronized String summary() {

@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Owns the edition's Linux environment: its lifecycle, first-run extraction,
@@ -56,11 +55,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * new system instead of deleting it. Nothing in this class deletes an
  * installed rootfs.</p>
  *
- * <p>Setup reports explicit stages: the extraction percentage covers the
- * archive only, then "Finalizing" and "Preparing administrator tools". Only
- * bounded, offline work happens before the terminal opens; anything that
- * needs the network runs in the background afterwards and never blocks a
- * terminal.</p>
+ * <p>Setup reports explicit stages ({@link SetupState}): the extraction
+ * percentage covers the archive only, then "Finalizing". The terminal depends
+ * only on that core; it opens at {@link SetupState#TERMINAL_READY}. Optional
+ * provisioning (sudo, a missing pacman keyring) runs afterwards in the
+ * background ({@link OptionalSetup}): a failure leaves the terminal usable,
+ * is reported and can be retried, and never re-extracts or touches
+ * {@code /home}.</p>
  */
 public final class RootfsManager {
     public interface Listener {
@@ -140,7 +141,7 @@ public final class RootfsManager {
         thread.setDaemon(true);
         return thread;
     });
-    private final AtomicBoolean adminToolsQueued = new AtomicBoolean();
+    private final OptionalSetup optionalSetup = new OptionalSetup();
     /** Serializes guest package work; deliberately not {@code this}. */
     private final Object adminLock = new Object();
 
@@ -271,6 +272,22 @@ public final class RootfsManager {
 
     public boolean isReady() {
         return image != null && condition() == Condition.INSTALLED_HEALTHY;
+    }
+
+    /** The explicit setup state, for the UI and the log. */
+    public SetupState setupState() {
+        return SetupState.of(running, condition(), optionalSetup.status());
+    }
+
+    /** Optional provisioning after the terminal is ready; listen for failures here. */
+    public OptionalSetup optionalSetup() {
+        return optionalSetup;
+    }
+
+    /** Queues optional provisioning again (the user's retry). Never blocks. */
+    public void retryOptionalSetup() {
+        if (!isReady()) return;
+        scheduleAdminTools("retry", null);
     }
 
     private List<File> runtimeFiles() {
@@ -481,13 +498,16 @@ public final class RootfsManager {
             if (condition() != Condition.INSTALLED_HEALTHY) {
                 throw new IOException("The Linux environment is still not usable: " + condition());
             }
-            prepareAdminToolsOffline(timeline);
+            // The core is complete. Nothing optional -- no package install, no
+            // network -- runs before the terminal opens.
             failed = false;
+            running = false;
+            ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.TERMINAL_READY,
+                    "state=" + setupState()));
+            notifyComplete();
             ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.TERMINAL_HANDOFF, ""));
             ThothLog.i(LogCategory.ROOTFS, timeline.summary());
-            running = false;
-            notifyComplete();
-            scheduleAdminTools("after setup");
+            scheduleAdminTools("after setup", timeline);
         } catch (Throwable t) {
             failed = true;
             lastError = t;
@@ -720,7 +740,7 @@ public final class RootfsManager {
         if (sudoState(rootfsDir) == GuestConfig.PackageState.INSTALLED) {
             forceSudoSetuid(rootfsDir);
         }
-        if (needsAdminTools()) scheduleAdminTools("session start");
+        if (needsAdminTools()) scheduleAdminTools("session start", null);
     }
 
     private boolean isPacman() {
@@ -984,51 +1004,69 @@ public final class RootfsManager {
     }
 
     /**
-     * The part of administrator-tool setup that is local and bounded, done
-     * before the terminal opens with its own visible stage: the setuid bit on
-     * an installed sudo, or finishing an interrupted package configuration.
-     * Anything that needs the network is left to {@link #scheduleAdminTools}.
+     * Queues optional provisioning -- a missing pacman keyring, and
+     * administrator tools: the setuid bit on an installed sudo, finishing an
+     * interrupted configuration, installing sudo from the distribution's
+     * archive (network) -- on one background thread, after the terminal is
+     * ready. Calls while one is queued or running are coalesced. It never
+     * blocks a terminal; until it finishes, {@code sudo} may be unavailable. A
+     * failure is reported through {@link #optionalSetup()} and retried on the
+     * next session or by the user; it never re-extracts and never touches
+     * {@code /home}.
+     *
+     * @param timeline the first-run timeline, or null after a later session
      */
-    private void prepareAdminToolsOffline(SetupTimeline timeline) {
-        publish(appContext.getString(R.string.garden_admin_tools));
-        GuestConfig.PackageState state = sudoState(rootfsDir);
-        if (state == GuestConfig.PackageState.INSTALLED) {
-            forceSudoSetuid(rootfsDir);
-        } else if (state == GuestConfig.PackageState.UNFINISHED && !isPacman()) {
-            finishInterruptedSudo(rootfsDir);
-        }
-        ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.ADMIN_TOOLS_READY,
-                "sudo=" + sudoState(rootfsDir)));
+    private void scheduleAdminTools(String reason, SetupTimeline timeline) {
+        if (!optionalSetup.queue()) return;
+        ThothLog.i(LogCategory.ROOTFS, "Optional setup queued in the background (" + reason
+                + ") state=" + SetupState.OPTIONAL_SETUP_PENDING);
+        background.execute(() -> runOptionalSetup(reason, timeline));
     }
 
-    /**
-     * Queues the network part of administrator-tool setup on one background
-     * thread. Calls while one is queued or running are coalesced. It never
-     * blocks a terminal; until it finishes, {@code sudo} may be unavailable,
-     * which the log records.
-     */
-    private void scheduleAdminTools(String reason) {
-        if (!adminToolsQueued.compareAndSet(false, true)) return;
-        ThothLog.i(LogCategory.ROOTFS, "Administrator tools queued in the background (" + reason + ")");
-        background.execute(() -> {
-            long start = System.nanoTime();
-            try {
-                if (keyringMissing()) {
-                    try {
-                        ensurePacmanKeyringNow();
-                    } catch (Throwable t) {
-                        ThothLog.e(LogCategory.ROOTFS, "pacman keyring creation failed type="
-                                + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
-                    }
+    private void runOptionalSetup(String reason, SetupTimeline timeline) {
+        optionalSetup.started();
+        ThothLog.i(LogCategory.ROOTFS, optionalMark(timeline,
+                SetupTimeline.Stage.OPTIONAL_SETUP_STARTED, "reason=" + reason));
+        long start = System.nanoTime();
+        boolean ok = false;
+        String why = null;
+        try {
+            if (keyringMissing()) {
+                try {
+                    ensurePacmanKeyringNow();
+                } catch (Throwable t) {
+                    ThothLog.e(LogCategory.ROOTFS, "pacman keyring creation failed type="
+                            + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
                 }
-                ensureRealSudo(rootfsDir);
-            } finally {
-                adminToolsQueued.set(false);
-                ThothLog.i(LogCategory.ROOTFS, "Background administrator tools finished ms="
-                        + (System.nanoTime() - start) / 1_000_000L
-                        + " sudo=" + sudoState(rootfsDir));
             }
-        });
+            ensureRealSudo(rootfsDir);
+            GuestConfig.PackageState sudo = sudoState(rootfsDir);
+            boolean keyring = !keyringMissing();
+            ok = sudo == GuestConfig.PackageState.INSTALLED && keyring;
+            if (!ok) why = "sudo=" + sudo + (keyring ? "" : " keyring=missing");
+        } catch (Throwable t) {
+            why = t.getClass().getSimpleName();
+            ThothLog.e(LogCategory.ROOTFS, "Optional setup failed type="
+                    + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
+        } finally {
+            long ms = (System.nanoTime() - start) / 1_000_000L;
+            optionalSetup.finished(ok, why);
+            String detail = "ms=" + ms + " sudo=" + sudoState(rootfsDir)
+                    + (ok ? "" : " reason=" + why) + " state=" + setupState();
+            if (ok) {
+                ThothLog.i(LogCategory.ROOTFS, optionalMark(timeline,
+                        SetupTimeline.Stage.OPTIONAL_SETUP_FINISHED, detail));
+            } else {
+                ThothLog.w(LogCategory.ROOTFS, optionalMark(timeline,
+                        SetupTimeline.Stage.OPTIONAL_SETUP_FAILED, detail));
+            }
+        }
+    }
+
+    private static String optionalMark(SetupTimeline timeline, SetupTimeline.Stage stage,
+                                       String detail) {
+        return timeline != null ? timeline.mark(stage, detail)
+                : SetupTimeline.unscheduled(stage, detail);
     }
 
     /**

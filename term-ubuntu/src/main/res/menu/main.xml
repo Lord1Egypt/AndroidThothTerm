@@ -59,4 +59,8 @@
     <item android:id="@+id/menu_toggle_wifilock"
           android:title="@string/enable_wifilock"
           app:showAsAction="never"/>
+    <item android:id="@+id/menu_retry_optional_setup"
+          android:title="@string/optional_setup_retry"
+          android:visible="false"
+          app:showAsAction="never"/>
 </menu>

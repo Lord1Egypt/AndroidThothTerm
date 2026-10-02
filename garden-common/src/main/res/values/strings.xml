@@ -34,7 +34,10 @@
     <string name="garden_downloading_percent">Downloading Linux\u2026 %1$d%%</string>
     <string name="garden_extracting">Extracting Linux\u2026</string>
     <string name="garden_finalizing">Finalizing %1$s environment\u2026</string>
-    <string name="garden_admin_tools">Preparing administrator tools\u2026</string>
+    <!-- Optional provisioning (sudo) after the terminal is ready; never blocks it. -->
+    <string name="optional_setup_failed">Administrator tools (sudo) could not be set up. The terminal works normally; retry from the menu.</string>
+    <string name="optional_setup_retry">Retry administrator tools setup</string>
+    <string name="optional_setup_retrying">Setting up administrator tools in the background\u2026</string>
     <string name="garden_damaged_title">Your Linux environment needs attention.</string>
     <string name="garden_damaged_body">Files the terminal needs are missing from the installed system, for example after an interrupted package update. Nothing has been changed or deleted.\n\nYou can reinstall the system files. Your home directory (/home) is moved into the new system unchanged. Everything else (installed packages, /etc, /root, /opt) is replaced.\n\nView the logs for details.</string>
     <string name="garden_reset_pending_title">A system reinstall was started but not finished.</string>
