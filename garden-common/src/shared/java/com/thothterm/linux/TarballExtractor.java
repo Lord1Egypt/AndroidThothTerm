@@ -325,6 +325,12 @@ public final class TarballExtractor {
         }
         if (!clearForReplacement(dest, rel)) return;
         boolean linked = linkOrCopy(existing, targetType, dest, rel, linkRel);
+        if (!linked && targetType == FileOps.Type.REGULAR) {
+            // A hard link is the target's inode, so it has the target's time; the
+            // copy would otherwise carry the time it was made (pacman -Qkk
+            // reports "Modification time mismatch" for every such file).
+            ops.setLastModified(dest, mtime * 1000L);
+        }
         PendingFile targetPending = pendingFiles.get(linkRel);
         if (linked && targetPending != null) {
             // A real hard link is the same inode: keep its final mode reachable

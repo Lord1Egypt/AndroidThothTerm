@@ -156,6 +156,19 @@ public class TarballExtractorTest {
         assertEquals("payload", readText(new File(root, "usr/bin/link")));
     }
 
+    /** The copy that stands in for a hard link keeps the archive's time, as the shared inode would. */
+    @Test
+    public void hardlinkCopyKeepsTheArchiveTime() throws Exception {
+        File root = temporaryFolder.newFolder("link-mtime");
+        new TarballExtractor(new NoHardlinkOps(new JvmFileOps()), root, null)
+                .extract(new ByteArrayInputStream(new TarBuilder()
+                        .file("usr/bin/target", "payload")
+                        .hardlink("usr/bin/link", "usr/bin/target")
+                        .build()));
+        assertEquals(1_700_000_000_000L, new File(root, "usr/bin/target").lastModified());
+        assertEquals(1_700_000_000_000L, new File(root, "usr/bin/link").lastModified());
+    }
+
     /**
      * On Android every hard link is a copy, which reads its target. A target
      * whose final mode its owner cannot read (Arch's 04110 launch helper) must
