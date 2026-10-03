@@ -1,0 +1,11 @@
+First release of ThothTerm Rolling.
+
+* Arch Linux ARM AArch64 under PRoot, fully upgraded as of its build
+* pacman with signature checking; each install gets its own keyring,
+  made in the background after the terminal opens
+* sudo for thoth; pacman -Syu keeps it current
+* Windows, extra keys, zoom, Arabic/RTL text
+* Uploads into a terminal's current directory
+* LAN Mode: off by default, plain HTTP
+* F-Droid build downloads the environment only after consent, then checks
+  its size and SHA-256

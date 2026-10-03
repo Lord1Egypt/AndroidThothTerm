@@ -1,0 +1,2 @@
+device gate self-test: OK
+exit=0

@@ -1,0 +1,73 @@
+== garden-arch-fdroid-debug.apk: com.thothterm.arch 0.1.0 (100) minSdk 26 targetSdk 36 sha256 f995d87fdb38d2fa8c5fb8fb4c7de7da460d5517b07520f49f6eb750b11909f9 bytes 7831798
+PASS garden-arch-fdroid-debug.apk identity read by aapt2
+PASS garden-arch-fdroid-debug.apk zipalign -c -P 16 4
+PASS garden-arch-fdroid-debug.apk ELF LOAD >= 0x4000 (5 ELF files)
+PASS garden-arch-fdroid-debug.apk JNI RegisterNatives targets 7/7
+PASS garden-arch-fdroid-debug.apk F-Droid flavour embeds no rootfs
+== garden-arch-fdroid-release-unsigned.apk: com.thothterm.arch 0.1.0 (100) minSdk 26 targetSdk 36 sha256 a841a2df4da3e58f3c0068b0f6958b5bad9046e808000f7cf932c4d764b574a1 bytes 3870314
+PASS garden-arch-fdroid-release-unsigned.apk identity read by aapt2
+PASS garden-arch-fdroid-release-unsigned.apk zipalign -c -P 16 4
+PASS garden-arch-fdroid-release-unsigned.apk ELF LOAD >= 0x4000 (5 ELF files)
+PASS garden-arch-fdroid-release-unsigned.apk JNI RegisterNatives targets 7/7
+PASS garden-arch-fdroid-release-unsigned.apk F-Droid flavour embeds no rootfs
+== garden-arch-full-debug.apk: com.thothterm.arch 0.1.0 (100) minSdk 26 targetSdk 36 sha256 f265499943ca757dcce5ed57ae00bc84e3369c0eea0e65da9301efb08484e17e bytes 207658031
+PASS garden-arch-full-debug.apk identity read by aapt2
+PASS garden-arch-full-debug.apk zipalign -c -P 16 4
+PASS garden-arch-full-debug.apk ELF LOAD >= 0x4000 (5 ELF files)
+PASS garden-arch-full-debug.apk JNI RegisterNatives targets 7/7
+PASS garden-arch-full-debug.apk full flavour embeds assets/garden/rootfs/thothterm-arch-aarch64-rootfs-03a4c669ed6f.tgz
+== garden-arch-full-release-unsigned.apk: com.thothterm.arch 0.1.0 (100) minSdk 26 targetSdk 36 sha256 787f14be600b430520482e1b3f8ded29b05444882d4a4de0e61fc32d9027801b bytes 203696547
+PASS garden-arch-full-release-unsigned.apk identity read by aapt2
+PASS garden-arch-full-release-unsigned.apk zipalign -c -P 16 4
+PASS garden-arch-full-release-unsigned.apk ELF LOAD >= 0x4000 (5 ELF files)
+PASS garden-arch-full-release-unsigned.apk JNI RegisterNatives targets 7/7
+PASS garden-arch-full-release-unsigned.apk full flavour embeds assets/garden/rootfs/thothterm-arch-aarch64-rootfs-03a4c669ed6f.tgz
+== garden-debian-fdroid-debug.apk: com.thothterm.debian 0.2.1 (201) minSdk 26 targetSdk 36 sha256 54c006980f33ef378ad2715d0f7832f0422679f0d2cd8491fb8882e28ad90377 bytes 7821638
+PASS garden-debian-fdroid-debug.apk identity read by aapt2
+PASS garden-debian-fdroid-debug.apk zipalign -c -P 16 4
+PASS garden-debian-fdroid-debug.apk ELF LOAD >= 0x4000 (5 ELF files)
+PASS garden-debian-fdroid-debug.apk JNI RegisterNatives targets 7/7
+PASS garden-debian-fdroid-debug.apk F-Droid flavour embeds no rootfs
+== garden-debian-fdroid-release-unsigned.apk: com.thothterm.debian 0.2.1 (201) minSdk 26 targetSdk 36 sha256 7803ddfb035a594cbe177b3a4b4923e3cceadbc7699bae4c0334c2b2667e6358 bytes 3860190
+PASS garden-debian-fdroid-release-unsigned.apk identity read by aapt2
+PASS garden-debian-fdroid-release-unsigned.apk zipalign -c -P 16 4
+PASS garden-debian-fdroid-release-unsigned.apk ELF LOAD >= 0x4000 (5 ELF files)
+PASS garden-debian-fdroid-release-unsigned.apk JNI RegisterNatives targets 7/7
+PASS garden-debian-fdroid-release-unsigned.apk F-Droid flavour embeds no rootfs
+== garden-debian-full-debug.apk: com.thothterm.debian 0.2.1 (201) minSdk 26 targetSdk 36 sha256 2cc0928b0c30034b9f19b416d3e172e630d31ceecf40641417edbac7283de3f2 bytes 70267566
+PASS garden-debian-full-debug.apk identity read by aapt2
+PASS garden-debian-full-debug.apk zipalign -c -P 16 4
+PASS garden-debian-full-debug.apk ELF LOAD >= 0x4000 (5 ELF files)
+PASS garden-debian-full-debug.apk JNI RegisterNatives targets 7/7
+PASS garden-debian-full-debug.apk full flavour embeds assets/garden/rootfs/thothterm-debian-trixie-arm64-rootfs-f6520ff1c6ee.tgz
+== garden-debian-full-release-unsigned.apk: com.thothterm.debian 0.2.1 (201) minSdk 26 targetSdk 36 sha256 0428d571526e90c9d07a9f30c794611a1370d62070024337d6273892c9075f4f bytes 66306118
+PASS garden-debian-full-release-unsigned.apk identity read by aapt2
+PASS garden-debian-full-release-unsigned.apk zipalign -c -P 16 4
+PASS garden-debian-full-release-unsigned.apk ELF LOAD >= 0x4000 (5 ELF files)
+PASS garden-debian-full-release-unsigned.apk JNI RegisterNatives targets 7/7
+PASS garden-debian-full-release-unsigned.apk full flavour embeds assets/garden/rootfs/thothterm-debian-trixie-arm64-rootfs-f6520ff1c6ee.tgz
+== term-ubuntu-fdroid-debug.apk: com.thothterm.ubuntu 0.3.1 (301) minSdk 26 targetSdk 36 sha256 f335d92402ea7c6f412f9166ef045253006f97b767c9d0afe0d810058ed34183 bytes 7814813
+PASS term-ubuntu-fdroid-debug.apk identity read by aapt2
+PASS term-ubuntu-fdroid-debug.apk zipalign -c -P 16 4
+PASS term-ubuntu-fdroid-debug.apk ELF LOAD >= 0x4000 (8 ELF files)
+PASS term-ubuntu-fdroid-debug.apk JNI RegisterNatives targets 7/7
+PASS term-ubuntu-fdroid-debug.apk F-Droid flavour embeds no rootfs
+== term-ubuntu-fdroid-release-unsigned.apk: com.thothterm.ubuntu 0.3.1 (301) minSdk 26 targetSdk 36 sha256 33083f90de08e77bf065256007e30859f75940b936b5bed2bb06a48b0c4be826 bytes 3818911
+PASS term-ubuntu-fdroid-release-unsigned.apk identity read by aapt2
+PASS term-ubuntu-fdroid-release-unsigned.apk zipalign -c -P 16 4
+PASS term-ubuntu-fdroid-release-unsigned.apk ELF LOAD >= 0x4000 (8 ELF files)
+PASS term-ubuntu-fdroid-release-unsigned.apk JNI RegisterNatives targets 7/7
+PASS term-ubuntu-fdroid-release-unsigned.apk F-Droid flavour embeds no rootfs
+== term-ubuntu-full-debug.apk: com.thothterm.ubuntu 0.3.1 (301) minSdk 26 targetSdk 36 sha256 0318c88926c26ee61ae46ede52b4fc468b9ee3a6f19d3dc0765782d168fd0e0e bytes 42868697
+PASS term-ubuntu-full-debug.apk identity read by aapt2
+PASS term-ubuntu-full-debug.apk zipalign -c -P 16 4
+PASS term-ubuntu-full-debug.apk ELF LOAD >= 0x4000 (8 ELF files)
+PASS term-ubuntu-full-debug.apk JNI RegisterNatives targets 7/7
+PASS term-ubuntu-full-debug.apk full flavour embeds assets/ubuntu/ubuntu-base-26.04.1-base-arm64.tgz
+== term-ubuntu-full-release-unsigned.apk: com.thothterm.ubuntu 0.3.1 (301) minSdk 26 targetSdk 36 sha256 e5c975a235d3db27233c589d0c702191e7f49777ad22c52167a2fae6af7c2979 bytes 38853511
+PASS term-ubuntu-full-release-unsigned.apk identity read by aapt2
+PASS term-ubuntu-full-release-unsigned.apk zipalign -c -P 16 4
+PASS term-ubuntu-full-release-unsigned.apk ELF LOAD >= 0x4000 (8 ELF files)
+PASS term-ubuntu-full-release-unsigned.apk JNI RegisterNatives targets 7/7
+PASS term-ubuntu-full-release-unsigned.apk full flavour embeds assets/ubuntu/ubuntu-base-26.04.1-base-arm64.tgz
+exit=0

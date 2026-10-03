@@ -1,0 +1,25 @@
+#!/bin/sh
+# ThothTerm helper: vanilla fastfetch, minus the side-by-side logo when the
+# terminal is too narrow to hold it. /usr/bin/fastfetch is never modified,
+# never aliased and stays available for anyone who wants its normal output.
+#
+# fastfetch renders the same bytes at every terminal width: it places the info
+# block with a fixed "move right 47 columns", and its widest info line ends at
+# column 106. It also turns autowrap off while drawing, so below 106 columns the
+# right-hand text is not wrapped but silently clipped. Measured on Ubuntu's
+# fastfetch 2.57.1+dfsg-1ubuntu1; --logo none ends at column 59 instead.
+FASTFETCH=/usr/bin/fastfetch
+REQUIRED_COLUMNS=106
+
+cols=$(stty size 2>/dev/null | awk '{print $2}')
+case "${cols:-}" in
+  ''|*[!0-9]*) cols=${COLUMNS:-80} ;;
+esac
+case "${cols:-}" in
+  ''|*[!0-9]*) cols=80 ;;
+esac
+
+if [ "$cols" -lt "$REQUIRED_COLUMNS" ]; then
+  exec "$FASTFETCH" --logo none "$@"
+fi
+exec "$FASTFETCH" "$@"

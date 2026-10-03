@@ -1,0 +1,364 @@
+
+> Task :term-ubuntu:buildProotRuntime
+build-proot: NDK      : /home/lordegypt/Android/Sdk/ndk/23.2.8568313
+build-proot: compiler : aarch64-linux-android26-clang
+build-proot: make     : /home/lordegypt/Android/Sdk/ndk/23.2.8568313/prebuilt/linux-x86_64/bin/make
+build-proot: patch    : 0001-ashmem_memfd-include-string.h.patch
+build-proot: patch    : 0002-loader-info-generate-without-host-binutils-or-gawk.patch
+build-proot: patch    : 0003-link2symlink-name-proc-self-exe-after-the-faked-hard-link.patch
+build-proot: patch    : 0004-hang-up-the-session-on-command-exit-and-never-outlive-proot.patch
+build-proot: patch    : 0005-keep-the-kernel-working-directory-in-step-with-the-guest.patch
+build-proot: patch    : 0006-translate-fchmodat2-with-the-kernel-semantics.patch
+build-proot: patch    : 0007-recover-a-fork-child-the-kernel-did-not-name.patch
+build-proot: building libtalloc.so.2
+build-proot: building libandroid-shmem.so
+build-proot: building proot and loader
+  GEN	build.h
+  CC	cli/cli.o
+./cli/cli.c:572:14: warning: unused variable 'pointers' [-Wunused-variable]
+        void *const pointers[] = { this_function, call_site };
+                    ^
+1 warning generated.
+  CC	cli/proot.o
+  CC	cli/note.o
+  CC	execve/enter.o
+  CC	execve/exit.o
+  CC	execve/shebang.o
+  CC	execve/elf.o
+  CC	execve/ldso.o
+  CC	execve/auxv.o
+  CC	execve/aoxp.o
+  CC	path/binding.o
+  CC	path/glue.o
+./path/glue.c:76:14: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        autofreed = talloc_autofree_context();
+                    ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+1 warning generated.
+  CC	path/canon.o
+  CC	path/f2fs-bug.o
+  CC	path/path.o
+  CC	path/proc.o
+  CC	path/temp.o
+./path/temp.c:37:33: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        temp_directory = talloc_strdup(talloc_autofree_context(), tmp);
+                                       ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+./path/temp.c:273:13: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+                context = talloc_autofree_context();
+                          ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+2 warnings generated.
+  CC	syscall/seccomp.o
+  CC	syscall/syscall.o
+  CC	syscall/chain.o
+  CC	syscall/enter.o
+  CC	syscall/exit.o
+  CC	syscall/sysnum.o
+  CC	syscall/socket.o
+./syscall/socket.c:123:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+                (void) mktemp(shorter_host_path);
+                       ^
+/home/lordegypt/Android/Sdk/ndk/23.2.8568313/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include/stdlib.h:68:47: note: 'mktemp' has been explicitly marked deprecated here
+char* mktemp(char* __template) __attribute__((deprecated("mktemp is unsafe, use mkstemp or tmpfile instead")));
+                                              ^
+1 warning generated.
+  CC	syscall/heap.o
+  CC	syscall/rlimit.o
+  CC	syscall/pipe_shadow.o
+  CC	tracee/tracee.o
+  CC	tracee/mem.o
+  CC	tracee/reg.o
+  CC	tracee/event.o
+  CC	tracee/seccomp.o
+./tracee/seccomp.c:619:29: warning: comparison of integers of different signs: 'gid_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+                if (rxid != rxid_ && rxid != -1)
+                                     ~~~~ ^  ~~
+./tracee/seccomp.c:621:29: warning: comparison of integers of different signs: 'gid_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+                if (exid != exid_ && exid != -1)
+                                     ~~~~ ^  ~~
+./tracee/seccomp.c:623:29: warning: comparison of integers of different signs: 'gid_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+                if (sxid != sxid_ && sxid != -1)
+                                     ~~~~ ^  ~~
+./tracee/seccomp.c:612:12: warning: variable 'ret' is used uninitialized whenever 'if' condition is false [-Wsometimes-uninitialized]
+                else if (sysnum == PR_setresgid)
+                         ^~~~~~~~~~~~~~~~~~~~~~
+./tracee/seccomp.c:614:7: note: uninitialized use occurs here
+                if (ret) {  // EFAULT = address outside address space
+                    ^~~
+./tracee/seccomp.c:612:8: note: remove the 'if' if its condition is always true
+                else if (sysnum == PR_setresgid)
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+./tracee/seccomp.c:135:9: note: initialize the variable 'ret' to silence this warning
+        int ret;
+               ^
+                = 0
+4 warnings generated.
+  CC	tracee/statx.o
+  CC	ptrace/ptrace.o
+  CC	ptrace/user.o
+  CC	ptrace/wait.o
+  CC	extension/extension.o
+  CC	extension/ashmem_memfd/ashmem_memfd.o
+./extension/ashmem_memfd/ashmem_memfd.c:173:96: warning: unused parameter 'data2' [-Wunused-parameter]
+int ashmem_memfd_callback(Extension *extension, ExtensionEvent event, intptr_t data1, intptr_t data2)
+                                                                                               ^
+1 warning generated.
+  CC	extension/kompat/kompat.o
+  CC	extension/fake_id0/chown.o
+  CC	extension/fake_id0/chroot.o
+./extension/fake_id0/chroot.c:54:2: warning: ignoring return value of function declared with 'warn_unused_result' attribute [-Wunused-result]
+        realpath(path, path_host_absolute);
+        ^~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+  CC	extension/fake_id0/getsockopt.o
+  CC	extension/fake_id0/sendmsg.o
+  CC	extension/fake_id0/socket.o
+  CC	extension/fake_id0/open.o
+  CC	extension/fake_id0/unlink.o
+  CC	extension/fake_id0/rename.o
+  CC	extension/fake_id0/chmod.o
+  CC	extension/fake_id0/utimensat.o
+  CC	extension/fake_id0/access.o
+  CC	extension/fake_id0/exec.o
+  CC	extension/fake_id0/link.o
+  CC	extension/fake_id0/symlink.o
+  CC	extension/fake_id0/mk.o
+  CC	extension/fake_id0/stat.o
+  CC	extension/fake_id0/helper_functions.o
+./extension/fake_id0/helper_functions.c:185:3: warning: misleading indentation; statement is not part of the previous 'else' [-Wmisleading-indentation]
+                emulated_gid = config->egid;
+                ^
+./extension/fake_id0/helper_functions.c:183:2: note: previous statement is here
+        else
+        ^
+1 warning generated.
+  CC	extension/fake_id0/fake_id0.o
+  CC	extension/hidden_files/hidden_files.o
+  CC	extension/mountinfo/mountinfo.o
+  CC	extension/port_switch/port_switch.o
+./extension/port_switch/port_switch.c:174:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+./extension/port_switch/port_switch.c:182:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+./extension/port_switch/port_switch.c:204:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+./extension/port_switch/port_switch.c:212:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+4 warnings generated.
+  CC	extension/sysvipc/sysvipc.o
+  CC	extension/sysvipc/sysvipc_msg.o
+  CC	extension/sysvipc/sysvipc_sem.o
+  CC	extension/sysvipc/sysvipc_shm.o
+./extension/sysvipc/sysvipc_shm.c:814:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+                (void) mktemp(path);
+                       ^
+/home/lordegypt/Android/Sdk/ndk/23.2.8568313/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include/stdlib.h:68:47: note: 'mktemp' has been explicitly marked deprecated here
+char* mktemp(char* __template) __attribute__((deprecated("mktemp is unsafe, use mkstemp or tmpfile instead")));
+                                              ^
+1 warning generated.
+  CC	extension/link2symlink/link2symlink.o
+  CC	extension/fix_symlink_size/fix_symlink_size.o
+  CC	loader/loader.o
+./loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+./loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+1 warning generated.
+  CC	loader/assembly.o
+  LD	loader/loader
+  CC	loader/loader-info.o
+  CC	loader/loader-m32.o
+./loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP, PC [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+./loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+1 warning generated.
+  CC	loader/assembly-m32.o
+  LD	loader/loader-m32
+ld: warning: lld uses blx instruction, no object with architecture supporting feature detected
+  LD	proot
+build-proot: alignment      : proot 0x4000
+build-proot: alignment      : loader 0x4000
+build-proot: alignment      : libtalloc.so.2 0x4000
+build-proot: alignment      : libandroid-shmem.so 0x4000
+build-proot: runtime ids    : /data/data/com.thothterm.ubuntu.qa.finalfd/ only
+build-proot: ready
+build-proot:   proot          : /home/lordegypt/AndroidThothTerm/wt-closure/term-ubuntu/src/main/jniLibs/arm64-v8a/libproot.so
+build-proot:   loader         : /home/lordegypt/AndroidThothTerm/wt-closure/term-ubuntu/src/main/jniLibs/arm64-v8a/libproot_loader.so
+build-proot:   libtalloc.so.2 : /home/lordegypt/AndroidThothTerm/wt-closure/term-ubuntu/src/main/assets/runtime/arm64-v8a/libtalloc.so.2
+build-proot:   libandroid-shmem.so : /home/lordegypt/AndroidThothTerm/wt-closure/term-ubuntu/src/main/assets/runtime/arm64-v8a/libandroid-shmem.so
+
+> Task :term-ubuntu:preBuild
+> Task :term-ubuntu:preFdroidDebugBuild
+> Task :term-ubuntu:mergeFdroidDebugNativeDebugMetadata NO-SOURCE
+> Task :emulatorview:preBuild UP-TO-DATE
+> Task :emulatorview:preDebugBuild UP-TO-DATE
+> Task :emulatorview:generateDebugResources UP-TO-DATE
+> Task :emulatorview:packageDebugResources UP-TO-DATE
+> Task :emulatorview:processDebugNavigationResources UP-TO-DATE
+> Task :emulatorview:parseDebugLocalResources UP-TO-DATE
+> Task :emulatorview:generateDebugRFile UP-TO-DATE
+> Task :emulatorview:javaPreCompileDebug UP-TO-DATE
+> Task :emulatorview:compileDebugJavaWithJavac UP-TO-DATE
+> Task :emulatorview:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :libtermexec:preBuild UP-TO-DATE
+> Task :libtermexec:preDebugBuild UP-TO-DATE
+> Task :libtermexec:compileDebugAidl UP-TO-DATE
+> Task :libtermexec:generateDebugResources UP-TO-DATE
+> Task :libtermexec:packageDebugResources UP-TO-DATE
+> Task :libtermexec:processDebugNavigationResources UP-TO-DATE
+> Task :libtermexec:parseDebugLocalResources UP-TO-DATE
+> Task :libtermexec:generateDebugRFile UP-TO-DATE
+> Task :libtermexec:javaPreCompileDebug UP-TO-DATE
+> Task :libtermexec:compileDebugJavaWithJavac UP-TO-DATE
+> Task :libtermexec:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :term-ubuntu:compileFdroidDebugAidl UP-TO-DATE
+> Task :term-ubuntu:generateFdroidDebugBuildConfig
+> Task :term-ubuntu:generateFdroidDebugResources UP-TO-DATE
+> Task :term-ubuntu:packageFdroidDebugResources UP-TO-DATE
+> Task :term-ubuntu:processFdroidDebugNavigationResources
+> Task :term-ubuntu:parseFdroidDebugLocalResources UP-TO-DATE
+> Task :term-ubuntu:generateFdroidDebugRFile UP-TO-DATE
+> Task :term-ubuntu:javaPreCompileFdroidDebug UP-TO-DATE
+
+> Task :term-ubuntu:compileFdroidDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :emulatorview:generateDebugAssets UP-TO-DATE
+> Task :emulatorview:mergeDebugAssets UP-TO-DATE
+> Task :libtermexec:generateDebugAssets UP-TO-DATE
+> Task :libtermexec:mergeDebugAssets UP-TO-DATE
+> Task :term-ubuntu:generateFdroidDebugAssets UP-TO-DATE
+> Task :term-ubuntu:mergeFdroidDebugAssets
+> Task :term-ubuntu:generateFdroidDebugGlobalSynthetics UP-TO-DATE
+> Task :term-ubuntu:checkFdroidDebugDuplicateClasses UP-TO-DATE
+> Task :term-ubuntu:desugarFdroidDebugFileDependencies UP-TO-DATE
+> Task :term-ubuntu:compressFdroidDebugAssets
+> Task :term-ubuntu:mergeExtDexFdroidDebug UP-TO-DATE
+> Task :emulatorview:processDebugJavaRes NO-SOURCE
+> Task :libtermexec:processDebugJavaRes NO-SOURCE
+> Task :term-ubuntu:processFdroidDebugJavaRes NO-SOURCE
+> Task :term-ubuntu:mergeFdroidDebugJavaResource UP-TO-DATE
+> Task :emulatorview:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :libtermexec:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :emulatorview:mapDebugSourceSetPaths UP-TO-DATE
+> Task :term-ubuntu:mergeLibDexFdroidDebug UP-TO-DATE
+> Task :emulatorview:compileDebugLibraryResources UP-TO-DATE
+> Task :libtermexec:mapDebugSourceSetPaths UP-TO-DATE
+> Task :libtermexec:compileDebugLibraryResources UP-TO-DATE
+> Task :emulatorview:writeDebugAarMetadata UP-TO-DATE
+> Task :libtermexec:writeDebugAarMetadata UP-TO-DATE
+> Task :term-ubuntu:checkFdroidDebugAarMetadata UP-TO-DATE
+> Task :term-ubuntu:mapFdroidDebugSourceSetPaths UP-TO-DATE
+> Task :term-ubuntu:compileFdroidDebugNavigationResources UP-TO-DATE
+> Task :term-ubuntu:mergeFdroidDebugResources UP-TO-DATE
+> Task :term-ubuntu:createFdroidDebugCompatibleScreenManifests
+> Task :emulatorview:extractDeepLinksDebug UP-TO-DATE
+> Task :emulatorview:processDebugManifest UP-TO-DATE
+> Task :libtermexec:extractDeepLinksDebug UP-TO-DATE
+> Task :libtermexec:processDebugManifest UP-TO-DATE
+> Task :term-ubuntu:extractDeepLinksFdroidDebug
+> Task :term-ubuntu:processFdroidDebugMainManifest
+> Task :term-ubuntu:processFdroidDebugManifest
+> Task :emulatorview:mergeDebugJniLibFolders UP-TO-DATE
+> Task :emulatorview:mergeDebugNativeLibs NO-SOURCE
+> Task :emulatorview:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :libtermexec:configureCMakeDebug[arm64-v8a]
+> Task :libtermexec:buildCMakeDebug[arm64-v8a]
+> Task :libtermexec:configureCMakeDebug[armeabi-v7a]
+> Task :libtermexec:buildCMakeDebug[armeabi-v7a]
+> Task :libtermexec:configureCMakeDebug[x86]
+> Task :libtermexec:buildCMakeDebug[x86]
+> Task :libtermexec:configureCMakeDebug[x86_64]
+> Task :libtermexec:buildCMakeDebug[x86_64]
+> Task :libtermexec:mergeDebugJniLibFolders UP-TO-DATE
+> Task :libtermexec:mergeDebugNativeLibs UP-TO-DATE
+> Task :libtermexec:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :term-ubuntu:configureCMakeDebug[arm64-v8a]
+> Task :term-ubuntu:buildCMakeDebug[arm64-v8a]
+> Task :term-ubuntu:mergeFdroidDebugJniLibFolders
+> Task :term-ubuntu:validateSigningFdroidDebug UP-TO-DATE
+> Task :term-ubuntu:writeFdroidDebugAppMetadata UP-TO-DATE
+> Task :term-ubuntu:writeFdroidDebugSigningConfigVersions UP-TO-DATE
+> Task :term-ubuntu:processFdroidDebugManifestForPackage
+> Task :term-ubuntu:mergeFdroidDebugNativeLibs
+> Task :term-ubuntu:stripFdroidDebugDebugSymbols
+> Task :term-ubuntu:processFdroidDebugResources
+> Task :term-ubuntu:dexBuilderFdroidDebug
+> Task :term-ubuntu:mergeProjectDexFdroidDebug
+> Task :term-ubuntu:packageFdroidDebug
+> Task :term-ubuntu:createFdroidDebugApkListingFileRedirect
+> Task :term-ubuntu:assembleFdroidDebug
+
+[Incubating] Problems report is available at: file:///home/lordegypt/AndroidThothTerm/wt-closure/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 18s
+84 actionable tasks: 29 executed, 55 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.7.1/userguide/configuration_cache_enabling.html
+identity: app=com.thothterm.ubuntu.qa.finalfd
+runtime: native files of term-ubuntu/build/outputs/apk/fdroid/debug/term-ubuntu-fdroid-debug.apk built for /data/data/com.thothterm.ubuntu.qa.finalfd/ only
+Performing Streamed Install
+Success
+installed com.thothterm.ubuntu.qa.finalfd (data: /data/data/com.thothterm.ubuntu.qa.finalfd; nothing else was touched)
+launch: adb shell monkey -p com.thothterm.ubuntu.qa.finalfd -c android.intent.category.LAUNCHER 1

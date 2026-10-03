@@ -1,0 +1,9 @@
+10-03 08:32:32.453 I/ThothTerm(12989): ROOTFS: Optional setup queued in the background (session start) state=OPTIONAL_SETUP_PENDING
+10-03 08:32:32.457 I/ThothTerm(12989): ROOTFS: Setup stage OPTIONAL_SETUP_STARTED t=- reason=session start
+10-03 08:32:32.521 I/ThothTerm(12989): ROOTFS: Provisioning command start
+10-03 08:33:11.937 E/ThothTerm(12989): ROOTFS: sudo provisioning failed type=IOException message=Provisioning command failed (100): Ign:1 http://10.255.255.1/ubuntu-ports resolute InRelease Ign:2 http://10.255.255.1/ubuntu-ports resolute-updates InRelease Ign:3 http://10.255.255.1/ubuntu-ports resolute-backports InRelease Ign:4 
+10-03 08:33:11.969 W/ThothTerm(12989): ROOTFS: Setup stage OPTIONAL_SETUP_FAILED t=- ms=39500 sudo=ABSENT reason=sudo=ABSENT state=OPTIONAL_SETUP_FAILED
+10-03 08:33:59.041 I/ThothTerm(12989): ROOTFS: Optional setup queued in the background (retry) state=OPTIONAL_SETUP_PENDING
+10-03 08:33:59.042 I/ThothTerm(12989): ROOTFS: Setup stage OPTIONAL_SETUP_STARTED t=- reason=retry
+10-03 08:34:06.301 I/ThothTerm(12989): ROOTFS: sudo provisioning complete setuid=true report=install ok installed 1.9.17p2-1ubuntu3.1 /etc/sudoers: parsed OK /etc/sudoers.d/README: parsed OK /etc/sudoers.d/thoth: parsed OK
+10-03 08:34:06.341 I/ThothTerm(12989): ROOTFS: Setup stage OPTIONAL_SETUP_FINISHED t=- ms=7286 sudo=INSTALLED state=HEALTHY

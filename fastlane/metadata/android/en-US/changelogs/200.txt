@@ -1,0 +1,3 @@
+LAN Mode: use this Ubuntu from a browser on the same Wi-Fi. Off by default; open it from the menu, pair with a one-time PIN, and each browser gets its own terminal. Traffic is not encrypted: trusted networks only.
+
+Fixed: apt full-upgrade no longer breaks coreutils and sudo. Closing a window ends its commands while nohup jobs keep running. An interrupted sudo upgrade is finished, never downgraded.

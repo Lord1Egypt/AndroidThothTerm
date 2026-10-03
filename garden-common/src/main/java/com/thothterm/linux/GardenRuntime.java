@@ -1,0 +1,179 @@
+/*
+ * Copyright (C) 2026 ThothTerm.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.thothterm.linux;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Builds the PRoot command line and environment used to enter the Garden rootfs. Kept
+ * free of Android APIs so argument construction is unit-testable.
+ *
+ * <p>PRoot runs with its fake-root option ({@code --root-id}) so apt/dpkg and
+ * package maintainer scripts behave normally. This is user-space emulation
+ * inside a rootless Android application and grants no host privileges.</p>
+ */
+public final class GardenRuntime {
+    public static final String LINUX_HOME = "/home/thoth";
+    /** The guest's login shell, as every window runs it. */
+    public static final String GUEST_SHELL = "/bin/bash";
+    /** The guest's su, which drops a window from fake root to the user. */
+    public static final String GUEST_SU = "/usr/bin/su";
+    /**
+     * The guest files a terminal cannot start without. The lifecycle checks
+     * them (resolved inside the guest) to tell a healthy installation from a
+     * damaged one; a missing one never triggers a reinstall.
+     */
+    public static final List<String> GUEST_ENTRY_POINTS =
+            Collections.unmodifiableList(Arrays.asList(GUEST_SHELL, GUEST_SU));
+
+    private final String prootPath;
+    private final String loaderPath;
+    private final String rootfsDir;
+    private final String runtimeLibDir;
+    private final String prootTmpDir;
+    private final String resolverFile;
+    private final String terminalType;
+
+    public GardenRuntime(String prootPath, String loaderPath, String rootfsDir,
+                         String runtimeLibDir, String prootTmpDir, String resolverFile,
+                         String terminalType) {
+        this.prootPath = prootPath;
+        this.loaderPath = loaderPath;
+        this.rootfsDir = rootfsDir;
+        this.runtimeLibDir = runtimeLibDir;
+        this.prootTmpDir = prootTmpDir;
+        this.resolverFile = resolverFile;
+        this.terminalType = terminalType;
+    }
+
+    public static GardenRuntime from(RootfsManager manager, String terminalType) {
+        return new GardenRuntime(
+                manager.prootPath(),
+                manager.loaderPath(),
+                manager.prootRootfsPath(),
+                manager.runtimeLibDir().getAbsolutePath(),
+                manager.prootTmpDir().getAbsolutePath(),
+                AndroidNetworkResolver.get().resolverFile().getAbsolutePath(),
+                terminalType);
+    }
+
+    public List<String> buildArgv() {
+        // A window hangs up like a real terminal when its shell exits: the
+        // rest of its session gets SIGHUP, a nohup'd job keeps running, and
+        // PRoot stays only as long as such a job needs it. --kill-on-exit
+        // would kill nohup'd jobs too.
+        List<String> argv = baseArgv(LINUX_HOME, true, "--hangup-on-exit");
+        // Drop from PRoot fake-root to the guest "thoth" account through the
+        // guest's own util-linux su. Options must precede the user name;
+        // "-i" is not a su option and previously made su exit immediately
+        // ("invalid option -- 'i'"), which closed the session window.
+        // "-m" preserves the PRoot environment (notably LD_LIBRARY_PATH, which
+        // the PRoot loader needs for every later guest execve).
+        argv.add(GUEST_SU);
+        argv.add("-m");
+        argv.add("-s");
+        argv.add(GUEST_SHELL);
+        argv.add("thoth");
+        return argv;
+    }
+
+    /**
+     * One-shot PRoot command that runs as fake-root in {@code /}. Used to
+     * finish or repair the guest's sudo package.
+     *
+     * <p>The resolver is bound whenever the file exists: a missing sudo is
+     * installed from the distribution's archive, and apt cannot resolve a
+     * hostname without {@code /etc/resolv.conf}.
+     */
+    public List<String> buildProvisioningArgv(List<String> command) {
+        // Provisioning waits for PRoot to exit, so nothing it starts may outlive it.
+        List<String> argv = baseArgv("/", resolverFile != null
+                && new java.io.File(resolverFile).isFile(), "--kill-on-exit");
+        argv.addAll(command);
+        return argv;
+    }
+
+    private List<String> baseArgv(String cwd, boolean bindResolver, String exitPolicy) {
+        List<String> argv = new ArrayList<>();
+        argv.add(prootPath);
+        argv.add("--rootfs=" + rootfsDir);
+        argv.add("--root-id");
+        argv.add("--link2symlink");
+        argv.add("--cwd=" + cwd);
+        argv.add(exitPolicy);
+        argv.add("--kernel-release=6.1.0-thothterm");
+        argv.add("--bind=/dev");
+        argv.add("--bind=/proc");
+        argv.add("--bind=/sys");
+        // /proc/self/... is kept verbatim and resolved per tracee at each
+        // access; "/proc/mounts" was resolved once at start-up, and on some
+        // devices that failed ("can't sanitize binding") and dropped /etc/mtab.
+        argv.add("--bind=/proc/self/mounts:/etc/mtab");
+        if (bindResolver) {
+            argv.add("--bind=" + resolverFile + ":/etc/resolv.conf");
+        }
+        return argv;
+    }
+
+    public Map<String, String> buildEnvironment() {
+        Map<String, String> env = new LinkedHashMap<>();
+        env.put("HOME", LINUX_HOME);
+        env.put("USER", "thoth");
+        env.put("LOGNAME", "thoth");
+        env.put("SHELL", GUEST_SHELL);
+        env.put("TERM", terminalType == null ? "xterm-256color" : terminalType);
+        env.put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+        env.put("TMPDIR", "/tmp");
+        env.put("LANG", "C.UTF-8");
+        env.put("LC_ALL", "C.UTF-8");
+        // systemd decides "chroot or not" by comparing /proc/1/root with /.
+        // Android hides PID 1 from apps (procfs hidepid), so that lookup fails
+        // and systemd reports ENOSYS ("Failed to check for chroot()
+        // environment: Function not implemented") instead of an answer. The
+        // answer is yes -- this root is not PID 1's -- and systemd (>= 257)
+        // takes it from here: systemctl then skips talking to a PID 1 that
+        // does not exist, as in any chroot, instead of failing.
+        env.put("SYSTEMD_IN_CHROOT", "1");
+        env.put("PROOT_TMP_DIR", prootTmpDir);
+        env.put("PROOT_LOADER", loaderPath);
+        env.put("LD_LIBRARY_PATH", runtimeLibDir);
+        return env;
+    }
+
+    /** Environment for the one-shot fake-root provisioning command (HOME=/root). */
+    public Map<String, String> buildProvisioningEnvironment() {
+        Map<String, String> env = buildEnvironment();
+        env.put("HOME", "/root");
+        env.put("USER", "root");
+        env.put("LOGNAME", "root");
+        return env;
+    }
+
+    public static String[] toEnvArray(Map<String, String> env) {
+        String[] array = new String[env.size()];
+        int i = 0;
+        for (Map.Entry<String, String> entry : env.entrySet()) {
+            array[i++] = entry.getKey() + "=" + entry.getValue();
+        }
+        return array;
+    }
+}

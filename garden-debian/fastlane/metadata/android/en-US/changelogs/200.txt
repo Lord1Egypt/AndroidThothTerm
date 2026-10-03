@@ -1,0 +1,5 @@
+Upload files and Upload folder copy into the current directory of the terminal, from the phone or, in LAN Mode, from a paired browser. Nothing is overwritten (a second copy becomes "name (1)") and nothing half-written is left.
+
+Keep screen awake while charging: on by default in Settings.
+
+The browser's Copy button is gone; Ctrl+Shift+C still copies. LAN traffic, uploaded files included, is not encrypted: use trusted networks only.

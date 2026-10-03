@@ -1,0 +1,16 @@
+10-03 08:20:14.380 I/ThothTerm( 7712): ROOTFS: Preparing condition=NOT_INSTALLED
+10-03 08:20:25.368 I/ThothTerm( 7712): ROOTFS: Setup stage ARCHIVE_EXTRACTED t=10992ms entries=6564 rejected=0 skipped=0 hardlinkFallbacks=115 compressedBytes=35092106 extractedBytes=110784659 ms=9900
+10-03 08:20:25.368 W/ThothTerm( 7712): ROOTFS: Hardlink fallback used count=115 (Android SELinux forbids untrusted-app hardlinks)
+10-03 08:20:25.369 I/ThothTerm( 7712): ROOTFS: Setup stage ARCHIVE_VERIFIED t=10993ms sha256=5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd
+10-03 08:20:25.444 I/ThothTerm( 7712): ROOTFS: Setup stage SETUP_ROOTFS_COMPLETE t=11068ms
+10-03 08:20:25.445 I/ThothTerm( 7712): ROOTFS: Setup stage ROOTFS_PROMOTED t=11069ms
+10-03 08:20:25.519 I/ThothTerm( 7712): ROOTFS: Setup stage STATE_WRITTEN t=11143ms
+10-03 08:20:25.526 I/ThothTerm( 7712): ROOTFS: Setup stage TERMINAL_READY t=11150ms state=TERMINAL_READY
+10-03 08:20:25.527 I/ThothTerm( 7712): ROOTFS: Setup stage TERMINAL_HANDOFF t=11151ms
+10-03 08:20:25.527 I/ThothTerm( 7712): ROOTFS: Setup timeline ARCHIVE_EXTRACTED=10992 ARCHIVE_VERIFIED=10993 SETUP_ROOTFS_COMPLETE=11068 ROOTFS_PROMOTED=11069 STATE_WRITTEN=11143 TERMINAL_READY=11150 TERMINAL_HANDOFF=11151
+10-03 08:20:25.528 I/ThothTerm( 7712): ROOTFS: Optional setup queued in the background (after setup) state=OPTIONAL_SETUP_PENDING
+10-03 08:20:25.530 I/ThothTerm( 7712): ROOTFS: Setup stage OPTIONAL_SETUP_STARTED t=11153ms reason=after setup
+10-03 08:20:25.587 I/ThothTerm( 7712): ROOTFS: Provisioning command start
+10-03 08:20:29.939 I/ThothTerm( 7712): ROOTFS: Provisioning command start
+10-03 08:20:30.356 E/ThothTerm( 7712): ROOTFS: bundled sudo install failed type=IOException message=Provisioning command failed (1): install ok installed 1.9.17p2-1ubuntu3 /etc/sudoers.d/README: bad permissions, should be mode 0440 /etc/sudoers: parsed OK /etc
+10-03 08:20:30.397 I/ThothTerm( 7712): ROOTFS: Setup stage OPTIONAL_SETUP_FINISHED t=16021ms ms=4855 sudo=INSTALLED state=HEALTHY

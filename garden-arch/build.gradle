@@ -1,0 +1,213 @@
+plugins {
+    id 'com.android.application'
+}
+
+// ThothTerm Rolling: a thin Garden edition on top of garden-common. What makes
+// it Arch Linux ARM is data -- src/main/assets/garden/distro.properties -- plus its
+// branding, its strings and the PRoot runtime built for its application id.
+// No Java toolchain is requested, for the reason given in term-ubuntu's build.
+android {
+    namespace = "com.thothterm.arch"
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    ndkVersion = rootProject.ext.ndkVersion
+    defaultConfig {
+        // The one application id of this module (../applicationId.gradle):
+        // production, or with -PthothtermQaApplicationIdSuffix=.qa.<name> an
+        // isolated QA id for every variant. The PRoot runtime is built
+        // for exactly this id.
+        applicationId rootProject.ext.thothtermApplicationId('com.thothterm.arch')
+        minSdkVersion 26
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        vectorDrawables.useSupportLibrary = true
+
+        versionCode 100
+        versionName '0.1.0'
+
+        // Device tests (the pinch gesture and garden-common's shared tests);
+        // run with `am instrument` against the installed app, never
+        // connectedAndroidTest, which uninstalls it.
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+
+        // Garden editions are ARM64 only.
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    // Two tracks from one source tree:
+    //  full   - embeds the pinned rootfs, so first run needs no network.
+    //  fdroid - ships no distribution payload: F-Droid only distributes
+    //           binaries it built itself. The same archive is downloaded on
+    //           first run after explicit consent, and refused unless its size
+    //           and SHA-256 match distro.properties.
+    flavorDimensions = ["catalog"]
+    productFlavors {
+        full {
+            dimension 'catalog'
+        }
+        fdroid {
+            dimension 'catalog'
+        }
+    }
+    buildTypes {
+        debug {
+        }
+        release {
+            // R8 shrinking, optimization and obfuscation. The only keep rules
+            // are garden-common's consumer rules for its two JNI classes.
+            minifyEnabled = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+    }
+    sourceSets {
+        main {
+            jniLibs.srcDirs += "$buildDir/garden/jniLibs"
+            assets.srcDirs += "$buildDir/garden/assets"
+        }
+        full {
+            assets.srcDirs += "$buildDir/garden/rootfs-assets"
+        }
+        // garden-common's device and unit tests, which every edition runs.
+        androidTest {
+            java.srcDirs += rootProject.file('garden-common/src/editionAndroidTest/java')
+            // The extractor gate: the same security cases, on the device,
+            // with the APK's own AndroidFileOps.
+            java.srcDirs += rootProject.file('garden-common/src/sharedAndroidTest/java')
+            java.srcDirs += rootProject.file('garden-common/src/sharedTestFixtures/java')
+        }
+        test {
+            java.srcDirs += rootProject.file('garden-common/src/editionTest/java')
+        }
+    }
+    androidResources {
+        // The rootfs is already gzip-compressed; stored, it streams straight
+        // out of the APK.
+        noCompress += 'tgz'
+    }
+    packaging {
+        jniLibs {
+            // The PRoot runtime and its loader must land on disk with the
+            // executable bit inside ApplicationInfo.nativeLibraryDir.
+            useLegacyPackaging = true
+            keepDebugSymbols += ["**/libproot.so", "**/libproot_loader.so"]
+        }
+    }
+}
+
+dependencies {
+    implementation project(':garden-common')
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+}
+
+def distroFile = file('src/main/assets/garden/distro.properties')
+def distro = new Properties()
+distroFile.withReader('UTF-8') { distro.load(it) }
+
+// PRoot, its loader, talloc and libandroid-shmem from the pinned sources in
+// third_party/, built for this application id. Downloads nothing.
+def gardenDir = layout.buildDirectory.dir('garden').get().asFile
+def buildProot = tasks.register('buildProotRuntime', Exec) {
+    description = 'Build the PRoot runtime from pinned source for this application id.'
+    group = 'build'
+    def jniOut = new File(gardenDir, 'jniLibs')
+    def assetsOut = new File(gardenDir, 'assets/runtime')
+    workingDir projectDir
+    commandLine 'sh', rootProject.file('garden-common/tools/build-proot.sh')
+    environment 'THOTHTERM_APPLICATION_ID', android.defaultConfig.applicationId
+    // A different id must rebuild the runtime: its paths are compiled in.
+    inputs.property 'applicationId', android.defaultConfig.applicationId
+    environment 'THOTHTERM_NDK_VERSION', rootProject.ext.ndkVersion
+    environment 'THOTHTERM_JNI_DIR', jniOut
+    environment 'THOTHTERM_RUNTIME_ASSETS', assetsOut
+    environment 'THOTHTERM_PROOT_BUILD_DIR', new File(gardenDir, 'proot-src')
+    // The NDK AGP resolved for ndkVersion -- from local.properties' sdk.dir as
+    // much as from the environment -- so PRoot and the CMake targets share one
+    // toolchain, and a clean checkout needs no ANDROID_NDK_HOME.
+    doFirst {
+        environment 'ANDROID_NDK_HOME', androidComponents.sdkComponents.ndkDirectory.get().asFile
+    }
+    inputs.dir rootProject.file('third_party/proot')
+    inputs.dir rootProject.file('third_party/talloc')
+    inputs.dir rootProject.file('third_party/libandroid-shmem')
+    inputs.dir rootProject.file('garden-common/patches')
+    inputs.file rootProject.file('garden-common/tools/build-proot.sh')
+    inputs.file rootProject.file('garden-common/tools/check-runtime-ids.sh')
+    outputs.file new File(jniOut, 'arm64-v8a/libproot.so')
+    outputs.file new File(jniOut, 'arm64-v8a/libproot_loader.so')
+    outputs.file new File(assetsOut, 'arm64-v8a/libtalloc.so.2')
+    outputs.file new File(assetsOut, 'arm64-v8a/libandroid-shmem.so')
+}
+
+// Stages the pinned rootfs for the full flavour: the local build from
+// rootfs/build-rootfs.sh if there is one, otherwise the published archive.
+// Either way nothing is packaged unless its size and SHA-256 match
+// distro.properties, the same pins the fdroid flavour checks at runtime.
+def stageRootfs = tasks.register('stageArchRootfs') {
+    description = 'Verify and stage the pinned Arch Linux ARM rootfs for the full flavour.'
+    group = 'build'
+    def url = distro.getProperty('sourceUrl')
+    def published = url.substring(url.lastIndexOf('/') + 1)
+    def local = file("rootfs/out/${published}")
+    def download = new File(gardenDir, "download/${published}")
+    def target = new File(gardenDir, "rootfs-assets/garden/rootfs/${distro.getProperty('assetName')}")
+    def expectedSha = distro.getProperty('sha256')
+    def expectedSize = Long.parseLong(distro.getProperty('compressedSize'))
+    inputs.file distroFile
+    outputs.file target
+    doLast {
+        def sha256 = { File f ->
+            def digest = java.security.MessageDigest.getInstance('SHA-256')
+            f.withInputStream { stream ->
+                byte[] buffer = new byte[1 << 16]
+                int n
+                while ((n = stream.read(buffer)) > 0) digest.update(buffer, 0, n)
+            }
+            digest.digest().encodeHex().toString()
+        }
+        def verified = { File f -> f.isFile() && f.length() == expectedSize && sha256(f) == expectedSha }
+        File source = local
+        if (!verified(source)) {
+            source = download
+            if (!verified(source)) {
+                if (!url.startsWith('https://')) throw new GradleException("Refusing non-HTTPS rootfs URL ${url}")
+                logger.lifecycle("Downloading ${url}")
+                download.parentFile.mkdirs()
+                def partial = new File(download.path + '.part')
+                new URL(url).withInputStream { input -> partial.withOutputStream { it << input } }
+                if (!verified(partial)) {
+                    partial.delete()
+                    throw new GradleException("Downloaded rootfs does not match distro.properties (size ${expectedSize}, sha256 ${expectedSha})")
+                }
+                java.nio.file.Files.move(partial.toPath(), download.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+        // Exactly one archive: a pin change must not leave the previous one behind.
+        project.delete(target.parentFile)
+        target.parentFile.mkdirs()
+        java.nio.file.Files.copy(source.toPath(), target.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        if (!verified(target)) throw new GradleException("Staged rootfs failed verification")
+    }
+}
+
+tasks.named('preBuild') { dependsOn buildProot }
+// Only the full flavour embeds the rootfs; fdroid builds never touch it.
+tasks.configureEach { task ->
+    if (task.name ==~ /^pre[Ff]ull.*Build$/) task.dependsOn stageRootfs
+}

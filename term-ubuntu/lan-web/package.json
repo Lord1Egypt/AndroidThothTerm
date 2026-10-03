@@ -1,0 +1,19 @@
+{
+  "name": "thothterm-lan-web",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Builds ThothTerm Ubuntu's LAN Mode browser terminal assets from pinned xterm.js sources.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node build.mjs --check",
+    "test": "node --test rtl.test.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/cascadia-mono": "5.3.0",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "bidi-js": "1.0.3",
+    "esbuild": "0.28.2"
+  }
+}

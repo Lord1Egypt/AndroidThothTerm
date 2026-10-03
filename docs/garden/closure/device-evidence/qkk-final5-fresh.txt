@@ -1,0 +1,10 @@
+== tzdata
+tzdata: 1887 total files, 0 altered files
+== coreutils
+warning: coreutils: /usr/share/locale/zh_CN/LC_TIME/coreutils.mo (Modification time mismatch)
+warning: coreutils: /usr/share/locale/zh_TW/LC_TIME/coreutils.mo (Modification time mismatch)
+coreutils: 444 total files, 46 altered files
+== pacman
+warning: pacman: /usr/share/man/man5/pacman-hooks.5.gz (Modification time mismatch)
+warning: pacman: /usr/share/man/man8/repo-remove.8.gz (Modification time mismatch)
+pacman: 426 total files, 14 altered files

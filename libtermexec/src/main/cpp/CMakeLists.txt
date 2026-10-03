@@ -20,11 +20,13 @@ cmake_minimum_required(VERSION 3.13)
 
 project(libtermexec-c)
 
-# Android NDK r26 and lower
+# Android 15 introduced 16 KB page devices. NDK r28+ aligns for them by
+# default; r26 and lower do not, so state it. common-page-size is set with
+# max-page-size so the linker does not pad to one value and align to another.
 if (ANDROID_ABI STREQUAL "arm64-v8a")
-    set(MAX_PAGE_SIZE "-Wl,-z,max-page-size=16384")
+    set(MAX_PAGE_SIZE "-Wl,-z,max-page-size=16384;-Wl,-z,common-page-size=16384")
 elseif (ANDROID_ABI STREQUAL "x86_64")
-    set(MAX_PAGE_SIZE "-Wl,-z,max-page-size=16384")
+    set(MAX_PAGE_SIZE "-Wl,-z,max-page-size=16384;-Wl,-z,common-page-size=16384")
 else ()
     set(MAX_PAGE_SIZE "")
 endif ()

@@ -633,13 +633,17 @@ class TerminalEmulator {
     }
 
     private void process(byte b, boolean doUTF8) {
+        // Inside a control string (OSC, DCS, APC, PM, SOS) bytes are the
+        // string's payload: never decoded, drawn or taken as C1 controls.
+        boolean inString = isInControlString();
+
         // Let the UTF-8 decoder try to handle it if we're in UTF-8 mode
-        if (doUTF8 && mUTF8Mode && handleUTF8Sequence(b)) {
+        if (!inString && doUTF8 && mUTF8Mode && handleUTF8Sequence(b)) {
             return;
         }
 
         // Handle C1 control characters
-        if ((b & 0x80) == 0x80 && (b & 0x7f) <= 0x1f) {
+        if (!inString && (b & 0x80) == 0x80 && (b & 0x7f) <= 0x1f) {
             /* ESC ((code & 0x7f) + 0x40) is the two-byte escape sequence
                corresponding to a particular C1 code */
             process((byte) 27, false);
@@ -698,10 +702,12 @@ class TerminalEmulator {
 
         case 27: // ESC
             // Starts an escape sequence unless we're parsing a string
-            if (mEscapeState != EscapeProcessingState.RIGHT_SQUARE_BRACKET) {
-                startSequence();
-            } else {
+            if (mEscapeState == EscapeProcessingState.RIGHT_SQUARE_BRACKET) {
                 doEscRightSquareBracket(b);
+            } else if (mEscapeState == EscapeProcessingState.IGNORED_STRING) {
+                continueSequence(EscapeProcessingState.IGNORED_STRING_ESC);
+            } else {
+                startSequence();
             }
             break;
 
@@ -750,6 +756,18 @@ class TerminalEmulator {
                 doEscRightSquareBracketEsc(b);
                 break;
 
+            case EscapeProcessingState.IGNORED_STRING:
+                continueSequence();
+                break;
+
+            case EscapeProcessingState.IGNORED_STRING_ESC:
+                if (b != '\\') {
+                    // ESC ends the string (as in xterm) and starts a sequence.
+                    startSequence();
+                    doEsc(b);
+                }
+                break;
+
             default:
                 unknownSequence(b);
                 break;
@@ -769,6 +787,13 @@ class TerminalEmulator {
 
     private void finishSequence() {
         mEscapeState = EscapeProcessingState.NONE;
+    }
+
+    private boolean isInControlString() {
+        return mEscapeState == EscapeProcessingState.RIGHT_SQUARE_BRACKET
+                || mEscapeState == EscapeProcessingState.RIGHT_SQUARE_BRACKET_ESC
+                || mEscapeState == EscapeProcessingState.IGNORED_STRING
+                || mEscapeState == EscapeProcessingState.IGNORED_STRING_ESC;
     }
 
     private boolean handleUTF8Sequence(byte b) {
@@ -1090,8 +1115,13 @@ class TerminalEmulator {
             unimplementedSequence(b);
             break;
 
-        case 'P': // Device control string
-            unimplementedSequence(b);
+        case 'P': // DCS, Device Control String
+        case 'X': // SOS, Start Of String
+        case '^': // PM, Privacy Message
+        case '_': // APC, Application Program Command (GNU screen's title)
+            // Not interpreted, but consumed up to the String Terminator
+            // (ESC \) like xterm does, so the payload is never drawn.
+            continueSequence(EscapeProcessingState.IGNORED_STRING);
             break;
 
         case 'Z': // return terminal ID
@@ -1987,7 +2017,9 @@ class TerminalEmulator {
             EscapeProcessingState.LEFT_SQUARE_BRACKET_QUESTION_MARK,
             EscapeProcessingState.PERCENT,
             EscapeProcessingState.RIGHT_SQUARE_BRACKET,
-            EscapeProcessingState.RIGHT_SQUARE_BRACKET_ESC
+            EscapeProcessingState.RIGHT_SQUARE_BRACKET_ESC,
+            EscapeProcessingState.IGNORED_STRING,
+            EscapeProcessingState.IGNORED_STRING_ESC
     })
     @Retention(RetentionPolicy.SOURCE)
     private @interface EscapeProcessingState {
@@ -2001,5 +2033,7 @@ class TerminalEmulator {
         int PERCENT = 7; // ESC %
         int RIGHT_SQUARE_BRACKET = 8; // ESC ] (AKA OSC - Operating System Controls)
         int RIGHT_SQUARE_BRACKET_ESC = 9; //ESC ] (AKA OSC - Operating System Controls)
+        int IGNORED_STRING = 10; // ESC P, ESC X, ESC ^, ESC _ (DCS, SOS, PM, APC)
+        int IGNORED_STRING_ESC = 11; // ESC inside one of those strings
     }
 }

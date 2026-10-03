@@ -1,0 +1,45 @@
+ch.pocketpc.nearbyglasses dataDir=/data/user/0/ch.pocketpc.nearbyglasses
+ch.pocketpc.nearbyglasses firstInstallTime=٢٠٢٦-٠٩-٢٢ ٠٨:١٣:٠٥
+ch.pocketpc.nearbyglasses lastUpdateTime=٢٠٢٦-٠٩-٢٢ ٠٨:١٣:٠٥
+ch.pocketpc.nearbyglasses versionCode=11 minSdk=26 targetSdk=36
+ch.pocketpc.nearbyglasses versionName=1.0.10
+com.lord1egypt.pocketclaw dataDir=/data/user/0/com.lord1egypt.pocketclaw
+com.lord1egypt.pocketclaw firstInstallTime=٢٠٢٦-٠٩-٢١ ٠٨:٠٧:٤٠
+com.lord1egypt.pocketclaw lastUpdateTime=٢٠٢٦-٠٩-٢٥ ١٨:٢٧:٤١
+com.lord1egypt.pocketclaw versionCode=65 minSdk=26 targetSdk=36
+com.lord1egypt.pocketclaw versionName=0.2.3
+com.thothterm dataDir=/data/user/0/com.thothterm
+com.thothterm firstInstallTime=٢٠٢٦-٠٩-٢٦ ٠٢:٢٦:١٤
+com.thothterm lastUpdateTime=٢٠٢٦-٠٩-٢٧ ٢٠:٥١:٥٤
+com.thothterm versionCode=10400 minSdk=16 targetSdk=36
+com.thothterm versionName=1.4.0
+com.thothterm.arch dataDir=/data/user/0/com.thothterm.arch
+com.thothterm.arch firstInstallTime=٢٠٢٦-٠٩-٣٠ ١٧:٣٣:٥٧
+com.thothterm.arch lastUpdateTime=٢٠٢٦-٠٩-٣٠ ١٧:٣٣:٥٧
+com.thothterm.arch versionCode=100 minSdk=26 targetSdk=36
+com.thothterm.arch versionName=0.1.0
+com.thothterm.arch.test dataDir=/data/user/0/com.thothterm.arch.test
+com.thothterm.arch.test firstInstallTime=٢٠٢٦-٠٩-٣٠ ٠٩:٣٨:٤٢
+com.thothterm.arch.test lastUpdateTime=٢٠٢٦-٠٩-٣٠ ٠٩:٣٨:٤٢
+com.thothterm.arch.test versionCode=0 minSdk=26 targetSdk=36
+com.thothterm.arch.test versionName=null
+com.thothterm.debian dataDir=/data/user/0/com.thothterm.debian
+com.thothterm.debian firstInstallTime=٢٠٢٦-٠٩-٢٧ ١١:٢٠:٣٥
+com.thothterm.debian lastUpdateTime=٢٠٢٦-٠٩-٢٧ ٢١:٠٤:٣٤
+com.thothterm.debian versionCode=200 minSdk=26 targetSdk=36
+com.thothterm.debian versionName=0.2.0
+com.thothterm.devel dataDir=/data/user/0/com.thothterm.devel
+com.thothterm.devel firstInstallTime=٢٠٢٦-٠٩-١٨ ٠٧:٣٦:٤٠
+com.thothterm.devel lastUpdateTime=٢٠٢٦-٠٩-٢٧ ١٩:٣٤:٢٣
+com.thothterm.devel versionCode=10301 minSdk=16 targetSdk=36
+com.thothterm.devel versionName=1.3.1
+com.thothterm.ubuntu dataDir=/data/user/0/com.thothterm.ubuntu
+com.thothterm.ubuntu firstInstallTime=٢٠٢٦-٠٩-٣٠ ١٨:٠٣:٣٩
+com.thothterm.ubuntu lastUpdateTime=٢٠٢٦-٠٩-٣٠ ١٨:٠٣:٣٩
+com.thothterm.ubuntu versionCode=300 minSdk=26 targetSdk=36
+com.thothterm.ubuntu versionName=0.3.0
+com.thothterm.ubuntu.test dataDir=/data/user/0/com.thothterm.ubuntu.test
+com.thothterm.ubuntu.test firstInstallTime=٢٠٢٦-٠٩-٢٠ ٢٠:٤٢:٣٣
+com.thothterm.ubuntu.test lastUpdateTime=٢٠٢٦-٠٩-٢٧ ١٨:٥٤:٢٩
+com.thothterm.ubuntu.test versionCode=0 minSdk=26 targetSdk=36
+com.thothterm.ubuntu.test versionName=null

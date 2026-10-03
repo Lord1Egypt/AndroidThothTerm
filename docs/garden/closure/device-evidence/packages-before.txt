@@ -1,0 +1,9 @@
+package:ch.pocketpc.nearbyglasses
+package:com.lord1egypt.pocketclaw
+package:com.thothterm
+package:com.thothterm.arch
+package:com.thothterm.arch.test
+package:com.thothterm.debian
+package:com.thothterm.devel
+package:com.thothterm.ubuntu
+package:com.thothterm.ubuntu.test

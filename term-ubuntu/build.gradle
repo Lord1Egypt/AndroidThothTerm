@@ -1,0 +1,191 @@
+plugins {
+    id 'com.android.application'
+}
+// No Java toolchain is requested on purpose. Each module already fixes the
+// Java level it compiles to through compileOptions, so the toolchain only
+// chose which JDK ran javac -- and pinning it to 17 made the build
+// unsatisfiable on build servers that ship a newer JDK and cannot provision
+// an older one. Debian trixie, which F-Droid builds on, carries no JDK 17 at
+// all. The build now runs on whatever JDK the environment provides.
+
+def ubuntuApplicationId = rootProject.ext.thothtermApplicationId('com.thothterm.ubuntu')
+
+android {
+    namespace = "com.thothterm"
+
+    enableKotlin = false
+
+    compileSdk = rootProject.ext.compileSdk
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    ndkVersion = rootProject.ext.ndkVersion
+    defaultConfig {
+        // The one application id of this module (../applicationId.gradle):
+        // production, or with -PthothtermQaApplicationIdSuffix=.qa.<name> an
+        // isolated QA id for every variant. The PRoot runtime and the CMake
+        // code are built for exactly this id.
+        applicationId ubuntuApplicationId
+        minSdkVersion 26
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        vectorDrawables.useSupportLibrary = true
+
+        versionCode 301
+        versionName '0.3.1'
+
+        // Drives the real two-finger pinch that only a device can produce.
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+
+        // ThothTerm Ubuntu V1 is ARM64 only.
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+
+        // Debug and release share the application id so the debug APK installs as
+        // com.thothterm.ubuntu and can coexist with com.thothterm (terminal edition).
+        manifestPlaceholders.applicationIdSuffix = ""
+        buildConfigField("String", "APPLICATION_ID_SUFFIX", "\"\"")
+        externalNativeBuild {
+            cmake {
+                arguments "-DAPPLICATION_ID:STRING=${ubuntuApplicationId}"
+            }
+        }
+    }
+    lint {
+        targetSdk = rootProject.ext.targetSdkVersion
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    flavorDimensions = ["catalog"]
+    productFlavors {
+        // Embeds the Ubuntu userland, so first run needs no network.
+        full {
+            dimension 'catalog'
+            buildConfigField("boolean", "EMBEDDED_ROOTFS", "true")
+        }
+        // Ships no distribution payload: F-Droid's inclusion policy only allows
+        // binaries it built itself, and an Ubuntu rootfs is thousands of
+        // executables it did not. The userland is fetched on first run, after
+        // explicit consent, from the same pinned URL and checksum the full
+        // flavour embeds. Everything after extraction is the shared code path.
+        fdroid {
+            dimension 'catalog'
+            buildConfigField("boolean", "EMBEDDED_ROOTFS", "false")
+        }
+    }
+    buildTypes {
+        debug {
+        }
+        release {
+            // R8 shrinking, optimization and obfuscation, as F-Droid asked for.
+            // proguard-android-optimize.txt is the platform's own configuration;
+            // proguard-rules.pro adds only what R8 cannot infer.
+            minifyEnabled = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Resource shrinking stays off. Nothing in this app resolves a
+            // resource by name, so it would be safe, but it buys nothing worth
+            // the risk: the APK is dominated by the Ubuntu payload and the
+            // native runtime, not by resources.
+        }
+    }
+    buildFeatures {
+        aidl = true
+        buildConfig = true
+    }
+    testOptions {
+        unitTests.all {
+            // The extractor gate's JvmObjectInspector stats a held descriptor
+            // through /proc/self/fd/N and needs its number.
+            jvmArgs '--add-opens', 'java.base/java.io=ALL-UNNAMED'
+        }
+    }
+    sourceSets {
+        // The rootfs extractor and its no-follow file operations are shared
+        // with every Garden edition: one implementation, one security suite.
+        main {
+            java.srcDirs += rootProject.file('garden-common/src/shared/java')
+        }
+        test {
+            java.srcDirs += rootProject.file('garden-common/src/sharedTest/java')
+            java.srcDirs += rootProject.file('garden-common/src/sharedTestFixtures/java')
+        }
+        androidTest {
+            java.srcDirs += rootProject.file('garden-common/src/sharedAndroidTest/java')
+            java.srcDirs += rootProject.file('garden-common/src/sharedTestFixtures/java')
+        }
+    }
+    packaging {
+        jniLibs {
+            // Required so the PRoot runtime and its loader land on disk with the
+            // executable bit inside ApplicationInfo.nativeLibraryDir. Guest
+            // binaries are never execve'd by PRoot (they are mapped), so they can
+            // stay in app-private storage.
+            useLegacyPackaging = true
+            keepDebugSymbols += ["**/libproot.so", "**/libproot_loader.so"]
+        }
+    }
+}
+
+dependencies {
+    implementation project(':emulatorview')
+    implementation project(':libtermexec')
+
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.preference
+    implementation libs.annotation
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+}
+
+// Builds the PRoot runtime from the pinned sources in third_party/. Needed by
+// every flavour, and it downloads nothing.
+def buildProot = tasks.register('buildProotRuntime', Exec) {
+    description = 'Build PRoot, its loader, talloc and libandroid-shmem from source.'
+    group = 'build'
+    workingDir projectDir
+    commandLine 'sh', 'tools/build-proot.sh'
+    // The runtime's paths are compiled in: build it for this module's one
+    // application id, and rebuild it when that id changes.
+    environment 'THOTHTERM_APPLICATION_ID', android.defaultConfig.applicationId
+    inputs.property 'applicationId', android.defaultConfig.applicationId
+    // Use the NDK this module is already pinned to, so the PRoot runtime and
+    // the CMake targets are produced by one toolchain locally and on a build
+    // server alike.
+    environment 'THOTHTERM_NDK_VERSION', rootProject.ext.ndkVersion
+    inputs.dir rootProject.file('third_party/proot')
+    inputs.dir rootProject.file('third_party/talloc')
+    inputs.dir rootProject.file('third_party/libandroid-shmem')
+    inputs.dir file('patches')
+    inputs.file file('tools/build-proot.sh')
+    inputs.file rootProject.file('garden-common/tools/check-runtime-ids.sh')
+    outputs.file file('src/main/jniLibs/arm64-v8a/libproot.so')
+    outputs.file file('src/main/jniLibs/arm64-v8a/libproot_loader.so')
+    outputs.file file('src/main/assets/runtime/arm64-v8a/libtalloc.so.2')
+    outputs.file file('src/main/assets/runtime/arm64-v8a/libandroid-shmem.so')
+}
+
+// Stages the embedded Ubuntu payload. Only the full flavour packages it.
+def prepareUbuntu = tasks.register('prepareUbuntuRuntime', Exec) {
+    description = 'Fetch, verify, and stage the pinned Ubuntu rootfs and admin packages.'
+    group = 'build'
+    workingDir projectDir
+    commandLine 'sh', 'tools/prepare-assets.sh'
+    // The script is cache-aware and exits quickly when the verified artifacts are present.
+}
+
+tasks.configureEach { task ->
+    if (task.name == 'preBuild') task.dependsOn buildProot
+    // Flavour-specific: only "full" variants stage the Ubuntu payload.
+    if (task.name ==~ /^pre[Ff]ull.*Build$/) task.dependsOn prepareUbuntu
+}

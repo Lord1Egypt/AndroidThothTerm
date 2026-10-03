@@ -1,0 +1,6 @@
+docs/garden/closure/evidence/final-host-gate-arch.txt:GATE PASS
+docs/garden/closure/evidence/final-host-gate-arch.txt:exit=0
+docs/garden/closure/evidence/final-host-gate-trixie.txt:GATE PASS
+docs/garden/closure/evidence/final-host-gate-trixie.txt:exit=0
+docs/garden/closure/evidence/final-host-gate-ubuntu.txt:GATE PASS
+docs/garden/closure/evidence/final-host-gate-ubuntu.txt:exit=0

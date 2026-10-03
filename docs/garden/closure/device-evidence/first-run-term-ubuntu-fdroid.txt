@@ -1,0 +1,18 @@
+10-03 08:30:39.322 I/ThothTerm(11984): STORAGE: Initializing application private directories
+10-03 08:30:39.348 I/ThothTerm(11984): STORAGE: Application private directories ready
+10-03 08:31:00.198 I/ThothTerm(11984): ROOTFS: Ubuntu archive downloaded and verified bytes=35092106
+10-03 08:31:00.199 I/ThothTerm(11984): ROOTFS: Setup stage DOWNLOAD_COMPLETE t=6552ms bytes=35092106
+10-03 08:31:07.796 I/ThothTerm(11984): ROOTFS: Setup stage ARCHIVE_EXTRACTED t=14149ms entries=6564 rejected=0 skipped=0 hardlinkFallbacks=115 compressedBytes=35092106 extractedBytes=110784659 ms=7595
+10-03 08:31:07.797 I/ThothTerm(11984): ROOTFS: Setup stage ARCHIVE_VERIFIED t=14150ms sha256=5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd
+10-03 08:31:07.869 I/ThothTerm(11984): ROOTFS: Setup stage SETUP_ROOTFS_COMPLETE t=14222ms
+10-03 08:31:07.870 I/ThothTerm(11984): ROOTFS: Setup stage ROOTFS_PROMOTED t=14223ms
+10-03 08:31:07.924 I/ThothTerm(11984): ROOTFS: Setup stage STATE_WRITTEN t=14278ms
+10-03 08:31:07.936 I/ThothTerm(11984): STORAGE: Downloaded rootfs archive removed after install
+10-03 08:31:07.939 I/ThothTerm(11984): ROOTFS: Setup stage TERMINAL_READY t=14292ms state=TERMINAL_READY
+10-03 08:31:07.939 I/ThothTerm(11984): ROOTFS: Setup stage TERMINAL_HANDOFF t=14292ms
+10-03 08:31:07.939 I/ThothTerm(11984): ROOTFS: Setup timeline DOWNLOAD_COMPLETE=6552 ARCHIVE_EXTRACTED=14149 ARCHIVE_VERIFIED=14150 SETUP_ROOTFS_COMPLETE=14222 ROOTFS_PROMOTED=14223 STATE_WRITTEN=14278 TERMINAL_READY=14292 TERMINAL_HANDOFF=
+10-03 08:31:07.942 I/ThothTerm(11984): ROOTFS: Setup stage OPTIONAL_SETUP_STARTED t=14294ms reason=after setup
+10-03 08:31:07.975 I/ThothTerm(11984): ROOTFS: Provisioning command start
+10-03 08:31:25.479 I/ThothTerm(11984): ROOTFS: Provisioning command start
+10-03 08:31:25.890 I/ThothTerm(11984): ROOTFS: sudo provisioning complete setuid=true report=install ok installed 1.9.17p2-1ubuntu3.1 /etc/sudoers: parsed OK /etc/sudoers.d/README: parsed OK /etc/sudoers.d/thoth: parsed OK
+10-03 08:31:25.938 I/ThothTerm(11984): ROOTFS: Setup stage OPTIONAL_SETUP_FINISHED t=32291ms ms=17980 sudo=INSTALLED state=HEALTHY

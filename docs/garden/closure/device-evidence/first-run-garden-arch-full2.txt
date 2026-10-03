@@ -1,0 +1,13 @@
+10-03 08:36:12.916 I/ThothTerm(14634): ROOTFS: Setup stage ARCHIVE_EXTRACTED t=24601ms entries=33640 rejected=0 skipped=0 hardlinkFallbacks=1821 compressedBytes=199826020 extractedBytes=651557385 ms=24361
+10-03 08:36:12.916 W/ThothTerm(14634): ROOTFS: Hardlink fallback used count=1821 (Android SELinux forbids untrusted-app hardlinks)
+10-03 08:36:12.916 I/ThothTerm(14634): ROOTFS: Setup stage ARCHIVE_VERIFIED t=24602ms sha256=03a4c669ed6f89d044a9e83dce54c554f04885fd1bb7d1793f5b95b7cc0f48d1
+10-03 08:36:12.953 I/ThothTerm(14634): ROOTFS: Setup stage SETUP_ROOTFS_COMPLETE t=24638ms
+10-03 08:36:12.957 I/ThothTerm(14634): ROOTFS: Setup stage ROOTFS_PROMOTED t=24642ms
+10-03 08:36:12.992 I/ThothTerm(14634): ROOTFS: Setup stage STATE_WRITTEN t=24677ms
+10-03 08:36:12.995 I/ThothTerm(14634): ROOTFS: Setup stage TERMINAL_READY t=24680ms state=TERMINAL_READY
+10-03 08:36:12.995 I/ThothTerm(14634): ROOTFS: Setup stage TERMINAL_HANDOFF t=24680ms
+10-03 08:36:12.999 I/ThothTerm(14634): ROOTFS: Setup stage OPTIONAL_SETUP_STARTED t=24683ms reason=after setup
+10-03 08:36:13.003 I/ThothTerm(14634): ROOTFS: Provisioning command start
+10-03 08:36:23.179 I/ThothTerm(14634): ROOTFS: pacman keyring recreated
+10-03 08:36:23.181 I/ThothTerm(14634): ROOTFS: Setup stage KEYRING_PROVISIONED t=34865ms
+10-03 08:36:23.195 I/ThothTerm(14634): ROOTFS: Setup stage OPTIONAL_SETUP_FINISHED t=34880ms ms=10190 sudo=INSTALLED state=HEALTHY

@@ -1,0 +1,15 @@
+R8 is now enabled for release builds. Nothing else changed from 0.1.6.
+
+Release builds are shrunk, optimized and obfuscated with the platform's standard
+optimized configuration. The download is smaller: the F-Droid build drops from
+5.9 MB to 3.3 MB.
+
+The terminal's native bridge needs its names kept, because the native library
+registers its methods against class and method names written out as literals
+rather than through the Java_* naming convention. Exactly those two classes and
+their six native methods are pinned; everything else in the app, including their
+own outer classes, is fully optimized. The minified build was tested on a
+physical Android 16 device before release.
+
+No terminal, clipboard, lifecycle, service, branding or runtime behaviour
+changed.

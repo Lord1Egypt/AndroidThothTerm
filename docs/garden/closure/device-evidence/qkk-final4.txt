@@ -1,0 +1,13 @@
+== tzdata
+warning: tzdata: /usr/share/zoneinfo/right/US/Samoa (Modification time mismatch)
+tzdata: 1887 total files, 760 altered files
+== coreutils
+warning: coreutils: /usr/share/locale/zh_TW/LC_TIME/coreutils.mo (Modification time mismatch)
+coreutils: 444 total files, 46 altered files
+== pacman
+backup file: pacman: /etc/pacman.conf (SHA256 checksum mismatch)
+pacman: 426 total files, 14 altered files
+8
+-rw-r--r--  0 0      0        2933 Sep 14 15:58 CET
+-rw-r--r--  0 0      0       18808 Sep 14 15:58 zone.tab
+0 root

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>ThothTerm Ubuntu — LAN Terminal</title>
+<link rel="stylesheet" href="/fonts.css">
+<link rel="stylesheet" href="/xterm.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header id="bar">
+  <span class="brand">ThothTerm Ubuntu</span>
+  <span class="sub">LAN Terminal</span>
+  <span id="state" class="state" role="status"></span>
+  <span class="spacer"></span>
+  <button id="upload-files" type="button" hidden title="Upload files into this terminal's current folder"><span aria-hidden="true">&#x2912;</span> <span class="long">Upload </span><span class="cap">f</span>iles</button>
+  <button id="upload-folder" type="button" hidden title="Upload a folder into this terminal's current folder"><span aria-hidden="true">&#x2912;</span> <span class="long">Upload </span><span class="cap">f</span>older</button>
+  <button id="signout" type="button" hidden>Sign out</button>
+  <input id="pick-files" type="file" multiple hidden tabindex="-1">
+  <input id="pick-folder" type="file" webkitdirectory hidden tabindex="-1">
+</header>
+<main>
+  <section id="pair" class="panel" hidden>
+    <h1>Pair this browser</h1>
+    <p>On the phone, open the menu, tap <b>LAN Mode</b>, and enter the PIN shown there.</p>
+    <form id="pair-form" autocomplete="off">
+      <input id="pin" name="pin" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" pattern="[0-9]{6}" required aria-label="PIN" placeholder="000000">
+      <button type="submit">Pair</button>
+    </form>
+    <p id="pair-error" class="error" role="alert"></p>
+    <p class="warn">LAN terminal traffic and uploaded file contents are not encrypted. Use only on networks you trust.</p>
+  </section>
+  <section id="notice" class="panel" hidden>
+    <p id="notice-text"></p>
+    <button id="notice-action" type="button"></button>
+  </section>
+  <div id="terminal" hidden></div>
+</main>
+<div id="upload" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="upload-title">
+  <div class="card">
+    <h2 id="upload-title"></h2>
+    <p id="upload-what"></p>
+    <div id="upload-where" hidden>
+      <p class="label">Upload to:</p>
+      <p id="upload-target" class="target" dir="ltr"></p>
+    </div>
+    <div id="upload-progress" hidden>
+      <p id="upload-name" class="name" dir="auto"></p>
+      <progress id="upload-bar" max="1000" value="0"></progress>
+      <p id="upload-bytes"></p>
+    </div>
+    <p id="upload-message" role="status"></p>
+    <p class="warn small">Uploaded file contents are not encrypted on this network.</p>
+    <div class="actions">
+      <button id="upload-cancel" type="button">Cancel</button>
+      <button id="upload-go" type="button" class="primary">Upload</button>
+    </div>
+  </div>
+</div>
+<script src="/xterm.js"></script>
+<script src="/rtl.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

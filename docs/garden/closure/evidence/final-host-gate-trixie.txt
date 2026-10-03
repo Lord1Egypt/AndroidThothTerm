@@ -1,0 +1,53 @@
+# host-gate.sh trixie as lordegypt (uid 1000), commit 54a965f+worktree, 2026-10-03T10:52:49Z
+INFO archive /home/lordegypt/AndroidThothTerm/archives/thothterm-debian-trixie-arm64-rootfs-f6520ff1c6ee.tar.gz
+INFO independent manifest: 7049 paths (Python tarfile)
+INFO host gate: shared extractor policy with JvmFileOps (NOT the Android FileOps; the device gate proves AndroidFileOps)
+PASS case danglingSymlinkThenFile
+PASS case danglingAbsoluteSymlinkThenFile
+PASS case danglingSymlinkThenHardlink
+PASS case symlinkToOutsideFileThenFile
+PASS case symlinkToOutsideDirThenChildren
+PASS case symlinkToOutsideDirThenDirectoryEntry
+PASS case nestedRelativeSymlinkEscape
+PASS case hardlinkTargetThroughSymlink
+PASS case hardlinkToSymlinkDoesNotFollow
+PASS case hardlinkTraversalRejected
+PASS case traversalAndAbsoluteNamesRejected
+PASS case paxTraversalRejected
+PASS case literalBackslashNamesPreserved
+PASS case utf8NamesPreserved
+PASS case malformedUtf8Rejected
+PASS case rootEntryAccepted
+PASS case fileOverDirectoryRejected
+PASS case setgidDirectoryMasked
+PASS case specialBitsMasked
+PASS case legitimateLinksSupported
+PASS case specialFilesSkipped
+PASS contract typeDoesNotFollow
+PASS contract createNewRefusesDanglingSymlink
+PASS contract createNewRefusesExistingFile
+PASS contract createNewAppliesMaskedModeOnClose
+PASS contract chmodRefusesSymlinkAndLeavesTarget
+PASS contract chmodWorksOnUnreadableFile
+PASS contract chmodOfUnreadableFileStillMasksSetuid
+PASS contract chmodRefusesSymlinkToUnreadableTarget
+PASS contract chmodWorksOnDirectory
+PASS contract chmodWorksOnUnreadableDirectoryKeepingSticky
+PASS contract chmodRefusesSymlinkToDirectory
+PASS contract chmodRefusesFifoWithoutOpeningIt
+PASS contract chmodSwapRacesNeverReachTheTarget
+PASS contract mkdirRefusesDanglingSymlink
+PASS contract unlinkRemovesLinkNotTarget
+PASS contract unlinkOfDanglingSymlinkRemovesTheLink
+PASS contract unlinkOfSymlinkToDirectoryRemovesTheLink
+PASS contract unlinkRefusesADirectory
+PASS contract rmdirRefusesSymlinkToDirectory
+PASS contract openNoFollowRefusesSymlink
+PASS contract symlinkRefusesExisting
+PASS contract renameMovesTheEntryItself
+INFO extract entries=7050 rejected=0 skipped=0 hardlinkFallbacks=0 compressedBytes=62445701 extractedBytes=171193428 ms=7495 sha256=f6520ff1c6eeb28ead2d175e6733da4c970459a291b1bd60f992f1655c5d0677
+PASS archive verified: sha256 matches, 0 rejected entries
+PASS extracted tree matches the independent manifest: 7049 paths (0 hardlinks materialized as copies)
+PASS content of 5454 regular files verified on the final objects and equal to the bytes the extractor wrote: 5454 re-read from disk, 0 owner-unreadable read through the descriptor pinned on that same inode (no reopen, no chmod); 1 hard link groups (2 names) share one inode each
+GATE PASS
+exit=0

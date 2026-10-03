@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2007 The Android Open Source Project
+     Copyright (c) 2017-2024 Roumen Petrov.  All rights reserved.
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+
+<resources
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Application chrome only; terminal ANSI colors remain independent. -->
+    <style name="BaseAppTheme" parent="Theme.AppCompat">
+        <item name="colorPrimary">@color/brand_navy</item>
+        <item name="colorPrimaryDark">@color/brand_midnight</item>
+        <item name="colorAccent">@color/brand_teal</item>
+        <item name="colorPrimaryLight">@color/brand_navy_light</item>
+        <item name="themeTextColor">?android:attr/textColorPrimary</item>
+        <item name="android:windowBackground">@color/brand_midnight</item>
+        <item name="android:navigationBarColor" tools:targetApi="21">@color/brand_midnight</item>
+        <item name="android:statusBarColor" tools:targetApi="21">@color/brand_midnight</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+        <item name="alertDialogTheme">@style/ThothTerm.Dialog</item>
+    </style>
+
+    <!-- "ThothTerm" "Light" theme -->
+    <style name="BaseAppTheme.Light" parent="Theme.AppCompat.Light">
+        <item name="colorPrimary">#123D52</item>
+        <item name="colorPrimaryDark">#0A2A3B</item>
+        <item name="colorAccent">@color/brand_teal_dark</item>
+        <item name="colorPrimaryLight">#28596F</item>
+        <item name="themeTextColor">?android:attr/textColorPrimary</item>
+        <item name="android:windowBackground">@color/brand_mist</item>
+        <item name="android:navigationBarColor" tools:targetApi="21">@color/brand_mist</item>
+        <item name="android:statusBarColor" tools:targetApi="21">#0A2A3B</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="23">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+        <item name="alertDialogTheme">@style/ThothTerm.Dialog.Light</item>
+    </style>
+
+    <!-- "ThothTerm" "DayNight" theme(system) -->
+    <style name="BaseAppTheme.DayNight" parent="Theme.AppCompat.DayNight">
+        <item name="colorPrimary">@color/brand_navy</item>
+        <item name="colorPrimaryDark">@color/brand_midnight</item>
+        <item name="colorAccent">@color/brand_teal</item>
+        <item name="colorPrimaryLight">@color/brand_navy_light</item>
+        <item name="themeTextColor">?android:attr/textColorPrimary</item>
+        <item name="android:statusBarColor" tools:targetApi="21">@color/brand_midnight</item>
+        <item name="alertDialogTheme">@style/ThothTerm.Dialog</item>
+    </style>
+
+    <style name="BaseAppTheme.Amoled" parent="Theme.AppCompat">
+        <item name="colorPrimary">#000000</item>
+        <item name="colorPrimaryDark">#000000</item>
+        <item name="colorAccent">@color/brand_teal</item>
+        <item name="colorPrimaryLight">@color/brand_navy</item>
+        <item name="themeTextColor">?android:attr/textColorPrimary</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:navigationBarColor" tools:targetApi="21">#000000</item>
+        <item name="android:statusBarColor" tools:targetApi="21">#000000</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+        <item name="alertDialogTheme">@style/ThothTerm.Dialog.Amoled</item>
+    </style>
+
+    <style name="ThothTerm.Dialog" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="colorAccent">@color/brand_teal</item>
+    </style>
+
+    <!-- Compact toolbar typography for the brand title and live session label. -->
+    <style name="ThothTerm.Toolbar.Theme" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+        <!-- Toolbar menu icons use ?attr/themeTextColor in this app. -->
+        <item name="themeTextColor">@color/brand_white</item>
+    </style>
+
+    <style name="ThothTerm.Toolbar.Title" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="ThothTerm.Toolbar.Subtitle" parent="TextAppearance.Widget.AppCompat.Toolbar.Subtitle">
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="ThothTerm.Dialog.Light" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">@color/brand_teal_dark</item>
+    </style>
+
+    <style name="ThothTerm.Dialog.Amoled" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">#000000</item>
+        <item name="colorAccent">@color/brand_teal</item>
+    </style>
+
+    <!-- actual "Dark" theme overridden at API level -->
+    <style name="AppTheme" parent="BaseAppTheme"/>
+
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionModeOverlay">true</item>
+        <item name="actionModeBackground">?attr/colorPrimary</item>
+    </style>
+
+    <!-- actual "Light" theme overridden at API level -->
+    <style name="AppTheme.Light" parent="BaseAppTheme.Light"/>
+
+    <style name="AppTheme.Light.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionModeOverlay">true</item>
+        <item name="actionModeBackground">?attr/colorPrimary</item>
+    </style>
+
+    <!-- actual "DayNight" theme overridden at API level -->
+    <style name="AppTheme.DayNight" parent="BaseAppTheme.DayNight"/>
+
+    <style name="AppTheme.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionModeOverlay">true</item>
+        <item name="actionModeBackground">?attr/colorPrimary</item>
+    </style>
+
+    <style name="AppTheme.Amoled" parent="BaseAppTheme.Amoled"/>
+
+    <style name="AppTheme.Amoled.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionModeOverlay">true</item>
+        <item name="actionModeBackground">?attr/colorPrimary</item>
+    </style>
+
+    <!-- style used in "AddShortcut" activity -->
+    <style name="AppTheme.NoActionBar.Translucent">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation</item>
+    </style>
+
+</resources>

@@ -1,0 +1,31 @@
+--- the reviewer's condition reproduced without the fix (stuck)
+     255073  252963 S    /tmp/tmp.xtU1SZ7jSn/stuck/proot/src/proot -r / /tmp/tmp.xtU1SZ7jSn/fork-probe vfork
+     255076  255073 D    /tmp/tmp.xtU1SZ7jSn/fork-probe vfork
+     255077  255076 t    /tmp/tmp.xtU1SZ7jSn/fork-probe vfork
+PASS stuck: PRoot warns about ptrace(GETEVENTMSG), as on the device
+PASS stuck: a child is left stopped under ptrace (t)
+PASS stuck: its vfork parent waits in D
+PASS stock  fork
+PASS fixed  fork (0007, normal kernel)
+PASS stock  vfork
+PASS fixed  vfork (0007, normal kernel)
+PASS stock  spawn
+PASS fixed  spawn (0007, normal kernel)
+PASS stock  clone-parent
+PASS fixed  clone-parent (0007, normal kernel)
+PASS stock  thread
+PASS fixed  thread (0007, normal kernel)
+PASS stock  threads-concurrent
+PASS fixed  threads-concurrent (0007, normal kernel)
+PASS stock  forks-concurrent
+PASS fixed  forks-concurrent (0007, normal kernel)
+PASS forced fork: every child recovered, no hang
+PASS forced vfork: every child recovered, no hang
+PASS forced spawn: every child recovered, no hang
+PASS forced clone-parent: every child recovered, no hang
+PASS forced thread: every child recovered, no hang
+  forced threads-concurrent: recovered=0 refused-and-stopped=5 other=0
+PASS forced threads-concurrent: each run completes or stops cleanly, never hangs
+  forced forks-concurrent: recovered=5 refused-and-stopped=0 other=0
+PASS forced forks-concurrent: each run completes or stops cleanly, never hangs
+exit=0

@@ -36,3 +36,6 @@ gradle-wrapper.properties text eol=lf
 # skeleton files must have end-of-line conversion as shell script, i.e. unix(LF)
 
 /**/assets/skel/* eol=lf
+
+# Master branding artwork is binary and must never be line-ending normalised.
+/docs/branding/**/*.png binary

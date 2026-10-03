@@ -1,0 +1,46 @@
+/home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/garden/jniLibs/arm64-v8a/libproot.so: 1 file pushed, 0 skipped. 9.7 MB/s (277512 bytes in 0.027s)
+/home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/garden/jniLibs/arm64-v8a/libproot_loader.so: 1 file pushed, 0 skipped. 18.6 MB/s (18616 bytes in 0.001s)
+/home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/garden/assets/runtime/arm64-v8a/libtalloc.so.2: 1 file pushed, 0 skipped. 19.8 MB/s (46064 bytes in 0.002s)
+/home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/garden/assets/runtime/arm64-v8a/libandroid-shmem.so: 1 file pushed, 0 skipped. 13.7 MB/s (18448 bytes in 0.001s)
+2 files pushed, 0 skipped. 0.9 MB/s (64512 bytes in 0.069s)
+/home/lordegypt/AndroidThothTerm/archives/thothterm-debian-trixie-arm64-rootfs-f6520ff1c6ee.tar.gz: 1 file pushed, 0 skipped. 16.2 MB/s (62445701 bytes in 3.679s)
+hard links in the archive: 1
+/tmp/gd-hardlinks.txt: 1 file pushed, 0 skipped. 0.4 MB/s (32 bytes in 0.000s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-debian/device/mkroot.sh: 1 file pushed, 0 skipped. 1.0 MB/s (597 bytes in 0.001s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-debian/device/run.sh: 1 file pushed, 0 skipped. 1.5 MB/s (888 bytes in 0.001s)
+hard links materialized as copies: 1
+rootfs ready: 183 MiB
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-debian/device/provision.sh: 1 file pushed, 0 skipped. 0.3 MB/s (522 bytes in 0.002s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-debian/device/matrix.sh: 1 file pushed, 0 skipped. 13.9 MB/s (3187 bytes in 0.000s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-debian/device/restart.sh: 1 file pushed, 0 skipped. 1.1 MB/s (669 bytes in 0.001s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-debian/device/interrupt.sh: 1 file pushed, 0 skipped. 8.5 MB/s (1494 bytes in 0.000s)
+provisioned: Debian GNU/Linux 13 (trixie), sudo 1.9.16p2-3+deb13u2, coreutils 9.7-3
+PASS apt sources: trixie, trixie-updates, trixie-security, main only
+PASS apt update
+PASS apt full-upgrade
+     upgraded: 4
+PASS dpkg --audit clean
+PASS apt --fix-broken install is a no-op
+PASS sudo -n id -un (as thoth) = root
+PASS coreutils incl. readlink and hard links (root)
+PASS coreutils incl. readlink and hard links (thoth)
+PASS apt install tree
+PASS apt install jq
+PASS apt purge tree
+PASS apt purge jq
+PASS /proc/self/exe names the hard link it ran through
+PASS readlink /proc/self/exe
+     chown to 1000:1000 then stat: 0:0 (PRoot limitation, see docs)
+PASS dpkg --audit clean at end
+PASS after restart: apt install less
+PASS after restart: apt purge less
+PASS after restart: readlink /proc/self/exe
+PASS after restart: sudo -n id -un = root
+PASS after restart: dpkg --audit clean
+PASS sudo left unpacked, not configured
+PASS dpkg --audit reports it
+PASS dpkg --configure -a
+PASS sudo configured, same version (1.9.16p2-3+deb13u2), no downgrade
+PASS sudo works after recovery
+PASS recovered after SIGKILL during apt install
+gate exit=0

@@ -1,0 +1,15 @@
+A visual release. The terminal itself is unchanged from 0.1.4.
+
+ThothTerm Ubuntu has its own launcher identity: a terminal cup on the Garden
+petals. It is a proper adaptive icon, so the artwork and its background are
+separate layers and every launcher shape -- circle, squircle, rounded square --
+crops padding rather than petals. A monochrome version is included, so Android's
+themed icons follow your wallpaper colours instead of falling back to the old
+mark. The legacy icons were regenerated to match for every screen density.
+
+Starting the app now shows the round eight-petal emblem, centred and at its own
+proportions in portrait and landscape alike, through the Android 12 splash
+screen API rather than a stretched full-screen image.
+
+The master artwork and the steps needed to regenerate these assets are kept in
+the repository under docs/branding, so the identity can be rebuilt exactly.

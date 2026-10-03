@@ -1,0 +1,16 @@
+syu=0
+== tzdata
+0
+tzdata: 1887 total files, 0 altered files
+== coreutils
+0
+coreutils: 444 total files, 46 altered files
+== pacman
+0
+pacman: 426 total files, 14 altered files
+== all
+warning: dbus: /usr/lib/dbus-daemon-launch-helper (GID mismatch)
+warning: filesystem: /srv/ftp (GID mismatch)
+warning: filesystem: /var/games (GID mismatch)
+warning: util-linux: /usr/bin/wall (GID mismatch)
+warning: util-linux: /usr/bin/write (GID mismatch)

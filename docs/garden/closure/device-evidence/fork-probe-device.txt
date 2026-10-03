@@ -1,0 +1,7 @@
+fork: ok fork rc=0 
+vfork: ok vfork rc=0 
+spawn: ok spawn rc=0 
+clone-parent: ok clone-parent rc=0 
+thread: ok thread rc=0 
+forks-concurrent: ok forks-concurrent rc=0 
+threads-concurrent: ok threads-concurrent rc=0 

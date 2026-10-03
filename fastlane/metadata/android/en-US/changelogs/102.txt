@@ -1,0 +1,7 @@
+Build fix for the F-Droid build servers. No change to how the app behaves.
+
+The PRoot runtime is compiled from source during the build, and that build
+assumed the machine already had GNU make, binutils and GNU awk. The F-Droid
+build image ships none of them, so the build stopped there. It now uses the
+make and readelf that come with the Android NDK, and generates one small
+source file with portable awk instead of a GNU-only script.

@@ -1,0 +1,14 @@
+The branding release. The terminal itself is unchanged from 0.1.5.
+
+0.1.5 gave the app its launcher identity and its Android startup splash, but two
+screens inside the app were still drawing the older hand-drawn mark: the
+first-run screen that extracts Ubuntu, and the navigation drawer header. Both now
+show the same round eight-petal emblem as the startup splash, at their own size
+and proportions.
+
+The rule is now consistent everywhere. Outside the app -- the launcher icon and
+any shortcut you create -- carries the terminal cup. Inside the app, every place
+that shows the app's own identity carries the round emblem. Functional icons are
+untouched.
+
+No terminal, clipboard, lifecycle, service or runtime behaviour changed.

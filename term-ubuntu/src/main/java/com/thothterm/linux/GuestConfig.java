@@ -1,0 +1,335 @@
+/*
+ * Copyright (C) 2026 ThothTerm.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.thothterm.linux;
+
+/**
+ * Pure, idempotent text transforms for the guest Ubuntu account and managed
+ * configuration. No Android APIs so every rule is unit-testable.
+ *
+ * <p>All transforms append or edit only the lines they own. Unrelated entries
+ * in {@code /etc/passwd}, {@code /etc/group}, {@code /etc/shadow} and the
+ * debconf databases are never rewritten, so an already-populated rootfs can be
+ * upgraded in place. Running the transforms twice produces the same text.</p>
+ */
+final class GuestConfig {
+    static final String USER = "thoth";
+    static final int UID = 1000;
+    static final int GID = 1000;
+    static final String USER_HOME = "/home/thoth";
+    static final String USER_SHELL = "/bin/bash";
+
+    /** Bumped when managed guest configuration changes so it can be re-applied. */
+    static final int RUNTIME_CONFIG_VERSION = 3;
+
+    /** Exact text of the {@code auth sufficient pam_permit.so} line ThothTerm
+     *  added to {@code /etc/pam.d/su} in runtime config v2. */
+    private static final String MANAGED_PAM_PERMIT = "auth sufficient pam_permit.so";
+
+    /** First line of the ThothTerm-managed {@code /usr/local/bin/sudo} helper. */
+    private static final String MANAGED_SUDO_MARKER = "# Managed by ThothTerm";
+
+    private GuestConfig() {
+    }
+
+    static String ensurePasswd(String text) {
+        if (hasNamedLine(text, USER)) return text;
+        return appendStanza(text, USER + ":x:" + UID + ":" + GID + ":Thoth User:"
+                + USER_HOME + ":" + USER_SHELL);
+    }
+
+    static String ensureGroup(String text) {
+        String result = text;
+        if (!hasNamedLine(result, USER)) {
+            result = appendStanza(result, USER + ":x:" + GID + ":");
+        }
+        return ensureMember(result, "sudo", USER);
+    }
+
+    static String ensureShadow(String text) {
+        if (hasNamedLine(text, USER)) return text;
+        return appendStanza(text, USER + ":!:19000:0:99999:7:::");
+    }
+
+    private static final int AID_USER_OFFSET = 100000;
+    private static final int AID_APP_START = 10000;
+    private static final int AID_CACHE_START = 20000;
+    private static final int AID_SHARED_START = 50000;
+
+    /** Where the guest's sudo package stands, from dpkg's status database. */
+    enum PackageState {
+        /** Fully installed and configured. */
+        INSTALLED,
+        /**
+         * Present but not finished -- unpacked, half-configured or awaiting
+         * triggers. {@code dpkg --configure -a} completes it in place;
+         * reinstalling a bundled copy would downgrade a newer version.
+         */
+        UNFINISHED,
+        /** Never installed, removed, or purged. */
+        ABSENT,
+    }
+
+    /** The state of {@code packageName} in the text of /var/lib/dpkg/status. */
+    static PackageState packageState(String dpkgStatus, String packageName) {
+        for (String stanza : dpkgStatus.split("\n\n")) {
+            String status = null;
+            boolean match = false;
+            for (String line : stanza.split("\n")) {
+                if (line.equals("Package: " + packageName)) match = true;
+                else if (line.startsWith("Status: ")) status = line.substring("Status: ".length());
+            }
+            if (!match || status == null) continue;
+            String[] words = status.trim().split("\\s+");
+            String current = words[words.length - 1];
+            switch (current) {
+                case "installed":
+                    return PackageState.INSTALLED;
+                case "unpacked":
+                case "half-configured":
+                case "triggers-awaited":
+                case "triggers-pending":
+                case "half-installed":
+                    return PackageState.UNFINISHED;
+                default:
+                    return PackageState.ABSENT;
+            }
+        }
+        return PackageState.ABSENT;
+    }
+
+    /**
+     * The guest user's sudo rule. sudo resets the environment, so the one
+     * variable package hooks need to see the truth about the environment
+     * ({@code SYSTEMD_IN_CHROOT}, see the runtime) is kept explicitly.
+     */
+    static String sudoersEntry() {
+        return "Defaults:" + USER + " env_keep += \"SYSTEMD_IN_CHROOT\"\n"
+                + USER + " ALL=(ALL:ALL) NOPASSWD: ALL\n";
+    }
+
+    /**
+     * Ensures the loopback entries sudo and local tools require in
+     * {@code /etc/hosts}. Ubuntu Base ships the file empty, and sudo fails with
+     * "unable to resolve host" when its own host name is missing. Only missing
+     * managed lines are appended; user entries are preserved and rerunning the
+     * transform returns the same text.
+     */
+    static String ensureHosts(String text) {
+        StringBuilder result = new StringBuilder(text == null ? "" : text);
+        if (result.length() > 0 && result.charAt(result.length() - 1) != '\n') {
+            result.append('\n');
+        }
+        ensureHostEntry(result, "127.0.0.1", "localhost");
+        ensureHostEntry(result, "::1", "localhost ip6-localhost ip6-loopback");
+        return result.toString();
+    }
+
+    /**
+     * Ensures the guest can name the Android supplementary groups its processes
+     * already carry. An app's threads run with the fixed AIDs {@code inet} and
+     * {@code everybody} plus two derived from its own uid, and Ubuntu Base has
+     * no entry for any of them, so {@code id}, {@code ls -l} and {@code ps}
+     * print "cannot find name for group ID" instead of a name.
+     *
+     * <p>This only adds name-to-GID mappings inside the guest. It grants
+     * nothing: the process already holds these groups, membership lists are
+     * left empty, and no Android credential or permission is altered. Only
+     * missing managed lines are appended, user entries are preserved, and
+     * rerunning the transform returns the same text.</p>
+     *
+     * @param androidUid the app's Android uid, e.g. {@code Process.myUid()}
+     */
+    static String ensureGroups(String text, int androidUid) {
+        StringBuilder result = new StringBuilder(text == null ? "" : text);
+        if (result.length() > 0 && result.charAt(result.length() - 1) != '\n') {
+            result.append('\n');
+        }
+        ensureGroupEntry(result, "aid_inet", 3003);
+        ensureGroupEntry(result, "aid_everybody", 9997);
+        int appId = androidUid % AID_USER_OFFSET - AID_APP_START;
+        if (appId >= 0) {
+            ensureGroupEntry(result, "aid_cache", AID_CACHE_START + appId);
+            ensureGroupEntry(result, "aid_all", AID_SHARED_START + appId);
+        }
+        return result.toString();
+    }
+
+    private static void ensureGroupEntry(StringBuilder text, String name, int gid) {
+        for (String line : text.toString().split("\n", -1)) {
+            String[] fields = line.split(":", -1);
+            if (fields.length < 3) continue;
+            if (fields[0].equals(name) || fields[2].trim().equals(Integer.toString(gid))) return;
+        }
+        text.append(name).append(":x:").append(gid).append(":\n");
+    }
+
+    private static void ensureHostEntry(StringBuilder text, String address, String names) {
+        String first = names.split(" ")[0];
+        for (String line : text.toString().split("\n", -1)) {
+            String[] fields = line.trim().split("\\s+");
+            if (fields.length < 2 || !fields[0].equals(address)) continue;
+            for (int i = 1; i < fields.length; i++) {
+                if (fields[i].equals(first)) return;
+            }
+        }
+        text.append(address).append(' ').append(names).append('\n');
+    }
+
+    /**
+     * Reverts the runtime-config-v2 {@code su} PAM customization. Real Ubuntu
+     * {@code sudo} is now the only elevation path, so {@code su} must go back to
+     * its stock policy ({@code auth sufficient pam_rootok.so}) and must not offer
+     * a passwordless route to root. Only the exact managed line is removed.
+     */
+    static String removePasswordlessSu(String pamSu) {
+        String[] lines = pamSu.split("\n", -1);
+        java.util.List<String> kept = new java.util.ArrayList<>(lines.length);
+        for (String line : lines) {
+            if (line.trim().equals(MANAGED_PAM_PERMIT)) continue;
+            kept.add(line);
+        }
+        return String.join("\n", kept);
+    }
+
+    static String ensureDebconfFrontendConfig(String text) {
+        String stanza = "Name: debconf/frontend\n"
+                + "Template: debconf/frontend\n"
+                + "Value: Teletype\n"
+                + "Owners: debconf\n"
+                + "Flags: seen";
+        return replaceStanzaField(text, "debconf/frontend", "Value", "Teletype", stanza);
+    }
+
+    static String ensureDebconfFrontendTemplate(String text) {
+        if (hasStanzaNamed(text, "debconf/frontend")) return text;
+        String stanza = "Name: debconf/frontend\n"
+                + "Type: select\n"
+                + "Choices: Dialog, Readline, Gnome, Kde, Editor, Noninteractive, Teletype\n"
+                + "Description: Interface to use for configuring packages";
+        return appendStanza(text, stanza);
+    }
+
+    /**
+     * True when {@code /usr/local/bin/sudo} is the ThothTerm-managed su-backed
+     * helper from runtime config v2 (or the earlier "fallback sudo" variant).
+     * A file without this marker is treated as user-owned and is never deleted.
+     */
+    static boolean isManagedSudoHelper(String content) {
+        return content != null && content.contains(MANAGED_SUDO_MARKER);
+    }
+
+    /**
+     * Replaces the distro locale fixup (an {@code eval} of {@code locale-check}
+     * output) with a direct setting that only applies when the locale actually
+     * exists. This removes the fragile eval at its source and never evaluates a
+     * path as a command.
+     */
+    static String localeFixScript() {
+        return "# Managed by ThothTerm. C.UTF-8 is built into glibc on this image.\n"
+                + "if [ -d /usr/lib/locale/C.utf8 ]; then\n"
+                + "  export LANG=C.UTF-8\n"
+                + "  export LC_ALL=C.UTF-8\n"
+                + "fi\n";
+    }
+
+    /** True for debconf-style stanzas whose first field is {@code Name: <name>}. */
+    static boolean hasStanzaNamed(String text, String name) {
+        for (String line : text.split("\n", -1)) {
+            if (line.equals("Name: " + name)) return true;
+        }
+        return false;
+    }
+
+    private static boolean hasNamedLine(String text, String name) {
+        for (String line : text.split("\n", -1)) {
+            if (line.startsWith(name + ":")) return true;
+        }
+        return false;
+    }
+
+    private static String ensureMember(String text, String group, String member) {
+        String[] lines = text.split("\n", -1);
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            if (!line.startsWith(group + ":")) continue;
+
+            String[] fields = line.split(":", -1);
+            if (fields.length < 4) {
+                String[] padded = new String[4];
+                for (int f = 0; f < 4; f++) {
+                    padded[f] = f < fields.length ? fields[f] : "";
+                }
+                padded[1] = padded[1].isEmpty() ? "x" : padded[1];
+                fields = padded;
+            }
+            for (String existing : fields[3].split(",")) {
+                if (existing.equals(member)) return text;
+            }
+            fields[3] = fields[3].isEmpty() ? member : fields[3] + "," + member;
+            lines[i] = String.join(":", fields);
+            return String.join("\n", lines);
+        }
+        return appendStanza(text, group + ":x:27:" + member);
+    }
+
+    /** Adds or updates a field inside an existing stanza, else appends the whole stanza. */
+    private static String replaceStanzaField(String text, String name,
+                                             String field, String value, String fallbackStanza) {
+        java.util.List<String> lines = new java.util.ArrayList<>(
+                java.util.Arrays.asList(text.split("\n", -1)));
+        int start = -1;
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).equals("Name: " + name)) {
+                start = i;
+                break;
+            }
+        }
+        if (start < 0) return appendStanza(text, fallbackStanza);
+
+        int end = lines.size();
+        for (int i = start + 1; i < lines.size(); i++) {
+            if (lines.get(i).isEmpty()) {
+                end = i;
+                break;
+            }
+        }
+        int insertAt = end;
+        for (int i = start + 1; i < end; i++) {
+            String line = lines.get(i);
+            if (line.startsWith(field + ":")) {
+                if (line.equals(field + ": " + value)) return text;
+                lines.set(i, field + ": " + value);
+                return String.join("\n", lines);
+            }
+            if (line.startsWith("Template:")) insertAt = i + 1;
+        }
+        lines.add(insertAt, field + ": " + value);
+        return String.join("\n", lines);
+    }
+
+    private static String appendStanza(String text, String stanza) {
+        StringBuilder builder = new StringBuilder();
+        if (text.isEmpty()) {
+            builder.append(stanza).append('\n');
+            return builder.toString();
+        }
+        builder.append(text);
+        if (!builder.toString().endsWith("\n")) builder.append('\n');
+        builder.append('\n').append(stanza).append('\n');
+        return builder.toString();
+    }
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (c) 2017-2026 Roumen Petrov.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<com.google.android.material.appbar.AppBarLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent">
+
+    <!-- A single, compact bar: brand title, live session subtitle on the
+         second line, and New window plus the overflow menu at the end.
+         AppCompat constrains and ellipsizes the title/subtitle against the
+         menu, so long session labels never wrap or push the actions away. -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:theme="@style/ThothTerm.Toolbar.Theme"
+        app:contentInsetStartWithNavigation="4dp"
+        app:contentInsetEnd="4dp"
+        app:popupTheme="?attr/actionBarPopupTheme"
+        app:subtitleTextColor="@color/brand_text_muted_dark"
+        app:subtitleTextAppearance="@style/ThothTerm.Toolbar.Subtitle"
+        app:title="@string/application_terminal"
+        app:titleMarginStart="8dp"
+        app:titleTextAppearance="@style/ThothTerm.Toolbar.Title"
+        app:titleTextColor="@color/brand_white"/>
+
+</com.google.android.material.appbar.AppBarLayout>

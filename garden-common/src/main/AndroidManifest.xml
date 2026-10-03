@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The Garden layer every ThothTerm distribution edition shares. The edition's
+    own manifest adds the application icon and label.
+
+    Nothing is exported except the launcher activity: there is no RUN_SCRIPT
+    permission, no "open here" share target, no shortcut activity and no
+    bindable terminal service. The LAN terminal is served by the app itself,
+    after pairing, and never through an Android component.
+-->
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:installLocation="auto">
+
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false"/>
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+
+    <!-- usesCleartextTraffic covers only connections this app opens; the
+         rootfs download is HTTPS-only. The LAN terminal is a server socket,
+         which this setting does not govern. -->
+    <application
+        android:name=".Application"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:hardwareAccelerated="true"
+        android:resizeableActivity="true"
+        android:theme="@style/AppTheme.NoActionBar"
+        android:usesCleartextTraffic="false"
+        tools:ignore="GoogleAppIndexingWarning">
+        <activity
+            android:name=".linux.GardenSetupActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.MULTIWINDOW_LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".TermActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|layoutDirection|navigation|uiMode|density"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize|stateAlwaysVisible">
+        </activity>
+
+        <service
+            android:name="jackpal.androidterm.TermService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="@string/service_special_use"/>
+        </service>
+
+        <activity
+            android:name=".WindowListActivity"
+            android:exported="false"
+            android:label="@string/window_list"
+            android:parentActivityName="com.thothterm.TermActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.thothterm.TermActivity"/>
+        </activity>
+        <activity
+            android:name=".lan.LanModeActivity"
+            android:exported="false"
+            android:label="@string/lan_mode"
+            android:parentActivityName="com.thothterm.TermActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.thothterm.TermActivity"/>
+        </activity>
+        <activity
+            android:name=".TermPreferencesActivity"
+            android:exported="false"
+            android:label="@string/preferences"
+            android:parentActivityName="com.thothterm.TermActivity"
+            android:theme="@style/AppTheme">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.thothterm.TermActivity"/>
+        </activity>
+        <activity
+            android:name=".LogsActivity"
+            android:exported="false"
+            android:label="@string/diagnostics_logs"
+            android:parentActivityName="com.thothterm.TermActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.thothterm.TermActivity"/>
+        </activity>
+
+        <meta-data
+            android:name="com.sec.android.support.multiwindow"
+            android:value="true">
+        </meta-data>
+        <!-- Note unused if resizeableActivity is true (default).
+        Render on full screen up to screen aspect ratio of "value"
+        Use a letterbox on screens larger than "value".
+        Recommend a ratio of 2.4 (12:5 > 21:9). -->
+        <meta-data
+            android:name="android.max_aspect"
+            android:value="2.4"/>
+        <!-- https://developer.samsung.com/samsung-dex/modify-optimizing.html
+        Declares keepalive in the android manifest file, to avoid the process being
+        killed when switching between mobile and Samsung DeX. In addition, set the
+        android:configChanges to avoid restarting the app during the switching process.
+        -->
+        <meta-data
+            android:name="com.samsung.android.multidisplay.keep_process_alive"
+            android:value="true">
+            <!-- Version >= 3.0. DeX Dual Mode support -->
+        </meta-data>
+        <meta-data
+            android:name="com.samsung.android.keepalive.density"
+            android:value="true">
+            <!-- Version < 3.0. DeX Mode and Screen Mirroring support -->
+        </meta-data>
+
+    </application>
+
+    <!-- Android 11, API Level 30 -->
+    <queries>
+        <intent>
+            <!-- used to open URLs from terminal screen -->
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
+        </intent>
+        <intent>
+            <!-- used to open URLs from terminal screen or menus(to application site), etc -->
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+    </queries>
+
+</manifest>

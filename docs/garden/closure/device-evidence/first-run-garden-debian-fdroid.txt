@@ -1,0 +1,12 @@
+10-03 08:55:49.512 I/ThothTerm(31602): ROOTFS: rootfs archive downloaded and verified bytes=62445701
+10-03 08:55:49.512 I/ThothTerm(31602): ROOTFS: Setup stage DOWNLOAD_COMPLETE t=9481ms bytes=62445701
+10-03 08:55:55.971 I/ThothTerm(31602): ROOTFS: Setup stage ARCHIVE_EXTRACTED t=15939ms entries=7050 rejected=0 skipped=0 hardlinkFallbacks=1 compressedBytes=62445701 extractedBytes=171193428 ms=6457
+10-03 08:55:55.972 I/ThothTerm(31602): ROOTFS: Setup stage ARCHIVE_VERIFIED t=15940ms sha256=f6520ff1c6eeb28ead2d175e6733da4c970459a291b1bd60f992f1655c5d0677
+10-03 08:55:56.092 I/ThothTerm(31602): ROOTFS: Setup stage SETUP_ROOTFS_COMPLETE t=16060ms
+10-03 08:55:56.093 I/ThothTerm(31602): ROOTFS: Setup stage ROOTFS_PROMOTED t=16061ms
+10-03 08:55:56.182 I/ThothTerm(31602): ROOTFS: Setup stage STATE_WRITTEN t=16150ms
+10-03 08:55:56.194 I/ThothTerm(31602): STORAGE: Downloaded rootfs archive removed after install
+10-03 08:55:56.197 I/ThothTerm(31602): ROOTFS: Setup stage TERMINAL_READY t=16165ms state=TERMINAL_READY
+10-03 08:55:56.197 I/ThothTerm(31602): ROOTFS: Setup stage TERMINAL_HANDOFF t=16165ms
+10-03 08:55:56.200 I/ThothTerm(31602): ROOTFS: Setup stage OPTIONAL_SETUP_STARTED t=16167ms reason=after setup
+10-03 08:55:56.253 I/ThothTerm(31602): ROOTFS: Setup stage OPTIONAL_SETUP_FINISHED t=16221ms ms=33 sudo=INSTALLED state=HEALTHY

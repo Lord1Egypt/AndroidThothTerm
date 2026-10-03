@@ -1,0 +1,131 @@
+#!/bin/sh
+# ThothTerm Rolling package-manager golden gate, on disposable rootfs copies.
+# Runs as the app itself (run-as, so in the app's own SELinux domain: gpg-agent
+# needs a unix socket, which Android refuses the adb shell user) with the
+# installed app's PRoot and the app's PRoot argv, under files/ga -- never the
+# app's real environment in files/linux.
+#
+#   gate.sh QA_PACKAGE ROOTFS_TARBALL [STALE_TARBALL]
+#
+# QA_PACKAGE: an installed, isolated QA build, com.thothterm.arch.qa.<name>
+# (tests/garden-common/qa/install-qa-app.sh garden-arch .qa.<name>). The gate
+# writes into that app's private files/ga, so a production or any other
+# protected package is refused before adb is used.
+# ROOTFS_TARBALL: the candidate/final rootfs. STALE_TARBALL (optional): an old
+# but valid Arch Linux ARM userland for the update-story test (stale.sh).
+# Exits 1 on any FAIL, 2 on a refused package.
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+. "$HERE/../../garden-common/extractor/apk-identity.sh"
+[ $# -ge 2 ] || { echo "usage: gate.sh QA_PACKAGE ROOTFS_TARBALL [STALE_TARBALL]"; exit 2; }
+PKG=$1
+shift
+case "$PKG" in
+    com.thothterm.arch.qa.*) ;;
+    *) echo "REFUSED: $PKG is not a com.thothterm.arch QA build"; exit 2 ;;
+esac
+if ! gate_is_qa_id "$PKG" || gate_is_protected "$PKG"; then
+    echo "REFUSED: $PKG is not an isolated QA package"; exit 2
+fi
+adb shell pm path "$PKG" | tr -d '\r' | grep -q '^package:' \
+    || { echo "REFUSED: $PKG is not installed"; exit 2; }
+S=/data/local/tmp/ga
+T=/data/user/0/$PKG/files/ga
+TMP="${TMPDIR:-/tmp}"
+NLD="$(adb shell dumpsys package $PKG | tr -d '\r' | sed -n 's/.*legacyNativeLibraryDir=//p' | head -1)/arm64"
+app() { adb shell "run-as $PKG sh -c '$*'"; }
+
+push_rootfs() { # push_rootfs TARBALL NAME
+    [ -s "$1" ] || { echo "FAIL missing rootfs archive: $1"; exit 1; }
+    # toybox tar applies each directory's mode as it goes, and some archive
+    # directories are read-only (the root is 0555 by systemd's tmpfiles
+    # root.conf, so is ca-certificates' cadir), which would stop it creating
+    # their contents. The app applies directory modes last; this copy gives
+    # every directory owner write, and mkroot.sh restores the recorded modes
+    # at the end, deepest first.
+    python3 -c 'import sys, tarfile
+src = tarfile.open(sys.argv[1], "r:gz")
+modes = []
+with tarfile.open(sys.argv[2], "w:gz", format=tarfile.GNU_FORMAT, compresslevel=1) as out:
+    for m in src:
+        if m.isdir() and not m.mode & 0o200:
+            modes.append("%o %s" % (m.mode, m.name))
+            m.mode |= 0o700
+        if m.name in (".", "./"):
+            continue
+        out.addfile(m, src.extractfile(m) if m.isreg() else None)
+open(sys.argv[3], "w").write("\n".join(sorted(modes, key=lambda l: -l.count("/"))) + "\n")
+' "$1" "$TMP/ga-$2.tar.gz" "$TMP/ga-$2.dirmodes" || exit 1
+    adb push "$TMP/ga-$2.dirmodes" $S/$2.tar.gz.dirmodes >/dev/null
+    adb push "$TMP/ga-$2.tar.gz" $S/$2.tar.gz >/dev/null
+    # Hard links, which the app (and this test) materialize as copies.
+    tar tvzf "$1" > "$TMP/ga-$2.list" || exit 1
+    awk '$1 ~ /^h/ {print $6, $9}' "$TMP/ga-$2.list" > "$TMP/ga-$2.hardlinks" || exit 1
+    adb push "$TMP/ga-$2.hardlinks" $S/$2.tar.gz.hardlinks >/dev/null
+    echo "hard links in $2: $(wc -l < "$TMP/ga-$2.hardlinks")"
+}
+cmds() { # cmds CASE files...
+    c=$1; shift
+    for f in "$@"; do adb push "$HERE/$f" $S/$f >/dev/null; app cp $S/$f $T/$c/cmds/; done
+}
+
+adb shell "chmod -R u+w $S 2>/dev/null; rm -rf $S && mkdir -p $S"
+adb push "$HERE/mkroot.sh" "$HERE/run.sh" $S/ >/dev/null
+# The runtime libraries the APK stages into files/linux/runtime/lib.
+G="$HERE/../../../garden-arch/build/garden/assets/runtime/arm64-v8a"
+adb push "$G/libtalloc.so.2" "$G/libandroid-shmem.so" $S/ >/dev/null
+# The resolvers Android is using, as the app's AndroidNetworkResolver writes them.
+adb shell dumpsys connectivity | tr -d '\r' | grep -oE 'DnsAddresses: \[[^]]*\]' | head -1 \
+    | sed 's/^DnsAddresses: \[//; s/\]$//' | tr ',' '\n' | sed 's#^ */##; s# *$##' | grep . \
+    | sed 's/^/nameserver /' > "$TMP/ga-resolv.conf"
+grep -q nameserver "$TMP/ga-resolv.conf" || { echo "FAIL no Android DNS servers"; exit 1; }
+adb push "$TMP/ga-resolv.conf" $S/resolv.conf >/dev/null
+printf 'T=%s\nNLD=%s\nS=%s\n' "$T" "$NLD" "$S" > "$TMP/ga-env"
+adb push "$TMP/ga-env" $S/env >/dev/null
+app "chmod -R u+w $T 2>/dev/null; rm -rf $T && mkdir -p $T/lib && cp $S/mkroot.sh $S/run.sh $S/env $T/ && cp $S/libtalloc.so.2 $S/libandroid-shmem.so $T/lib/"
+push_rootfs "$1" final
+
+out=""
+# The clean install: provision as the app does, the zero-drama gate, a restart.
+mkroot() { # mkroot NAME TARBALL: stops the gate unless the rootfs is complete
+    r="$(app sh $T/mkroot.sh "$1" "$2" 2>&1)"
+    printf '%s\n' "$r" | tail -3
+    case "$r" in *"rootfs ready"*) ;; *) echo "FAIL mkroot $1"; exit 1 ;; esac
+}
+mkroot fresh $S/final.tar.gz
+cmds fresh provision.sh zero.sh restart.sh
+prov="$(app sh $T/run.sh fresh root provision.sh 2>&1)"
+case "$prov" in *keyring-verified*) out="${out}PASS first-run keyring: $(printf '%s\n' "$prov" | tail -1)
+" ;; *) printf '%s\n' "$prov" | tail -20; echo "FAIL first-run keyring provisioning"; exit 1 ;; esac
+case "$prov" in *[Ww]arning*|*WARNING*|*rror*) out="${out}FAIL provisioning printed warnings: $(printf '%s\n' "$prov" | grep -iE 'warning|error' | head -3 | tr '\n' ' ')
+" ;; esac
+out="$out$(app sh $T/run.sh fresh root zero.sh)
+"
+out="$out$(app sh $T/run.sh fresh root restart.sh)
+"
+# Interrupted transactions, on a copy of their own.
+mkroot broken $S/final.tar.gz
+cmds broken provision.sh zero.sh interrupt.sh
+app sh $T/run.sh broken root provision.sh > /dev/null 2>&1
+app sh $T/run.sh broken root zero.sh > /dev/null 2>&1
+out="$out$(app sh $T/run.sh broken root interrupt.sh)
+"
+if [ $# -ge 2 ]; then
+    push_rootfs "$2" stale
+    mkroot old $S/stale.tar.gz
+    cmds old provision.sh stale.sh
+    stale_prov="$(app sh $T/run.sh old root provision.sh provision upstream-stale 2>&1)"
+    stale_prov_status=$?
+    if [ "$stale_prov_status" -ne 0 ] || ! printf '%s\n' "$stale_prov" | grep -q '^keyring-verified$'; then
+        printf '%s\n' "$stale_prov" | tail -20
+        echo 'FAIL stale-image keyring provisioning'
+        exit 1
+    fi
+    out="${out}PASS stale-image keyring provisioning: $(printf '%s\n' "$stale_prov" | tail -1)
+"
+    out="$out$(app sh $T/run.sh old root stale.sh)
+"
+fi
+printf '%s\n' "$out"
+echo "PASS: $(printf '%s\n' "$out" | grep -c '^PASS')  FAIL: $(printf '%s\n' "$out" | grep -c '^FAIL')"
+case "$out" in *FAIL*) exit 1 ;; esac

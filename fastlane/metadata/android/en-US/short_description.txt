@@ -1,0 +1,1 @@
+A real Ubuntu 26.04 LTS terminal on Android, no root required.

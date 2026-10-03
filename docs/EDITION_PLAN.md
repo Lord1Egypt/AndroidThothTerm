@@ -1,63 +1,72 @@
-# ThothTerm edition split and coexistence plan
+# ThothTerm Garden edition plan
 
-ThothTerm is split into two independently installable products that share one
-terminal engine. Only the terminal emulator edition exists today.
+ThothTerm Garden is the product family. Each edition is an independently
+installable Android application that shares one terminal engine.
 
 ## Editions
 
-| | ThothTerm Terminal Emulator | ThothTerm Linux (future) |
-| --- | --- | --- |
-| Application ID | `com.thothterm` | `com.thothterm.linux` |
-| Launcher label | ThothTerm | ThothTerm Linux |
-| Purpose | Standalone Android terminal emulator | Linux development workspace for Android |
-| Runtime | Android shell / PTY only | Embedded Ubuntu ARM64 runtime (planned) |
-| Status | Released 1.0.0 golden baseline | Not implemented |
+| | ThothTerm Terminal Emulator | ThothTerm Ubuntu | Future distro editions |
+| --- | --- | --- | --- |
+| Application ID | `com.thothterm` | `com.thothterm.ubuntu` | `com.thothterm.<distro>` |
+| Launcher label | ThothTerm | ThothTerm Ubuntu | ThothTerm <Distro> |
+| Purpose | Standalone Android terminal emulator | Ubuntu 26.04 LTS workspace for Android | e.g. Kali/Arch/AlmaLinux workspaces |
+| Runtime | Android shell / PTY only | Embedded Ubuntu ARM64 + packaged PRoot | Embedded distro ARM64 + packaged PRoot |
+| Modules | `term/` | `term-ubuntu/` | future `term-<distro>/` |
+| Status | Released 1.0.0 golden baseline | First milestone (0.1.0 dev) | Not implemented |
 
-Both application IDs are distinct so the editions can be installed side by
-side without clobbering each other's data or signature.
+Reserved future application IDs (not created yet):
 
-## Shared engine, no duplicated code
+- `com.thothterm.kali`
+- `com.thothterm.arch`
+- `com.thothterm.almalinux`
 
-The terminal engine lives in the library modules that the current app already
-depends on:
+The earlier plan reserved a single `com.thothterm.linux` package. That is
+superseded: the Garden model is **distro-specific application IDs**, so each
+edition can carry its own rootfs and install side by side.
+
+Both application IDs are distinct so editions can be installed side by side
+without clobbering each other's data or signature.
+
+## Shared engine, no duplicated engine code
+
+The terminal engine lives in the library modules the applications depend on:
 
 - `emulatorview/` — terminal parser, screen/transcript, rendering, key handling.
 - `libtermexec/` — PTY process and terminal-control JNI library.
 
-`term/` is the Android application layer (activities, service, resources,
-manifest). The future Linux edition must reuse `emulatorview` and
-`libtermexec` unchanged and add only its own application/runtime layer.
+Each application module (`term`, `term-ubuntu`, future editions) reuses
+`emulatorview` and `libtermexec` unchanged and adds only its own
+application/runtime layer. The raw PTY/session/parser/native boundary is never
+duplicated or replaced.
 
-## Recommended Gradle strategy
+For the first Ubuntu milestone, `term-ubuntu` **copies** the application layer
+from `term` (activities, service, session, settings, theme, diagnostics UI) and
+adapts it. This is deliberate and temporary: it preserves the stable terminal
+edition untouched and avoids a premature shared-UI refactor. A later milestone
+may extract the common application layer into a shared library module once two
+editions demonstrably need it.
 
-To avoid copying terminal-engine code, the Linux edition should be added as a
-second application module in the **same** Gradle build, for example:
+## Gradle strategy
+
+The editions are separate application modules in the same Gradle build:
 
 ```text
 settings.gradle
-  include ':term'          # com.thothterm  (terminal emulator)
-  include ':term-linux'    # com.thothterm.linux (future)
+  include ':term'          # com.thothterm            (terminal emulator)
+  include ':term-ubuntu'   # com.thothterm.ubuntu     (Ubuntu)
   include ':emulatorview'
   include ':libtermexec'
 ```
 
-`term-linux` would `implementation project(':emulatorview')` and
-`implementation project(':libtermexec')`, exactly like `term`, and declare
-`applicationId "com.thothterm.linux"`. Shared UI/resources can move into a
-common library module later if duplication appears; do not pre-emptively
-abstract today.
-
-An alternative single-module product-flavor approach is **not** recommended:
-flavors cannot change `applicationId` in a way that yields two independently
-installable, differently-branded apps without also duplicating launcher
-resources, and the Linux edition will carry a large rootfs/runtime payload that
-should not be built into the terminal APK.
+Each application module builds its embedded runtime as an APK asset/native
+payload; the large rootfs is fetched, verified, and staged at build time rather
+than committed to Git. See `docs/UBUNTU_RUNTIME.md` for the Ubuntu pipeline.
 
 ## Rules
 
-- Do not rename or move `app_HOME`, HOME, or the PTY/session architecture for
-  the Linux edition; it should layer on top.
-- Do not begin the Linux edition until the shared Diagnostics/Logging phase and
-  an explicit design exist.
-- `com.thothterm.linux` is reserved conceptually only; nothing is published
-  under it yet.
+- Do not rename or move `app_HOME`, HOME, or the PTY/session architecture; the
+  Linux editions layer underneath the existing session model.
+- Do not mutate `term` into a Linux edition.
+- Do not duplicate `emulatorview` or `libtermexec`.
+- Do not begin a new distro edition without an explicit milestone.
+- Keep application IDs distinct per edition.
