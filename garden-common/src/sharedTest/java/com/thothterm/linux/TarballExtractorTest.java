@@ -156,6 +156,72 @@ public class TarballExtractorTest {
         assertEquals("payload", readText(new File(root, "usr/bin/link")));
     }
 
+    /**
+     * On Android every hard link is a copy, which reads its target. A target
+     * whose final mode its owner cannot read (Arch's 04110 launch helper) must
+     * still be copyable: such modes are applied after every entry.
+     */
+    @Test
+    public void hardlinkCopyOfAnOwnerUnreadableTargetWorks() throws Exception {
+        File root = temporaryFolder.newFolder("unreadable-copy");
+        TarballExtractor extractor = new TarballExtractor(new NoHardlinkOps(new JvmFileOps()),
+                root, null);
+        extractor.extract(new ByteArrayInputStream(new TarBuilder()
+                .file("usr/lib/helper", "helper".getBytes(UTF8), 04110)
+                .hardlink("usr/lib/helper.hl", "usr/lib/helper")
+                .build()));
+        assertEquals(1, extractor.hardlinkFallbacks());
+        assertEquals(0110, ExtractorSecurityCases.Fixture.mode(new File(root, "usr/lib/helper")));
+        assertEquals(0110, ExtractorSecurityCases.Fixture.mode(new File(root, "usr/lib/helper.hl")));
+        assertEquals("helper", readOwnerUnreadable(new File(root, "usr/lib/helper.hl")));
+    }
+
+    /** A real link keeps the target's final mode even when the target name is replaced later. */
+    @Test
+    public void unreadableModeReachesAHardlinkWhoseTargetNameIsReplaced() throws Exception {
+        File root = temporaryFolder.newFolder("unreadable-link");
+        TarballExtractor extractor = new TarballExtractor(new JvmFileOps(), root, null);
+        extractor.extract(new ByteArrayInputStream(new TarBuilder()
+                .file("a", "old".getBytes(UTF8), 0110)
+                .hardlink("b", "a")
+                .file("a", "new".getBytes(UTF8), 0644)
+                .build()));
+        assertEquals(0, extractor.hardlinkFallbacks());
+        assertEquals(0644, ExtractorSecurityCases.Fixture.mode(new File(root, "a")));
+        assertEquals("new", readText(new File(root, "a")));
+        assertEquals(0110, ExtractorSecurityCases.Fixture.mode(new File(root, "b")));
+        assertEquals("old", readOwnerUnreadable(new File(root, "b")));
+    }
+
+    /** A duplicate entry replaces the earlier file; its deferred mode goes with it. */
+    @Test
+    public void duplicateEntryDropsTheEarlierDeferredMode() throws Exception {
+        File root = temporaryFolder.newFolder("duplicate");
+        TarballExtractor extractor = new TarballExtractor(new JvmFileOps(), root, null);
+        extractor.extract(new ByteArrayInputStream(new TarBuilder()
+                .file("x", "first".getBytes(UTF8), 0000)
+                .file("x", "second".getBytes(UTF8), 0640)
+                .file("y", "first".getBytes(UTF8), 0644)
+                .file("y", "second".getBytes(UTF8), 0200)
+                .build()));
+        assertEquals(0640, ExtractorSecurityCases.Fixture.mode(new File(root, "x")));
+        assertEquals("second", readText(new File(root, "x")));
+        assertEquals(0200, ExtractorSecurityCases.Fixture.mode(new File(root, "y")));
+        assertEquals("second", readOwnerUnreadable(new File(root, "y")));
+    }
+
+    /** Test-side only: this tree is the test's own, not a gate's rootfs. */
+    private static String readOwnerUnreadable(File file) throws IOException {
+        java.util.Set<java.nio.file.attribute.PosixFilePermission> mode =
+                Files.getPosixFilePermissions(file.toPath());
+        Files.setPosixFilePermissions(file.toPath(), ExtractorSecurityCases.JvmPermissions.of(0400));
+        try {
+            return readText(file);
+        } finally {
+            Files.setPosixFilePermissions(file.toPath(), mode);
+        }
+    }
+
     @Test
     public void extractsSymlinkAndHardlink() throws Exception {
         File root = temporaryFolder.newFolder("links");

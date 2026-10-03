@@ -93,6 +93,14 @@ public final class TarballExtractor {
 
     /** Directory path -> its final mode, in creation order. */
     private final Map<String, PendingDir> pendingDirs = new LinkedHashMap<>();
+    /**
+     * Regular file path -> a final mode its owner cannot read (Arch's
+     * {@code dbus-daemon-launch-helper} is 04110). Such a file is written
+     * owner-readable and takes its mode only after every entry, like a
+     * directory: a later hardlink entry that Android forces into a copy
+     * ({@link #linkOrCopy}) must still be able to read it.
+     */
+    private final Map<String, PendingFile> pendingFiles = new LinkedHashMap<>();
 
     public TarballExtractor(FileOps ops, File targetDir, EntryListener listener) {
         this.ops = ops;
@@ -206,6 +214,7 @@ public final class TarballExtractor {
             extractEntry(tar, type, name, link, size, mode, mtime);
         }
 
+        applyFinalFileModes();
         applyFinalDirectoryModes();
         if (listener != null) listener.onEntry(extractedEntries);
     }
@@ -255,6 +264,7 @@ public final class TarballExtractor {
             FileOps.Type existing = ops.type(dest);
             if (existing != FileOps.Type.DIRECTORY) {
                 if (existing != FileOps.Type.NONE) ops.unlink(dest);
+                pendingFiles.remove(rel);
                 ops.mkdir(dest, TEMP_DIR_MODE);
             }
             pendingDirs.put(rel, new PendingDir(dest, mode, mtime));
@@ -267,7 +277,7 @@ public final class TarballExtractor {
                 skip(tar, padded(size));
                 return;
             }
-            OutputStream out = ops.createNew(dest, mode);
+            OutputStream out = ops.createNew(dest, writeMode(rel, dest, mode));
             try {
                 copy(tar, out, size);
             } finally {
@@ -314,7 +324,13 @@ public final class TarballExtractor {
             return;
         }
         if (!clearForReplacement(dest, rel)) return;
-        linkOrCopy(existing, targetType, dest, mode, rel, linkRel);
+        boolean linked = linkOrCopy(existing, targetType, dest, rel, linkRel);
+        PendingFile targetPending = pendingFiles.get(linkRel);
+        if (linked && targetPending != null) {
+            // A real hard link is the same inode: keep its final mode reachable
+            // through this name too, in case the target name is replaced later.
+            pendingFiles.put(rel, new PendingFile(dest, targetPending.mode));
+        }
         onEntry();
     }
 
@@ -385,7 +401,20 @@ public final class TarballExtractor {
             return false;
         }
         ops.unlink(dest);
+        pendingFiles.remove(rel);
         return true;
+    }
+
+    /**
+     * The mode a new regular file is written with: its own, or owner-only
+     * when its final mode would make it unreadable to its owner, recorded in
+     * {@link #pendingFiles}.
+     */
+    private int writeMode(String rel, File dest, int mode) {
+        int finalMode = mode & FileOps.FILE_MODE_MASK;
+        if ((finalMode & 0400) != 0) return mode;
+        pendingFiles.put(rel, new PendingFile(dest, finalMode));
+        return 0600;
     }
 
     /**
@@ -395,11 +424,12 @@ public final class TarballExtractor {
      * already validated target is materialized as a local copy instead: a
      * regular file through {@code O_NOFOLLOW}, a symlink by its target text.
      */
-    private void linkOrCopy(File existing, FileOps.Type targetType, File dest, int mode,
-                            String entry, String target) throws IOException {
+    /** @return true for a real hard link, false for a copy */
+    private boolean linkOrCopy(File existing, FileOps.Type targetType, File dest,
+                               String entry, String target) throws IOException {
         try {
             ops.hardlink(existing, dest);
-            return;
+            return true;
         } catch (IOException e) {
             try {
                 if (ops.type(dest) != FileOps.Type.NONE) {
@@ -408,7 +438,11 @@ public final class TarballExtractor {
                 if (targetType == FileOps.Type.SYMLINK) {
                     ops.symlink(ops.readlink(existing), dest);
                 } else {
-                    copyNoFollow(existing, dest, mode);
+                    // A hard link is its target's inode, so the copy takes the
+                    // target's final mode, not the link header's.
+                    PendingFile pending = pendingFiles.get(target);
+                    int targetMode = pending != null ? pending.mode : ops.permissions(existing);
+                    copyNoFollow(existing, dest, writeMode(entry, dest, targetMode));
                 }
             } catch (IOException copyError) {
                 throw new IOException("hardlink failed entry=" + entry
@@ -416,6 +450,7 @@ public final class TarballExtractor {
                         + "; copy failed: " + copyError.getMessage(), e);
             }
             hardlinkFallbacks++;
+            return false;
         }
     }
 
@@ -432,6 +467,14 @@ public final class TarballExtractor {
             }
         } finally {
             in.close();
+        }
+    }
+
+    private void applyFinalFileModes() throws IOException {
+        for (PendingFile file : pendingFiles.values()) {
+            // Only a regular file; a replaced name was dropped from the map.
+            if (ops.type(file.file) != FileOps.Type.REGULAR) continue;
+            ops.chmodNoFollow(file.file, file.mode);
         }
     }
 
@@ -681,6 +724,16 @@ public final class TarballExtractor {
             value = (value << 8) | b;
         }
         return value;
+    }
+
+    private static final class PendingFile {
+        final File file;
+        final int mode;
+
+        PendingFile(File file, int mode) {
+            this.file = file;
+            this.mode = mode;
+        }
     }
 
     private static final class PendingDir {
