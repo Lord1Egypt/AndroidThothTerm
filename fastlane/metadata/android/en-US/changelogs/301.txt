@@ -1,0 +1,7 @@
+The terminal opens as soon as Ubuntu is extracted and configured. Installing sudo runs in the background afterwards, never on the setup screen; if it fails, the terminal still works and the menu can retry it.
+
+If the kernel does not report a new process to the Linux runtime, it is now found, or the window stops with an error, instead of hanging.
+
+A damaged installation is never erased: reinstalling the system files keeps /home.
+
+Safer extraction of the system image.
