@@ -25,7 +25,7 @@ if [ $# -ge 2 ]; then
     [ "$actual" = "$2" ] || { echo "FAIL archive sha256 $actual, expected $2"; exit 1; }
     python3 "$HERE/manifest.py" "$1" > "$WORK/expected.manifest"
     echo "INFO independent manifest: $(wc -l < "$WORK/expected.manifest") paths (Python tarfile)"
-    java -cp "$OUT" com.thothterm.linux.ExtractorGate "$WORK/run" "$1" "$2" "$WORK/expected.manifest"
+    java --add-opens java.base/java.io=ALL-UNNAMED -cp "$OUT" com.thothterm.linux.ExtractorGate "$WORK/run" "$1" "$2" "$WORK/expected.manifest"
 else
-    java -cp "$OUT" com.thothterm.linux.ExtractorGate "$WORK/run"
+    java --add-opens java.base/java.io=ALL-UNNAMED -cp "$OUT" com.thothterm.linux.ExtractorGate "$WORK/run"
 fi

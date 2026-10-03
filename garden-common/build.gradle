@@ -34,6 +34,13 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    testOptions {
+        unitTests.all {
+            // The extractor gate's JvmObjectInspector stats a held descriptor
+            // through /proc/self/fd/N and needs its number.
+            jvmArgs '--add-opens', 'java.base/java.io=ALL-UNNAMED'
+        }
+    }
     sourceSets {
         // The rootfs extractor and its no-follow file operations, compiled
         // into every edition and into term-ubuntu, so all share one

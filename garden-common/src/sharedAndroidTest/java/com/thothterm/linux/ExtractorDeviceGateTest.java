@@ -78,7 +78,8 @@ public class ExtractorDeviceGateTest {
         Report report = new Report(context, "real.txt");
         int failures;
         try {
-            failures = ExtractorGate.realArchive(new AndroidFileOps(), new File(files, archive),
+            failures = ExtractorGate.realArchive(new AndroidFileOps(), new AndroidObjectInspector(),
+                    new File(files, archive),
                     sha256, new File(files, manifest), staging, report);
         } finally {
             report.close();

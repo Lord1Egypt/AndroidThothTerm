@@ -22,42 +22,50 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * A {@link FileOps} that delegates every operation and records, for each
- * regular file the extractor writes, the SHA-256 and length of exactly the
- * bytes it wrote, while they pass through. The extractor gate compares that
- * record with the independent manifest, so a file whose final mode its owner
- * cannot read (Arch's {@code usr/lib/dbus-daemon-launch-helper} is 0110) is
- * verified without being reopened and without its mode ever being changed.
+ * A {@link FileOps} that delegates every operation and keeps, per object the
+ * extractor made, what the extractor did to it. The extractor gate uses this
+ * as a witness, never as the answer: every content claim it makes is checked
+ * against the final object on disk ({@code ExtractorGate.ContentCheck}).
  *
- * <p>Records follow inodes, not names: {@link #hardlink} shares the record
- * of the file it links to, {@link #unlink} and {@link #rename} move or drop a
- * name, {@link #createNew} starts a new record. Every record is completed
- * only when its stream is closed. Not thread-safe; the extractor is
- * single-threaded.</p>
+ * <ul>
+ *   <li><b>Names map to nodes, nodes are objects.</b> {@link #createNew},
+ *       {@link #symlink} and {@link #mkdir} make a new node; {@link #hardlink}
+ *       gives an existing node one more name; {@link #unlink}, {@link #rmdir}
+ *       and {@link #rename} only move or drop names (a rename also drops
+ *       whatever it replaced). So the names that still share a node at the
+ *       end are exactly the hard link groups the delegate created, whichever
+ *       member was renamed or removed on the way.</li>
+ *   <li><b>Content.</b> A regular file's node records the SHA-256 and
+ *       length of the bytes written to it, complete only once its stream is
+ *       closed.</li>
+ *   <li><b>Pins.</b> Before a regular file can become unreadable to its owner
+ *       -- created with such a mode, or chmodded to one -- a read descriptor
+ *       is opened on it while it is still readable
+ *       ({@link ObjectInspector#pin}). That is how its final bytes are read
+ *       later without changing its mode.</li>
+ * </ul>
+ *
+ * <p>Not thread-safe; the extractor is single-threaded. {@link #close}
+ * releases every pin.</p>
  */
-public final class RecordingFileOps implements FileOps {
-    /** What was written to one inode. */
-    public static final class Content {
-        private final MessageDigest digest;
+public final class RecordingFileOps implements FileOps, java.io.Closeable {
+    /** One object the extractor created. */
+    public static final class Node {
+        private MessageDigest digest;
         private long length;
         private String sha256;
+        private ObjectInspector.Pin pin;
 
-        private Content() {
-            try {
-                digest = MessageDigest.getInstance("SHA-256");
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-
-        /** Hex SHA-256 of the bytes written, or null if the stream was never closed. */
+        /** Hex SHA-256 of the bytes written, or null if none were, or not completely. */
         public String sha256() {
             return sha256;
         }
@@ -65,46 +73,79 @@ public final class RecordingFileOps implements FileOps {
         public long length() {
             return length;
         }
-    }
 
-    /** A real hard link the delegate created: both names must be one inode. */
-    public static final class Link {
-        public final File existing;
-        public final File link;
-
-        Link(File existing, File link) {
-            this.existing = existing;
-            this.link = link;
+        /** The read descriptor held on this object, or null. */
+        public ObjectInspector.Pin pin() {
+            return pin;
         }
     }
 
     private final FileOps delegate;
-    private final Map<String, Content> contents = new HashMap<>();
-    private final List<Link> links = new ArrayList<>();
+    private final ObjectInspector inspector;
+    /** Absolute name -> the node it names now. */
+    private final Map<String, Node> names = new HashMap<>();
+    private final List<ObjectInspector.Pin> pins = new ArrayList<>();
 
-    public RecordingFileOps(FileOps delegate) {
+    public RecordingFileOps(FileOps delegate, ObjectInspector inspector) {
         this.delegate = delegate;
+        this.inspector = inspector;
     }
 
-    /** The record of the regular file at {@code file}, or null if none was written there. */
-    public Content contentOf(File file) {
-        return contents.get(key(file));
+    /** The node a path names now, or null when the extractor made nothing there. */
+    public Node nodeOf(File file) {
+        return names.get(key(file));
     }
 
-    /** Hard links created as such (not materialized as copies). */
-    public List<Link> links() {
-        return new ArrayList<>(links);
+    /**
+     * Every node that more than one surviving name refers to, with those names
+     * in sorted order: what must be one inode on disk.
+     */
+    public List<List<File>> hardlinkGroups() {
+        Map<Node, List<String>> byNode = new IdentityHashMap<>();
+        for (Map.Entry<String, Node> e : names.entrySet()) {
+            List<String> list = byNode.get(e.getValue());
+            if (list == null) byNode.put(e.getValue(), list = new ArrayList<>());
+            list.add(e.getKey());
+        }
+        List<List<File>> groups = new ArrayList<>();
+        for (List<String> list : byNode.values()) {
+            if (list.size() < 2) continue;
+            java.util.Collections.sort(list);
+            List<File> files = new ArrayList<>();
+            for (String name : list) files.add(new File(name));
+            groups.add(files);
+        }
+        return groups;
     }
 
     private static String key(File file) {
         return file.getAbsolutePath();
     }
 
+    private static boolean isAtOrUnder(String name, String prefix) {
+        return name.equals(prefix) || name.startsWith(prefix + File.separator);
+    }
+
+    /** Drops every name at or under {@code prefix}. */
+    private void forget(String prefix) {
+        Iterator<String> it = names.keySet().iterator();
+        while (it.hasNext()) {
+            if (isAtOrUnder(it.next(), prefix)) it.remove();
+        }
+    }
+
     @Override
     public OutputStream createNew(File file, int mode) throws IOException {
         OutputStream out = delegate.createNew(file, mode);
-        final Content content = new Content();
-        contents.put(key(file), content);
+        final Node node = new Node();
+        names.put(key(file), node);
+        try {
+            node.digest = JvmObjectInspector.sha256Digest();
+            if ((mode & FILE_MODE_MASK & 0400) == 0) pin(node, file);
+        } catch (IOException e) {
+            out.close();
+            throw e;
+        }
         return new FilterOutputStream(out) {
             private boolean closed;
 
@@ -116,8 +157,8 @@ public final class RecordingFileOps implements FileOps {
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
                 out.write(b, off, len);
-                content.digest.update(b, off, len);
-                content.length += len;
+                node.digest.update(b, off, len);
+                node.length += len;
             }
 
             @Override
@@ -125,58 +166,93 @@ public final class RecordingFileOps implements FileOps {
                 if (closed) return;
                 closed = true;
                 out.close();
-                content.sha256 = RootfsArchive.toHex(content.digest.digest());
+                node.sha256 = RootfsArchive.toHex(node.digest.digest());
             }
         };
     }
 
     @Override
+    public void chmodNoFollow(File file, int mode) throws IOException {
+        Node node = names.get(key(file));
+        if (node != null && node.pin == null && node.sha256 != null
+                && (mode & FILE_MODE_MASK & 0400) == 0
+                && delegate.type(file) == Type.REGULAR) {
+            pin(node, file);
+        }
+        delegate.chmodNoFollow(file, mode);
+    }
+
+    private void pin(Node node, File file) throws IOException {
+        node.pin = inspector.pin(file);
+        pins.add(node.pin);
+    }
+
+    @Override
     public void hardlink(File existing, File link) throws IOException {
         delegate.hardlink(existing, link);
-        Content content = contents.get(key(existing));
-        if (content != null) contents.put(key(link), content);
-        links.add(new Link(existing, link));
+        Node node = names.get(key(existing));
+        // A name the extractor did not make (nothing to verify) still gets a
+        // node, so the pair is checked as one inode.
+        if (node == null) names.put(key(existing), node = new Node());
+        names.put(key(link), node);
+    }
+
+    @Override
+    public void symlink(String target, File link) throws IOException {
+        delegate.symlink(target, link);
+        names.put(key(link), new Node());
+    }
+
+    @Override
+    public void mkdir(File dir, int mode) throws IOException {
+        delegate.mkdir(dir, mode);
+        names.put(key(dir), new Node());
     }
 
     @Override
     public void unlink(File file) throws IOException {
         delegate.unlink(file);
-        contents.remove(key(file));
-        forgetLinks(key(file));
+        names.remove(key(file));
     }
 
-    /** A name that goes away no longer describes a pair of names for one inode. */
-    private void forgetLinks(String name) {
-        java.util.Iterator<Link> it = links.iterator();
-        while (it.hasNext()) {
-            Link l = it.next();
-            String a = key(l.existing);
-            String b = key(l.link);
-            if (a.equals(name) || b.equals(name) || a.startsWith(name + File.separator)
-                    || b.startsWith(name + File.separator)) {
-                it.remove();
-            }
-        }
+    @Override
+    public void rmdir(File dir) throws IOException {
+        delegate.rmdir(dir);
+        forget(key(dir));
     }
 
     @Override
     public void rename(File from, File to) throws IOException {
         delegate.rename(from, to);
-        forgetLinks(key(from));
-        forgetLinks(key(to));
-        String prefix = key(from);
-        Map<String, Content> moved = new HashMap<>();
-        java.util.Iterator<Map.Entry<String, Content>> it = contents.entrySet().iterator();
+        String source = key(from);
+        String target = key(to);
+        Map<String, Node> moved = new LinkedHashMap<>();
+        Iterator<Map.Entry<String, Node>> it = names.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<String, Content> e = it.next();
-            String k = e.getKey();
-            if (k.equals(prefix) || k.startsWith(prefix + File.separator)) {
-                moved.put(key(to) + k.substring(prefix.length()), e.getValue());
+            Map.Entry<String, Node> e = it.next();
+            if (isAtOrUnder(e.getKey(), source)) {
+                moved.put(target + e.getKey().substring(source.length()), e.getValue());
                 it.remove();
             }
         }
-        contents.keySet().remove(key(to));
-        contents.putAll(moved);
+        // rename(2) replaced whatever was at the target.
+        forget(target);
+        names.putAll(moved);
+    }
+
+    /** Closes every pin. */
+    @Override
+    public void close() throws IOException {
+        IOException failure = null;
+        for (ObjectInspector.Pin pin : pins) {
+            try {
+                pin.close();
+            } catch (IOException e) {
+                if (failure == null) failure = e;
+            }
+        }
+        pins.clear();
+        if (failure != null) throw failure;
     }
 
     // ---- pure delegation -------------------------------------------------
@@ -192,28 +268,8 @@ public final class RecordingFileOps implements FileOps {
     }
 
     @Override
-    public void mkdir(File dir, int mode) throws IOException {
-        delegate.mkdir(dir, mode);
-    }
-
-    @Override
     public InputStream openNoFollow(File file) throws IOException {
         return delegate.openNoFollow(file);
-    }
-
-    @Override
-    public void chmodNoFollow(File file, int mode) throws IOException {
-        delegate.chmodNoFollow(file, mode);
-    }
-
-    @Override
-    public void rmdir(File dir) throws IOException {
-        delegate.rmdir(dir);
-    }
-
-    @Override
-    public void symlink(String target, File link) throws IOException {
-        delegate.symlink(target, link);
     }
 
     @Override
