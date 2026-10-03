@@ -1,7 +1,7 @@
 --- the reviewer's condition reproduced without the fix (stuck)
-     111590  109459 S    /tmp/tmp.HhDy1Zj5th/stuck/proot/src/proot -r / /tmp/tmp.HhDy1Zj5th/fork-probe vfork
-     111593  111590 D    /tmp/tmp.HhDy1Zj5th/fork-probe vfork
-     111594  111593 t    /tmp/tmp.HhDy1Zj5th/fork-probe vfork
+     255073  252963 S    /tmp/tmp.xtU1SZ7jSn/stuck/proot/src/proot -r / /tmp/tmp.xtU1SZ7jSn/fork-probe vfork
+     255076  255073 D    /tmp/tmp.xtU1SZ7jSn/fork-probe vfork
+     255077  255076 t    /tmp/tmp.xtU1SZ7jSn/fork-probe vfork
 PASS stuck: PRoot warns about ptrace(GETEVENTMSG), as on the device
 PASS stuck: a child is left stopped under ptrace (t)
 PASS stuck: its vfork parent waits in D

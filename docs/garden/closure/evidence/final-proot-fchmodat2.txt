@@ -10,6 +10,11 @@ raw fchmodat2(/work/file, 0644, 0)       = 0 errno=-
 raw fchmodat2(/work/file, bad flag)      = -1 errno=EINVAL
 raw fchmodat2(fd, "", 0600, EMPTY_PATH) = 0 errno=-
    lstat file mode=600
+raw fchmodat2(O_PATH fd, "", EMPTY_PATH) = 0 errno=-
+   lstat file mode=640
+raw fchmodat2(O_PATH dir, "", EMPTY_PATH)= 0 errno=-
+raw fchmodat2(O_PATH link, "", EMPTY)   = -1 errno=EOPNOTSUPP
+raw fchmodat2(O_PATH fd, EMPTY|NOFOLLOW) = 0 errno=-
 raw fchmodat2(relative link, NOFOLLOW)   = -1 errno=EOPNOTSUPP
 --- PRoot 0001-0005
 lchmod(/work/link)                      = -1 errno=ENOENT
@@ -23,6 +28,11 @@ raw fchmodat2(/work/file, 0644, 0)       = -1 errno=ENOENT
 raw fchmodat2(/work/file, bad flag)      = -1 errno=EINVAL
 raw fchmodat2(fd, "", 0600, EMPTY_PATH) = 0 errno=-
    lstat file mode=600
+raw fchmodat2(O_PATH fd, "", EMPTY_PATH) = 0 errno=-
+   lstat file mode=640
+raw fchmodat2(O_PATH dir, "", EMPTY_PATH)= 0 errno=-
+raw fchmodat2(O_PATH link, "", EMPTY)   = -1 errno=EOPNOTSUPP
+raw fchmodat2(O_PATH fd, EMPTY|NOFOLLOW) = 0 errno=-
 raw fchmodat2(relative link, NOFOLLOW)   = -1 errno=EOPNOTSUPP
 --- PRoot with 0006
 lchmod(/work/link)                      = -1 errno=EOPNOTSUPP
@@ -36,6 +46,11 @@ raw fchmodat2(/work/file, 0644, 0)       = 0 errno=-
 raw fchmodat2(/work/file, bad flag)      = -1 errno=EINVAL
 raw fchmodat2(fd, "", 0600, EMPTY_PATH) = 0 errno=-
    lstat file mode=600
+raw fchmodat2(O_PATH fd, "", EMPTY_PATH) = 0 errno=-
+   lstat file mode=640
+raw fchmodat2(O_PATH dir, "", EMPTY_PATH)= 0 errno=-
+raw fchmodat2(O_PATH link, "", EMPTY)   = -1 errno=EOPNOTSUPP
+raw fchmodat2(O_PATH fd, EMPTY|NOFOLLOW) = 0 errno=-
 raw fchmodat2(relative link, NOFOLLOW)   = -1 errno=EOPNOTSUPP
 PASS the bug reproduces: PRoot without 0006 differs from the kernel
 PASS with 0006 every probe result equals the native kernel's

@@ -1,4 +1,4 @@
-# host-gate.sh ubuntu as lordegypt (uid 1000), commit 3ed4b96+worktree, 2026-10-03T05:05:52Z
+# host-gate.sh ubuntu as lordegypt (uid 1000), commit 54a965f+worktree, 2026-10-03T10:52:28Z
 INFO archive /home/lordegypt/AndroidThothTerm/archives/ubuntu-base-26.04.1-base-arm64.tar.gz
 INFO independent manifest: 6564 paths (Python tarfile)
 INFO host gate: shared extractor policy with JvmFileOps (NOT the Android FileOps; the device gate proves AndroidFileOps)
@@ -45,7 +45,7 @@ PASS contract rmdirRefusesSymlinkToDirectory
 PASS contract openNoFollowRefusesSymlink
 PASS contract symlinkRefusesExisting
 PASS contract renameMovesTheEntryItself
-INFO extract entries=6564 rejected=0 skipped=0 hardlinkFallbacks=0 compressedBytes=35092106 extractedBytes=110784659 ms=6237 sha256=5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd
+INFO extract entries=6564 rejected=0 skipped=0 hardlinkFallbacks=0 compressedBytes=35092106 extractedBytes=110784659 ms=7223 sha256=5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd
 PASS archive verified: sha256 matches, 0 rejected entries
 PASS extracted tree matches the independent manifest: 6564 paths (0 hardlinks materialized as copies)
 PASS content of 5522 regular files verified on the final objects and equal to the bytes the extractor wrote: 5522 re-read from disk, 0 owner-unreadable read through the descriptor pinned on that same inode (no reopen, no chmod); 2 hard link groups (117 names) share one inode each
