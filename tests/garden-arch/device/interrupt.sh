@@ -44,9 +44,21 @@ verified() { # verified NAME PKGFILE: its detached signature is valid, trusted, 
   grep -q "^\[GNUPG:\] VALIDSIG $KEY " /tmp/int-verify \
     && grep -qE '^\[GNUPG:\] TRUST_(FULLY|ULTIMATE)' /tmp/int-verify
 }
+# libalpm words an incomplete LOCAL database entry (SIGKILL between removing
+# the old desc and writing the new one) as "failed to prepare transaction
+# (invalid or corrupted package)". That one line is set aside only when the log
+# also shows the cause: the missing local desc file and "could not fully load
+# metadata" for the same package. Any other integrity wording, in the same log
+# or not, still fails.
 no_integrity_error() { # no_integrity_error LOG CASE
-  if grep -Eiq "$INTEGRITY" "$1"; then
-    echo "FAIL $2 integrity/signature error, never an interrupted-state symptom: $(grep -Ei "$INTEGRITY" "$1" | head -1)"
+  f=$1
+  if grep -Eq '^error: could not open file /var/lib/pacman/local/[^/]+/desc: No such file or directory$' "$f" \
+     && grep -Eq '^warning: could not fully load metadata for package ' "$f"; then
+    grep -Fvx 'error: failed to prepare transaction (invalid or corrupted package)' "$f" > "$f.nometa"
+    f=$f.nometa
+  fi
+  if grep -Eiq "$INTEGRITY" "$f"; then
+    echo "FAIL $2 integrity/signature error, never an interrupted-state symptom: $(grep -Ei "$INTEGRITY" "$f" | head -1)"
     return 1
   fi
   return 0
@@ -123,7 +135,7 @@ if no_integrity_error /tmp/int5.log 2; then
     echo "INFO 2 retry reported $(grep -c ' exists in filesystem$' /tmp/int5.log) leftover vim-runtime files"
     pacman -S --noconfirm --overwrite '/usr/share/vim/*' vim-runtime > /tmp/int6.log 2>&1; r=$?
     no_integrity_error /tmp/int6.log 2 && [ $r = 0 ]; ok $? "2 pacman -S --overwrite '/usr/share/vim/*' vim-runtime" "$(tail -2 /tmp/int6.log)"
-  elif grep -Eq "^error: could not fully load metadata for package vim-runtime-$vim_version" /tmp/int5.log; then
+  elif grep -Eq "^(error|warning): could not fully load metadata for package vim-runtime-$vim_version" /tmp/int5.log; then
     echo "INFO 2 retry found vim-runtime's incomplete local metadata"
     repair_missing_desc 2 vim-runtime "$vim_version" "$pkg"
     pacman -S --noconfirm vim-runtime > /tmp/int6.log 2>&1; r=$?

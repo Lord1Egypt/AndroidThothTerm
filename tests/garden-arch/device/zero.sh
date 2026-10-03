@@ -51,7 +51,7 @@ cd / && rm -rf /tmp/c
 # and bsdtar fails with "Can't set permissions to 0777: No such file or
 # directory"; with it the kernel's own EOPNOTSUPP reaches libarchive, which
 # ignores it as on any Linux.
-rm -rf /tmp/p6 && mkdir -p /tmp/p6/src && cd /tmp/p6/src && echo x > target && ln -s target link \
+(umask 022; rm -rf /tmp/p6 && mkdir -p /tmp/p6/src && cd /tmp/p6/src && echo x > target) && cd /tmp/p6/src && ln -s target link \
   && bsdtar -cPf ../abs.tar -s ',^,/tmp/p6/out/,' target link && cd / \
   && bsdtar -xpPf /tmp/p6/abs.tar > /tmp/p6.log 2>&1 && [ ! -s /tmp/p6.log ] \
   && [ -L /tmp/p6/out/link ] && [ "$(stat -c %a /tmp/p6/out/target)" = 644 ]
