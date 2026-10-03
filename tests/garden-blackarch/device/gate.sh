@@ -51,13 +51,15 @@ push_rootfs() { # push_rootfs TARBALL NAME
     # root.conf, so is ca-certificates' cadir), which would stop it creating
     # their contents. The app applies directory modes last; this copy gives
     # every directory owner write, and mkroot.sh restores the recorded modes
-    # at the end, deepest first.
+    # at the end, deepest first. Sticky directories (/var/spool/mail is 1777)
+    # are recorded too: toybox tar does not keep the sticky bit, the app's
+    # extractor does.
     python3 -c 'import sys, tarfile
 src = tarfile.open(sys.argv[1], "r:gz")
 modes = []
 with tarfile.open(sys.argv[2], "w:gz", format=tarfile.GNU_FORMAT, compresslevel=1) as out:
     for m in src:
-        if m.isdir() and not m.mode & 0o200:
+        if m.isdir() and (not m.mode & 0o200 or m.mode & 0o1000):
             modes.append("%o %s" % (m.mode, m.name))
             m.mode |= 0o700
         if m.name in (".", "./"):
