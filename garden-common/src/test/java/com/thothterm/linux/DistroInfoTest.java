@@ -94,6 +94,22 @@ public class DistroInfoTest {
         assertEquals("68B3537F39A313B3E574D06777193F152BDBE6A6", info.packageSigningKey());
     }
 
+    /** Every edition that says nothing about publication has a downloadable archive, as before. */
+    @Test
+    public void theArchiveIsPublishedUnlessTheEditionSaysOtherwise() throws Exception {
+        assertEquals(true, load(valid()).rootfsPublished());
+        assertEquals(true, load(valid("rootfsPublication", "published")).rootfsPublished());
+        assertEquals(false, load(valid("rootfsPublication", "not-published")).rootfsPublished());
+        for (String bad : new String[]{"yes", "Published", "false", "not published"}) {
+            try {
+                load(valid("rootfsPublication", bad));
+                fail("accepted rootfsPublication=" + bad);
+            } catch (IOException expected) {
+                // fail closed
+            }
+        }
+    }
+
     private static final String ALARM_KEY = "68B3537F39A313B3E574D06777193F152BDBE6A6";
     private static final String BLACKARCH_KEY = "F9A6E68A711354D84A9B91637533BAFE69A25079";
 

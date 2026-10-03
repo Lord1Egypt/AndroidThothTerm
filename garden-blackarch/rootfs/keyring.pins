@@ -1,0 +1,48 @@
+# The BlackArch trust anchors this edition ships, pinned. Sourced by
+# build-rootfs.sh and verify-keyring.sh (POSIX sh). Changing any value is a
+# deliberate, reviewed trust decision: the build refuses anything else, and a
+# BlackArch key rotation fails it until this file is updated on purpose.
+#
+# Measured 2026-10-03. Provenance: docs/garden/blackarch/ROOTFS_PROVENANCE.md.
+
+# The package, as the official aarch64 repository serves it. Arch-style
+# repositories keep only the latest version, so this URL stops working when
+# BlackArch releases the next one; the SHA-256 below, not the URL, is the pin,
+# and the captured file is kept with the build inputs.
+KEYRING_NAME=blackarch-keyring
+KEYRING_VERSION=20251011-2
+KEYRING_FILE=blackarch-keyring-20251011-2-any.pkg.tar.zst
+KEYRING_URL=https://blackarch.org/blackarch/blackarch/os/aarch64/blackarch-keyring-20251011-2-any.pkg.tar.zst
+KEYRING_SIG_URL=https://blackarch.org/blackarch/blackarch/os/aarch64/blackarch-keyring-20251011-2-any.pkg.tar.zst.sig
+KEYRING_SIZE=18445
+KEYRING_SHA256=d40c1301f84195164a2843f2447f5b3833bd9ea30e5cfdaf4271ad9c9771ee07
+KEYRING_SIG_SHA256=c2e21fcd878e26ed0b91ebc53f5fbb3d9a5d28278f0eb218ea866b7a2c04499d
+
+# The one key that must have signed the package: Levon 'noptrix' Kayan
+# (BlackArch Developer). It also signs the repository database and 1434 of the
+# 1437 aarch64 package signatures embedded in it (the other 3: Arch Linux ARM).
+KEYRING_SIGNER=F9A6E68A711354D84A9B91637533BAFE69A25079
+
+# What the package carries under usr/share/pacman/keyrings, and its scriptlets.
+# KEYRING_GPG_SHA256 is also the SHA-256 of blackarch.gpg beside this file,
+# the public keys the builder verifies the package with.
+KEYRING_GPG_SHA256=aafde833f921fe8ae6272a74793ad8991897e9487c061da519d840b5f78369f8
+KEYRING_TRUSTED_SHA256=508a51a2a5a4d879013500672f03cd06f323adb6ac68ade1ebb84e42251d0ba1
+KEYRING_REVOKED_SHA256=f80df536d4c917a89161b7ea3a5284e67bf467b3f7251dda14666d52cefccf52
+KEYRING_HOOK_SHA256=f31881e9a746c2b9ec040f320178be19dc1f8596c0837093f9f29da6226738c4
+KEYRING_INSTALL_SHA256=e5bb51ab05f0320031691de117e0e89f0a8a66ac4dff737eabbd10d28dcb92dc
+
+# The keys pacman-key --populate blackarch trusts (blackarch-trusted, each
+# "<fingerprint>:4:"), the same four BlackArch's strap.sh lists as
+# KEYRING_SIGNERS; the key it revokes (blackarch-revoked); and every primary
+# key in blackarch.gpg. The keys in the third list but in neither of the first
+# two are imported and NOT trusted. All sorted, upper case, space separated.
+KEYRING_TRUSTED="4345771566D76038C7FEB43863EC0ADBEA87E4E3 8F9A9793CB8591147C2EC70566E0CDBD1E01F333 A0917C4147A37007CB54C1CFD295AA940EFDDF62 F9A6E68A711354D84A9B91637533BAFE69A25079"
+KEYRING_REVOKED="5E210889BBB5C48500E0C4F9C75E985FF8B993B4"
+KEYRING_ALL_KEYS="4345771566D76038C7FEB43863EC0ADBEA87E4E3 5E210889BBB5C48500E0C4F9C75E985FF8B993B4 8F9A9793CB8591147C2EC70566E0CDBD1E01F333 A0917C4147A37007CB54C1CFD295AA940EFDDF62 CBA3C7D4798912702DCF568E67D8BDF42AD93F4E F6DA3545F655964DD9177918C65009B64EB7BB3C F9A6E68A711354D84A9B91637533BAFE69A25079"
+
+# The repository section the image gets (blackarch-repo.conf) and the exact
+# server it names. Nothing here relaxes a signature level.
+BLACKARCH_REPO_NAME=blackarch
+BLACKARCH_SERVER='https://blackarch.org/blackarch/$repo/os/$arch'
+BLACKARCH_REPO_CONF_SHA256=35ffd3cd255c1bd04085a4a84a83c46daf84e2ed175ddebc1eee05245ccb7b19

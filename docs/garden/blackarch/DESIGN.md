@@ -1,8 +1,9 @@
 # ThothTerm BlackArch — design record
 
-Status: **development, first slice** (module skeleton, identity, protected ids,
-multi-keyring support). No rootfs exists. Nothing is released, tagged or
-submitted. Facts below were measured on 2026-10-03; re-measure before release.
+Status: **development**: first slice (module skeleton, identity, protected ids,
+multi-keyring support) and rootfs slice (a host-validated candidate, NOT PUBLISHED:
+`ROOTFS_PROVENANCE.md`). Nothing is released, tagged or submitted, and nothing has
+run on a phone. Facts below were measured on 2026-10-03; re-measure before release.
 
 ## Identity (locked for development)
 
@@ -113,9 +114,9 @@ of BlackArch's or Arch's artwork. The supplied artwork
 petals in black and ice blue with a "BLACKARCH EDITION" wordmark; its wording
 falls under the same gate.
 
-## Not done in this slice
+## Not done yet
 
-Rootfs build and publication; real distro pin (the one in
-`distro.properties` is a deliberate non-matching placeholder); real launcher
-icon and palette; package-manager gate; device installation; F-Droid metadata;
-tags and releases.
+Publication of the rootfs (release asset, immutable URL, `rootfsPublication=published`);
+the real launcher icon and palette; the package-manager gate and every physical-device
+check; F-Droid metadata; tags and releases; the licence of `blackarch-keyring` and the
+trademark review (both release gates).

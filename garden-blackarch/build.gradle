@@ -187,6 +187,11 @@ def stageRootfs = tasks.register('stageBlackArchRootfs') {
             source = download
             if (!verified(source)) {
                 if (!url.startsWith('https://')) throw new GradleException("Refusing non-HTTPS rootfs URL ${url}")
+                if (distro.getProperty('rootfsPublication') == 'not-published') {
+                    throw new GradleException("The BlackArch rootfs is not published (rootfsPublication=not-published in "
+                            + "distro.properties), so there is nothing to download. Build it with rootfs/build-rootfs.sh, "
+                            + "or copy the verified archive ${published} to garden-blackarch/rootfs/out/.")
+                }
                 logger.lifecycle("Downloading ${url}")
                 download.parentFile.mkdirs()
                 def partial = new File(download.path + '.part')
@@ -207,6 +212,23 @@ def stageRootfs = tasks.register('stageBlackArchRootfs') {
         if (!verified(target)) throw new GradleException("Staged rootfs failed verification")
     }
 }
+
+// An F-Droid build downloads the rootfs from sourceUrl on first run. While the
+// archive is not published there is nothing to download, so no F-Droid release
+// can be packaged; flipping rootfsPublication to published is a deliberate
+// change that also needs the immutable release URL (BlackArchEditionTest).
+def requirePublishedRootfs = tasks.register('requirePublishedRootfs') {
+    description = 'Refuse to package an F-Droid release whose rootfs is not published.'
+    group = 'verification'
+    inputs.file distroFile
+    doLast {
+        if (distro.getProperty('rootfsPublication') == 'not-published') {
+            throw new GradleException("The BlackArch rootfs is not published: an F-Droid release would offer a download "
+                    + "that does not exist. Publish the rootfs and set rootfsPublication=published first.")
+        }
+    }
+}
+tasks.matching { it.name ==~ /^package[A-Za-z]*Fdroid[A-Za-z]*Release$/ }.configureEach { dependsOn requirePublishedRootfs }
 
 tasks.named('preBuild') { dependsOn buildProot }
 // Only the full flavour embeds the rootfs; fdroid builds never touch it.

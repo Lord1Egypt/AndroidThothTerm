@@ -44,6 +44,16 @@ public final class DistroInfo {
     /** Arch-family guests: pacman's local database and its own keyring. */
     public static final String PACMAN = "pacman";
 
+    /** {@code rootfsPublication}: {@link #sourceUrl()} names an archive that can be downloaded. */
+    public static final String PUBLISHED = "published";
+    /**
+     * {@code rootfsPublication}: the archive exists only where it was built.
+     * {@link #sourceUrl()} is then a name, not a download location; a full
+     * build stages the verified local archive and nothing may ship that
+     * downloads it.
+     */
+    public static final String NOT_PUBLISHED = "not-published";
+
     /** A trust anchor list longer than this is a configuration mistake. */
     private static final int MAX_TRUST_ANCHORS = 8;
 
@@ -77,6 +87,8 @@ public final class DistroInfo {
         require("assetName", NAME.matcher(assetName()).matches());
         require("architecture", !architecture().isEmpty());
         require("sourceUrl", sourceUrl().startsWith("https://"));
+        require("rootfsPublication", get("rootfsPublication").isEmpty()
+                || get("rootfsPublication").equals(PUBLISHED) || get("rootfsPublication").equals(NOT_PUBLISHED));
         require("sha256", SHA256.matcher(sha256()).matches());
         require("compressedSize", compressedSize() > 0);
         require("uncompressedSize", uncompressedSize() > 0);
@@ -165,6 +177,14 @@ public final class DistroInfo {
     /** Where a build without an embedded rootfs downloads it from. */
     public String sourceUrl() {
         return get("sourceUrl");
+    }
+
+    /**
+     * Whether {@link #sourceUrl()} can be downloaded from. True unless the
+     * edition declares {@code rootfsPublication=not-published}.
+     */
+    public boolean rootfsPublished() {
+        return !NOT_PUBLISHED.equals(get("rootfsPublication"));
     }
 
     /** File name of the archive, embedded under {@code assets/garden/rootfs}. */

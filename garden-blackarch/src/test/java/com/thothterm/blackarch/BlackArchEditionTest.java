@@ -113,22 +113,74 @@ public class BlackArchEditionTest {
     }
 
     /**
-     * The rootfs does not exist yet. The pin is a placeholder that nothing can
-     * match, so a build of this slice can neither embed nor download a
-     * rootfs. The rootfs slice replaces the pin and this test with the real
-     * content-addressed checks.
+     * The pin is the validated candidate, not the placeholder, and it names its
+     * own bytes: the name carries the first 12 hex digits of the SHA-256.
      */
     @Test
-    public void theRootfsPinIsAPlaceholderNothingCanMatch() throws Exception {
+    public void theRootfsPinIsTheAdoptedCandidate() throws Exception {
         DistroInfo d = distro();
-        assertEquals("0000000000000000000000000000000000000000000000000000000000000000", d.sha256());
-        assertTrue(d.sourceUrl().startsWith("https://"));
-        assertTrue("a reserved, never-resolving host", d.sourceUrl().contains(".invalid/"));
-        assertFalse(new File(moduleDir(), "src/main/assets/garden/rootfs").exists());
-        assertFalse(new File(moduleDir(), "rootfs").exists());
+        assertFalse("still the placeholder", d.sha256().matches("0+"));
+        assertTrue(d.sha256().matches("[0-9a-f]{64}"));
+        assertEquals("45a79111521382fc4162d5642da360b7a78a1cc251a1e2efcf138bb41bc94ac9", d.sha256());
+        assertEquals(199874013L, d.compressedSize());
+        assertTrue(d.compressedSize() > 0);
+        assertTrue(d.uncompressedSize() > d.compressedSize());
+        assertEquals("aarch64", d.architecture());
+        String prefix = d.sha256().substring(0, 12);
+        assertEquals("blackarch-aarch64-" + prefix, d.imageId());
+        // .tgz, because the asset packager would expand a *.gz asset.
+        assertEquals("thothterm-blackarch-aarch64-rootfs-" + prefix + ".tgz", d.assetName());
+        assertTrue(d.sourceUrl().endsWith("/thothterm-blackarch-aarch64-rootfs-" + prefix + ".tar.gz"));
+    }
+
+    /**
+     * Publication is stated, never implied. While the archive is not published
+     * its URL is a name under a reserved host; the day it is, the URL must be
+     * the immutable GitHub release of this archive, and not an app release tag.
+     */
+    @Test
+    public void thePublicationStateIsExplicitAndHonest() throws Exception {
+        DistroInfo d = distro();
+        String prefix = d.sha256().substring(0, 12);
+        if (d.rootfsPublished()) {
+            assertEquals("https://github.com/Lord1Egypt/AndroidThothTerm/releases/download/"
+                            + "blackarch-rootfs-aarch64-" + prefix + "/thothterm-blackarch-aarch64-rootfs-" + prefix + ".tar.gz",
+                    d.sourceUrl());
+            Matcher m = Pattern.compile("/releases/download/([^/]+)/").matcher(d.sourceUrl());
+            assertTrue(m.find());
+            assertFalse(m.group(1).matches("^blackarch-v[0-9.]+$"));
+        } else {
+            assertTrue("not published, so not a download location: " + d.sourceUrl(), d.sourceUrl().contains(".invalid/"));
+            String gradle = read(new File(moduleDir(), "build.gradle"));
+            assertTrue("no F-Droid release can be packaged", gradle.contains("requirePublishedRootfs"));
+            assertTrue(gradle.contains("package[A-Za-z]*Fdroid[A-Za-z]*Release"));
+            assertTrue("a full build says why there is nothing to download", gradle.contains("is not published"));
+        }
+        String design = read(new File(repo(), "docs/garden/blackarch/ROOTFS_PROVENANCE.md"));
+        assertTrue(design.contains(d.rootfsPublished() ? "PUBLISHED" : "NOT PUBLISHED"));
+    }
+
+    /** Both flavours extract the same bytes; only the full flavour embeds them. */
+    @Test
+    public void onlyTheFullFlavourEmbedsTheRootfs() throws Exception {
         String gradle = read(new File(moduleDir(), "build.gradle"));
-        assertTrue(gradle.contains("f.length() == expectedSize && sha256(f) == expectedSha"));
+        assertTrue(gradle.contains("full {\n            assets.srcDirs += \"$buildDir/garden/rootfs-assets\""));
         assertTrue(gradle.contains("if (task.name ==~ /^pre[Ff]ull.*Build$/) task.dependsOn stageRootfs"));
+        assertFalse(gradle.contains("fdroid {\n            assets"));
+        assertTrue(gradle.contains("f.length() == expectedSize && sha256(f) == expectedSha"));
+        assertFalse(new File(moduleDir(), "src/main/assets/garden/rootfs").exists());
+        assertFalse(new File(moduleDir(), "src/fdroid").exists());
+        assertTrue("a staged archive is kept out of git", read(new File(moduleDir(), "rootfs/.gitignore")).contains("out/"));
+    }
+
+    /** What the repository section says, the one place the URL and path are asserted end to end. */
+    @Test
+    public void theBlackArchRepositoryIsTheOfficialAarch64One() throws Exception {
+        String conf = read(new File(moduleDir(), "rootfs/blackarch-repo.conf"));
+        assertTrue(conf.contains("[blackarch]\n"));
+        assertTrue(conf.contains("\nServer = https://blackarch.org/blackarch/$repo/os/$arch\n"));
+        assertFalse(conf.replaceAll("(?m)^\\s*#.*$", "").contains("SigLevel"));
+        assertEquals("aarch64", distro().architecture());
     }
 
     /** No weakened signature level anywhere in the edition's data or sources. */
