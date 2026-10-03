@@ -80,6 +80,20 @@ engine. If it would be wrong in another distro, it belongs in distro policy.
 - [ ] PATH additions existence-gated, `$HOME`-relative, prepend-only, exported.
 - [ ] Non-interactive children inherit the environment.
 
+### 2.5a Branding
+
+Every edition meets the branding contract in
+[`docs/garden/DISTRO_BRANDING_CHECKLIST.md`](garden/DISTRO_BRANDING_CHECKLIST.md):
+real artwork outside the app and on every in-app setup, recovery and welcome
+surface; its own `colors.xml` and `palette.properties` (the only source of the
+banner, prompt, terminal and LAN colours; the shared `thothfetch` mark unchanged);
+documented, reproducible derivation; branding and palette tests; real-device
+screenshots before branding is called done; and no placeholder icon or neutral
+fallback theme in a release candidate.
+
+- [ ] Branding checklist complete (artwork, chrome colours, palette, provenance,
+      tests, device screenshots).
+
 ### 2.6 Lifecycle and terminal
 
 These are engine behaviours; a port only has to confirm nothing regressed.

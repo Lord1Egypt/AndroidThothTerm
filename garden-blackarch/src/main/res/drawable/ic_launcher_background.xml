@@ -15,9 +15,15 @@
  * limitations under the License.
 -->
 
-<resources>
-    <!-- The BlackArch sheet's backdrop: its corners (edge) and the lit backdrop around the marks
-         (glow), measured by tools/garden/branding/measure_sheet.py (make_resources.args). -->
-    <color name="ic_launcher_background">#000000</color>
-    <color name="ic_launcher_background_glow">#0A1015</color>
-</resources>
+<!-- Fills the whole 108dp adaptive canvas: every launcher mask lands on colour,
+     never on a transparent corner. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="radial"
+        android:centerX="0.5"
+        android:centerY="0.46"
+        android:gradientRadius="62%p"
+        android:startColor="@color/ic_launcher_background_glow"
+        android:endColor="@color/ic_launcher_background"/>
+</shape>

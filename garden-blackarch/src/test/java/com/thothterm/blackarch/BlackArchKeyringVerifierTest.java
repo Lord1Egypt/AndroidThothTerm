@@ -78,7 +78,15 @@ public class BlackArchKeyringVerifierTest {
     }
 
     private String key(String name) throws Exception {
-        ok(work, env, "gpg", "--batch", "--passphrase", "", "--quick-generate-key", name + " <t@example.org>", "ed25519", "sign", "never");
+        // gpg refuses a signature whose key is dated "in the future": WSL clocks jitter by a second or two.
+        for (int attempt = 0; ; attempt++) {
+            RootfsTools.Result r = run(work, env, "gpg", "--batch", "--passphrase", "", "--quick-generate-key",
+                    name + " <t@example.org>", "ed25519", "sign", "never");
+            if (r.exit == 0) break;
+            if (attempt >= 4 || !r.output.contains("in the future")) throw new IllegalStateException(r.output);
+            Thread.sleep(2500);
+            run(work, env, "gpg", "--batch", "--yes", "--delete-secret-and-public-keys", name);
+        }
         String out = ok(work, env, "gpg", "--batch", "--with-colons", "--list-keys", name).output;
         for (String line : out.split("\n")) {
             if (line.startsWith("fpr:")) return line.split(":")[9];
