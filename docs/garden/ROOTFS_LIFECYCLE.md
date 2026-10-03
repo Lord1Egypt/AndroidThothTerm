@@ -95,15 +95,15 @@ environment stands:
 The percentage on the setup screen is the archive only: download progress is
 shown separately ("Downloading ... N%"), and 100% means the archive is fully
 extracted and its checksum verified. Then "Finalizing <distro> environment..."
-covers managed configuration, promotion, the pacman keyring (Arch: offline,
-from the image's own keyring package) and the state record. Then the setup
-screen hands off to the terminal.
+covers managed configuration, promotion and the state record; no guest
+command runs. Then the setup screen hands off to the terminal.
 
 **Optional provisioning** -- sudo: the setuid bit on an installed sudo,
 finishing an interrupted configuration, installing ThothTerm Ubuntu's bundled
 sudo packages (full flavour), installing sudo from the distribution's archive
-(network; Ubuntu F-Droid flavour or a guest where it was removed), recreating a
-missing pacman keyring -- runs on one background thread only after the
+(network; Ubuntu F-Droid flavour or a guest where it was removed), and on Arch
+creating the installation's pacman keyring (offline, from the image's own
+keyring package; until it verifies pacman installs nothing) -- runs on one background thread only after the
 handoff (`OptionalSetup`). It never blocks a terminal, never re-extracts and
 never touches `/home`. If it fails, the terminal stays usable, a message says
 so once, and the terminal menu shows "Retry administrator tools setup"; the

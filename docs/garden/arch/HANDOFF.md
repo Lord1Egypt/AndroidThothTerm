@@ -32,7 +32,9 @@ usage limit). Nothing is tagged or released yet. Read this first, then
   unchanged). First run creates the installation's own keyring
   (`pacman-key --init`, `--populate archlinuxarm`), proves the Build System key
   is fully valid and a genuine signed package (`/usr/share/thothterm/signature-check/`)
-  verifies, **before** setup is marked complete. Image keyring refused. Stale
+  verifies, **before** setup is marked complete (superseded 2026-10-03: the
+  keyring is now made by the optional setup after the terminal opens; see
+  docs/garden/closure/CLOSURE_REPORT.md). Image keyring refused. Stale
   `db.lck` removed only when no PRoot of the app runs (`GuestProcesses`).
   sudo via pacman (never -Sy). No debconf on pacman guests.
 - **Data-loss fix** (same commit): `isReady()` no longer needs the install to
