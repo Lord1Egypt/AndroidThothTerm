@@ -233,7 +233,7 @@ nativeLibraryDir/libproot.so
   --rootfs=<files>/linux/ubuntu-26.04/rootfs
   --root-id --link2symlink --cwd=/home/thoth --hangup-on-exit
   --kernel-release=6.1.0-thothterm
-  --bind=/dev --bind=/proc --bind=/sys --bind=/proc/mounts:/etc/mtab
+  --bind=/dev --bind=/proc --bind=/sys --bind=/proc/self/mounts:/etc/mtab
   --bind=<files>/linux/runtime/resolv.conf:/etc/resolv.conf
   /usr/bin/su -m -s /bin/bash thoth
 ```
@@ -247,7 +247,7 @@ Environment: `HOME=/home/thoth`, `USER=thoth`, `LOGNAME=thoth`,
 `PROOT_TMP_DIR`, `PROOT_LOADER`, `LD_LIBRARY_PATH`. The Android `ENV`,
 `LD_PRELOAD`, and the full environment are not inherited.
 
-Only `/dev`, `/proc`, `/sys`, and `/proc/mounts` are bound. The whole Android
+Only `/dev`, `/proc`, `/sys`, and `/proc/self/mounts` (as `/etc/mtab`) are bound. The whole Android
 `/data` is deliberately **not** bound.
 
 ## HOME, user, and prompt

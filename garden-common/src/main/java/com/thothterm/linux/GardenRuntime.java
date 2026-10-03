@@ -124,7 +124,10 @@ public final class GardenRuntime {
         argv.add("--bind=/dev");
         argv.add("--bind=/proc");
         argv.add("--bind=/sys");
-        argv.add("--bind=/proc/mounts:/etc/mtab");
+        // /proc/self/... is kept verbatim and resolved per tracee at each
+        // access; "/proc/mounts" was resolved once at start-up, and on some
+        // devices that failed ("can't sanitize binding") and dropped /etc/mtab.
+        argv.add("--bind=/proc/self/mounts:/etc/mtab");
         if (bindResolver) {
             argv.add("--bind=" + resolverFile + ":/etc/resolv.conf");
         }
