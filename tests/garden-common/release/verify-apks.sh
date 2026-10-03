@@ -2,8 +2,9 @@
 # Static release checks on built Garden APKs, one report line per check:
 #   identity     aapt2: package, versionCode, versionName, min/target SDK
 #   16 KB        zipalign -c -P 16 (uncompressed .so on 16 KB boundaries)
-#   ELF          every arm64 ELF (jniLibs and the runtime assets) has LOAD
-#                segments aligned to >= 0x4000
+#   ELF          every 64-bit ELF (lib/arm64-v8a, lib/x86_64 and the runtime
+#                assets) has LOAD segments aligned to >= 0x4000; 32-bit ABIs
+#                (the regular terminal's minSdk 16 build ships some) are exempt
 #   JNI          the 7 methods libtermexec registers (RegisterNatives) exist
 #                in the dex with exactly those classes, names and signatures,
 #                i.e. R8 kept them
@@ -41,7 +42,7 @@ for apk in "$@"; do
     W=$(mktemp -d)
     unzip -q -o "$apk" 'lib/*' 'assets/runtime/*' -d "$W" 2>/dev/null
     elves=0; bad=0
-    for so in $(find "$W" -type f); do
+    for so in $(find "$W" -type f ! -path '*/lib/x86/*' ! -path '*/lib/armeabi*'); do
         "$READELF" -h "$so" >/dev/null 2>&1 || continue
         elves=$((elves + 1))
         for a in $("$READELF" -lW "$so" | awk '$1 == "LOAD" {print $NF}'); do
@@ -65,6 +66,7 @@ for apk in "$@"; do
     done
     [ "$jni" = 7 ]; line $([ $? = 0 ] && echo PASS || echo FAIL) "$name JNI RegisterNatives targets $jni/7"
 
+    case "$name" in term-full*|term-play*) continue ;; esac  # the regular terminal embeds nothing
     rootfs=$(unzip -l "$apk" | awk '{print $4}' | grep -E '^assets/.*\.(tgz|tar\.gz|tar\.xz)$' || true)
     case "$name" in
         *fdroid*) [ -z "$rootfs" ]; line $([ $? = 0 ] && echo PASS || echo FAIL) "$name F-Droid flavour embeds no rootfs" ;;
