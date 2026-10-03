@@ -270,3 +270,21 @@ retry path verified). Kernel 4.14 still unverified.
   clean); only the ownership comparison of -Qkk differs. Not caused by the closure
   changes (PRoot ownership handling is untouched); fix belongs in the PRoot patch set
   (fake_id0 + link2symlink) and is NOT done. The gate was not weakened; it stays FAIL.
+
+## Addendum 3 — the ownership defect fixed (PRoot 0008); Rolling gate 89/0
+
+Root cause: link2symlink answered stat for a fake hard link with the backing
+`.l2s.*` file's whole stat, owner included, over the buffer fake_id0 had mapped to the
+guest uid; order-dependent, so lstat/stat/fstat/fstatat showed the app uid (statx and
+ordinary files were right). Host-reproduced (45 of 106 observations wrong); patch 0008
+takes the owner from the buffer as it stands. Verified: host owner-check 239/239 guest-owned
+(root and fake 1234; create, rename, `ln -f`, new link, symlink, plain, backing files; 8 stat
+flavours + find + stat(1)); 0006 4/4 and 0007 24/24 unchanged; phone: `pacman -Qkk tzdata` 0
+altered, no UID/GID lines for tzdata/coreutils/pacman, bsdtar and find show 0; the **unchanged**
+Rolling gate: 89 PASS / 0 FAIL (`device-evidence/arch-pacman-gate3.txt`).
+Also fixed: hard-link copies kept their creation time (extractor now sets the archive time).
+Known, not ownership: (a) 5 package files with non-root groups (dbus helper, wall/write,
+/srv/ftp, /var/games) report GID mismatch in `pacman -Qkk` — guest chown/group emulation is not
+implemented in the non-USERLAND build; (b) the app extractor cannot set the time of symlinks
+(no public no-follow utimes), so `pacman -Qkk coreutils/pacman` lists ~60 symlink
+"Modification time mismatch" lines on a fresh image (gone for packages pacman reinstalls).
