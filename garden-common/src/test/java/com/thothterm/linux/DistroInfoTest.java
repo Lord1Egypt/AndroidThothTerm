@@ -94,6 +94,81 @@ public class DistroInfoTest {
         assertEquals("68B3537F39A313B3E574D06777193F152BDBE6A6", info.packageSigningKey());
     }
 
+    private static final String ALARM_KEY = "68B3537F39A313B3E574D06777193F152BDBE6A6";
+    private static final String BLACKARCH_KEY = "F9A6E68A711354D84A9B91637533BAFE69A25079";
+
+    /** A single value is a list of one: the first-entry accessors are what they always were. */
+    @Test
+    public void aSingleKeyringIsAListOfOne() throws Exception {
+        DistroInfo info = load(valid("packageManager", "pacman", "adminGroup", "wheel",
+                "pacmanKeyring", "archlinuxarm", "packageSigningKey", ALARM_KEY.toLowerCase(java.util.Locale.ROOT)));
+        assertEquals(java.util.Collections.singletonList("archlinuxarm"), info.pacmanKeyrings());
+        assertEquals(java.util.Collections.singletonList(ALARM_KEY), info.packageSigningKeys());
+        assertEquals("archlinuxarm", info.pacmanKeyring());
+        assertEquals(ALARM_KEY, info.packageSigningKey());
+    }
+
+    /** An edition may trust its base distribution and one more repository. */
+    @Test
+    public void anEditionMayDeclareSeveralKeyringsAndSigningKeys() throws Exception {
+        DistroInfo info = load(valid("packageManager", "pacman", "adminGroup", "wheel",
+                "pacmanKeyring", "archlinuxarm  blackarch",
+                "packageSigningKey", ALARM_KEY + " " + BLACKARCH_KEY.toLowerCase(java.util.Locale.ROOT)));
+        assertEquals(java.util.Arrays.asList("archlinuxarm", "blackarch"), info.pacmanKeyrings());
+        assertEquals(java.util.Arrays.asList(ALARM_KEY, BLACKARCH_KEY), info.packageSigningKeys());
+        // The singular accessors name the base distribution, first.
+        assertEquals("archlinuxarm", info.pacmanKeyring());
+        assertEquals(ALARM_KEY, info.packageSigningKey());
+    }
+
+    @Test
+    public void theTrustAnchorListsCannotBeChangedAfterLoading() throws Exception {
+        DistroInfo info = load(valid("packageManager", "pacman", "pacmanKeyring", "a b",
+                "packageSigningKey", ALARM_KEY + " " + BLACKARCH_KEY));
+        try {
+            info.packageSigningKeys().add(ALARM_KEY.replace('6', '7'));
+            fail("the list is writable");
+        } catch (UnsupportedOperationException expected) {
+            // read-only
+        }
+    }
+
+    /** Every entry is checked on its own, and a list never weakens the single-value rules. */
+    @Test
+    public void refusesMalformedTrustAnchorLists() {
+        StringBuilder many = new StringBuilder();
+        for (int i = 0; i < 9; i++) many.append("k").append(i).append(' ');
+        String[][] bad = {
+                {"pacmanKeyring", "archlinuxarm blackarch ../x", "packageSigningKey", ALARM_KEY},
+                {"pacmanKeyring", "archlinuxarm; blackarch", "packageSigningKey", ALARM_KEY},
+                {"pacmanKeyring", "archlinuxarm -blackarch", "packageSigningKey", ALARM_KEY},
+                {"pacmanKeyring", "archlinuxarm archlinuxarm", "packageSigningKey", ALARM_KEY},
+                {"pacmanKeyring", many.toString().trim(), "packageSigningKey", ALARM_KEY},
+                {"pacmanKeyring", "archlinuxarm blackarch", "packageSigningKey", ALARM_KEY + " 77193F152BDBE6A6"},
+                {"pacmanKeyring", "archlinuxarm blackarch", "packageSigningKey", ALARM_KEY + " " + ALARM_KEY.toLowerCase(java.util.Locale.ROOT)},
+                {"pacmanKeyring", "archlinuxarm blackarch", "packageSigningKey", ALARM_KEY + " " + BLACKARCH_KEY + "' ; x '"},
+                {"pacmanKeyring", "archlinuxarm blackarch", "packageSigningKey", ALARM_KEY + BLACKARCH_KEY},
+        };
+        for (String[] o : bad) {
+            try {
+                load(valid("packageManager", "pacman", o[0], o[1], o[2], o[3]));
+                fail("accepted " + java.util.Arrays.toString(o));
+            } catch (IOException expected) {
+                // fail closed
+            }
+        }
+    }
+
+    /** A dpkg edition has no trust anchors to declare, and says so. */
+    @Test
+    public void aDpkgEditionHasNoKeyrings() throws Exception {
+        DistroInfo info = load(valid());
+        assertEquals(java.util.Collections.emptyList(), info.pacmanKeyrings());
+        assertEquals(java.util.Collections.emptyList(), info.packageSigningKeys());
+        assertEquals("", info.pacmanKeyring());
+        assertEquals("", info.packageSigningKey());
+    }
+
     @Test
     public void digestIsNormalizedToLowerCase() throws Exception {
         assertEquals(SHA, load(valid("sha256", SHA.toUpperCase(java.util.Locale.ROOT))).sha256());

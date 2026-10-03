@@ -1,0 +1,20 @@
+ThothTerm BlackArch is an independent Android application that runs an Arch
+Linux ARM AArch64 environment under PRoot, with the BlackArch package
+repository enabled, and a terminal to work in it. There is no root and no
+virtual machine: the environment runs on the phone itself, inside the app.
+
+DEVELOPMENT VERSION: this description is a placeholder until the first release.
+
+What the BlackArch repository gives you on a phone
+
+BlackArch publishes an AArch64 repository alongside its x86_64 one. It is
+smaller than the x86_64 catalog, and not every package in it can be installed:
+some depend on packages that do not exist for AArch64. pacman checks every
+package's signature, and resolves what can be installed. Nothing here is
+a promise that any particular tool is available or runs under PRoot.
+
+This app is independent and is not affiliated with or endorsed by the
+BlackArch, Arch Linux or Arch Linux ARM projects. Arch Linux is a trademark of
+Levente Polyák and Judd Vinet, on behalf of Arch Linux.
+
+ThothTerm is free software under the Apache License 2.0.

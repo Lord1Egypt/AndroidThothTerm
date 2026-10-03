@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (c) 2026 Mohamed Mounir.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+
+<!-- Overrides garden-common's neutral defaults with this edition's names.
+     garden-common's own translations never carry these, so no locale falls
+     back to the neutral text. PROVISIONAL: the consent text describes the
+     rootfs design in docs/garden/blackarch/DESIGN.md and is final only when
+     the rootfs slice pins the real archive. Naming and non-affiliation wording
+     is a release gate (docs/garden/blackarch/DESIGN.md, "Trademark"). -->
+<resources>
+    <string name="application_terminal" translatable="false">ThothTerm BlackArch</string>
+    <string name="application_positioning">An Arch Linux ARM AArch64 environment with the BlackArch repository, on Android</string>
+    <string name="about_title">About ThothTerm BlackArch</string>
+    <string name="about_notice">ThothTerm BlackArch runs an Arch Linux ARM AArch64 environment with the BlackArch repository enabled. It offers the part of the BlackArch catalog that is built for AArch64, which is smaller than the x86_64 catalog; not every package installs. This app is independent and is not affiliated with or endorsed by the BlackArch, Arch Linux or Arch Linux ARM projects. Arch Linux is a trademark of Levente Polyák and Judd Vinet, on behalf of Arch Linux.\n\nThe environment is a PRoot userland, not a booted system: pacman and ordinary programs work, while services that need systemd as PID 1 (systemctl) are not available.</string>
+
+    <string name="garden_welcome">Welcome to ThothTerm BlackArch</string>
+    <string name="garden_extracting_percent">Extracting Arch Linux ARM + BlackArch… %1$d%%</string>
+    <string name="garden_downloading">Downloading Arch Linux ARM + BlackArch…</string>
+    <string name="garden_consent_title">The environment needs to be downloaded</string>
+    <string name="garden_consent_body">ThothTerm BlackArch runs an Arch Linux ARM %1$s environment with the BlackArch repository enabled. This build does not include it, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n• This downloads executable software onto your device after installation.\n• It consists of unmodified Arch Linux ARM packages and the BlackArch keyring and mirror list packages, each checked against its project’s signing key when the ThothTerm project assembled them into a root filesystem, and published unchanged since. Neither project built or endorsed this download.\n• It is not part of this app’s package and was not built or verified by F‑Droid.\n• ThothTerm checks the download’s size and SHA‑256 checksum against values fixed in this app’s source, and refuses it if they do not match. A failed or interrupted download changes nothing and can be retried.\n• LAN Mode stays off unless you turn it on. When it is on, terminal traffic and uploaded files are not encrypted in transit: use it only on networks you trust.\n\nNothing is downloaded unless you choose Download.</string>
+    <string name="garden_consent_accept">Download</string>
+    <string name="garden_consent_declined">The environment was not downloaded. You can start the download whenever you want.</string>
+
+    <string name="service_notify_text">ThothTerm BlackArch is running</string>
+    <string name="lan_help_off">LAN Mode lets a computer on the same Wi-Fi network use this environment in a web browser. Each browser gets a terminal of its own; the windows on this phone are not shared.</string>
+</resources>

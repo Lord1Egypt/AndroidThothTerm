@@ -44,6 +44,9 @@ public final class DistroInfo {
     /** Arch-family guests: pacman's local database and its own keyring. */
     public static final String PACMAN = "pacman";
 
+    /** A trust anchor list longer than this is a configuration mistake. */
+    private static final int MAX_TRUST_ANCHORS = 8;
+
     private final Properties properties;
 
     private DistroInfo(Properties properties) {
@@ -85,9 +88,26 @@ public final class DistroInfo {
         if (packageManager().equals(PACMAN)) {
             // Without these the first run could not prove that the keyring it
             // creates trusts the distribution's packages.
-            require("pacmanKeyring", NAME.matcher(pacmanKeyring()).matches());
-            require("packageSigningKey", FINGERPRINT.matcher(packageSigningKey()).matches());
+            require("pacmanKeyring", validList(pacmanKeyrings(), NAME));
+            require("packageSigningKey", validList(packageSigningKeys(), FINGERPRINT));
         }
+    }
+
+    /** At most {@link #MAX_TRUST_ANCHORS} distinct entries, each matching {@code pattern}. */
+    private static boolean validList(java.util.List<String> values, Pattern pattern) {
+        if (values.isEmpty() || values.size() > MAX_TRUST_ANCHORS) return false;
+        if (new java.util.HashSet<>(values).size() != values.size()) return false;
+        for (String value : values) {
+            if (!pattern.matcher(value).matches()) return false;
+        }
+        return true;
+    }
+
+    /** A whitespace-separated property as its entries; empty when unset. */
+    private java.util.List<String> list(String key) {
+        String value = get(key);
+        return value.isEmpty() ? java.util.Collections.<String>emptyList()
+                : java.util.Arrays.asList(value.split("\\s+"));
     }
 
     /** Shown in the UI and written into the guest as one line of text. */
@@ -191,13 +211,40 @@ public final class DistroInfo {
         return value.isEmpty() ? "sudo" : value;
     }
 
-    /** pacman only: the keyring {@code pacman-key --populate} loads, e.g. "archlinux". */
+    /**
+     * pacman only: the keyring {@code pacman-key --populate} loads first, e.g.
+     * "archlinux". An edition that trusts more than one keyring lists them all
+     * in {@code pacmanKeyring}, separated by white space, base distribution
+     * first; this is the first. See {@link #pacmanKeyrings()}.
+     */
     public String pacmanKeyring() {
-        return get("pacmanKeyring");
+        java.util.List<String> all = pacmanKeyrings();
+        return all.isEmpty() ? "" : all.get(0);
     }
 
-    /** pacman only: fingerprint of the key the distribution signs its packages with. */
+    /** pacman only: every keyring to populate, in the order the property lists them. */
+    public java.util.List<String> pacmanKeyrings() {
+        return list("pacmanKeyring");
+    }
+
+    /**
+     * pacman only: fingerprint of the key the distribution signs its packages
+     * with; with several signing identities, the first of
+     * {@link #packageSigningKeys()}.
+     */
     public String packageSigningKey() {
-        return get("packageSigningKey").toUpperCase(java.util.Locale.ROOT);
+        java.util.List<String> all = packageSigningKeys();
+        return all.isEmpty() ? "" : all.get(0);
+    }
+
+    /**
+     * pacman only: the fingerprint of every signing identity the guest must
+     * fully trust, upper case, in the order the property lists them. A
+     * single-identity edition lists one, exactly as before.
+     */
+    public java.util.List<String> packageSigningKeys() {
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        for (String key : list("packageSigningKey")) keys.add(key.toUpperCase(java.util.Locale.ROOT));
+        return java.util.Collections.unmodifiableList(keys);
     }
 }

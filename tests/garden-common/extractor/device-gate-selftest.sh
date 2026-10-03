@@ -69,7 +69,7 @@ expect() { # expect RESULT EXPECTED APP TEST TARGET
 }
 
 Q=.qa.extractorgate
-for base in com.thothterm.arch com.thothterm.debian com.thothterm.ubuntu; do
+for base in com.thothterm.arch com.thothterm.debian com.thothterm.ubuntu com.thothterm.blackarch; do
     expect ok "$base$Q" "$base$Q" "$base$Q.test" "$base$Q"
     # The bug Codex found: the APK is still the primary package.
     expect abort "$base$Q" "$base" "$base.test" "$base"
@@ -78,7 +78,7 @@ for base in com.thothterm.arch com.thothterm.debian com.thothterm.ubuntu; do
     # Asking for a protected package directly.
     expect abort "$base" "$base" "$base.test" "$base"
 done
-for p in com.thothterm com.thothterm.devel com.thothterm.ubuntu com.thothterm.debian com.thothterm.arch \
+for p in com.thothterm com.thothterm.devel com.thothterm.ubuntu com.thothterm.debian com.thothterm.arch com.thothterm.blackarch \
         com.pocketclaw com.example.PocketClaw io.pocket_claw.app; do
     expect abort "$p" "$p" "$p.test" "$p"
     expect abort "com.thothterm.arch$Q" "$p" "com.thothterm.arch$Q.test" "com.thothterm.arch$Q"
@@ -137,7 +137,7 @@ expect_runtime() { # expect_runtime RESULT EXPECTED APK WHAT
     got=$(runtime_result "$2" "$3")
     [ "$got" = "$1" ] || fail "runtime: expected $1 for $4, got $got"
 }
-for base in com.thothterm.arch com.thothterm.debian com.thothterm.ubuntu; do
+for base in com.thothterm.arch com.thothterm.debian com.thothterm.ubuntu com.thothterm.blackarch; do
     qa=$base$Q
     expect_runtime ok "$qa" "$(native_apk qa "$qa")" "$qa with its own runtime"
     # The blocker: a QA app whose runtime points at the production package.
@@ -175,7 +175,7 @@ app_identity() { # app_identity EXPECTED APP_PKG -> ok|abort
     if (. "$HERE/apk-identity.sh"; gate_check_app_identity "$1" "$a") >/dev/null 2>&1; then echo ok; else echo abort; fi
 }
 L=.qa.lifecycle
-for base in com.thothterm.arch com.thothterm.debian com.thothterm.ubuntu; do
+for base in com.thothterm.arch com.thothterm.debian com.thothterm.ubuntu com.thothterm.blackarch; do
     [ "$(app_identity "$base$L" "$base$L")" = ok ] || fail "$base$L must install"
     [ "$(app_identity "$base$L" "$base")" = abort ] || fail "a $base APK must not install as $base$L"
     [ "$(app_identity "$base" "$base")" = abort ] || fail "$base must never be installed"
@@ -237,7 +237,7 @@ grep -q "rootProject.findProperty('thothtermQaApplicationIdSuffix')" "$REPO/appl
     || fail "applicationId.gradle does not read thothtermQaApplicationIdSuffix"
 grep -q "apply from: 'applicationId.gradle'" "$REPO/build.gradle" \
     || fail "the root build does not apply applicationId.gradle"
-for m in garden-arch:com.thothterm.arch garden-debian:com.thothterm.debian term-ubuntu:com.thothterm.ubuntu; do
+for m in garden-arch:com.thothterm.arch garden-debian:com.thothterm.debian garden-blackarch:com.thothterm.blackarch term-ubuntu:com.thothterm.ubuntu; do
     f="$REPO/${m%%:*}/build.gradle"
     grep -q "thothtermApplicationId('${m#*:}')" "$f" \
         || fail "${m%%:*}/build.gradle does not take its id from thothtermApplicationId"

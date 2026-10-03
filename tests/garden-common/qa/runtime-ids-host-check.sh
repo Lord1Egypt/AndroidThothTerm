@@ -67,7 +67,7 @@ build() { # build APPLICATION_ID -> $W/<id>/{proot,shmem.o}
         || { cat "$d/shmem.log"; exit 1; }
 }
 
-for base in com.thothterm.arch com.thothterm.debian com.thothterm.ubuntu; do
+for base in com.thothterm.arch com.thothterm.debian com.thothterm.ubuntu com.thothterm.blackarch; do
     qa=$base.qa.lifecycle
     build "$base"
     build "$qa"

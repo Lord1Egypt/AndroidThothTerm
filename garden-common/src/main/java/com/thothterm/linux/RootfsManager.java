@@ -775,7 +775,7 @@ public final class RootfsManager {
     /** Creates a missing keyring now: optional setup only, on its background thread. */
     private void ensurePacmanKeyringNow() throws IOException {
         if (!keyringMissing()) return;
-        runProvisioning(rootfsDir, pacmanKeyringScript());
+        runProvisioning(rootfsDir, pacmanKeyringScript(image));
         ThothLog.i(LogCategory.ROOTFS, "pacman keyring recreated");
     }
 
@@ -783,34 +783,66 @@ public final class RootfsManager {
      * The installation's own pacman keyring, as the distribution documents
      * it: pacman-key --init (a fresh local master key, from the kernel's
      * random source) and --populate with the distribution's keyring package
-     * data. Then two proofs, both offline: the package-signing key is fully
+     * data. Then two proofs, both offline: every package-signing key is fully
      * valid, and a genuine signed repository package kept in the image for
      * this purpose verifies with it. Any other result fails the script.
+     *
+     * <p>An edition with one signing identity gets the script it always had.
+     * With several (an edition adding a third-party repository to its base
+     * distribution) every keyring is populated, every key must be fully
+     * valid, every file in the signature-check directory must be signed by
+     * one of them, and each of them must have signed at least one.
      */
-    private String pacmanKeyringScript() {
-        String key = image.packageSigningKey();
-        return "set -e\n"
-                + PATH_EXPORT + "\n"
-                + "export LANG=C.UTF-8\n"
-                + "cd /\n"
-                + "K=/etc/pacman.d/gnupg\n"
-                + "rm -rf \"$K\"\n"
-                + "pacman-key --init\n"
-                + "pacman-key --populate " + image.pacmanKeyring() + "\n"
+    static String pacmanKeyringScript(DistroInfo image) {
+        java.util.List<String> keys = image.packageSigningKeys();
+        StringBuilder script = new StringBuilder()
+                .append("set -e\n")
+                .append(PATH_EXPORT).append("\n")
+                .append("export LANG=C.UTF-8\n")
+                .append("cd /\n")
+                .append("K=/etc/pacman.d/gnupg\n")
+                .append("rm -rf \"$K\"\n")
+                .append("pacman-key --init\n")
+                .append("pacman-key --populate ").append(String.join(" ", image.pacmanKeyrings())).append("\n")
                 // pacman-key's own options: its keyring directory is 0755 by
                 // design, which plain gpg would warn about.
-                + "G=\"gpg --homedir $K --no-permission-warning --batch\"\n"
-                + "$G --with-colons --list-keys " + key
-                + " | grep -q '^pub:[fu]:' || { echo 'signing key is not fully valid' >&2; exit 1; }\n"
-                + "set -- /usr/share/thothterm/signature-check/*.sig\n"
-                + "[ -f \"$1\" ] || { echo 'no signature-check package' >&2; exit 1; }\n"
-                + "$G --status-fd 1 --verify \"$1\" \"${1%.sig}\""
-                + " > /tmp/.thothterm-verify 2>/dev/null || true\n"
-                + "grep -q '^\\[GNUPG:\\] VALIDSIG " + key + " ' /tmp/.thothterm-verify"
-                + " && grep -qE '^\\[GNUPG:\\] TRUST_(FULLY|ULTIMATE)' /tmp/.thothterm-verify"
-                + " || { cat /tmp/.thothterm-verify >&2; rm -f /tmp/.thothterm-verify; exit 1; }\n"
-                + "rm -f /tmp/.thothterm-verify\n"
-                + "echo keyring-verified\n";
+                .append("G=\"gpg --homedir $K --no-permission-warning --batch\"\n");
+        for (String key : keys) {
+            script.append("$G --with-colons --list-keys ").append(key)
+                    .append(" | grep -q '^pub:[fu]:' || { echo 'signing key is not fully valid' >&2; exit 1; }\n");
+        }
+        if (keys.size() == 1) {
+            String key = keys.get(0);
+            script.append("set -- /usr/share/thothterm/signature-check/*.sig\n")
+                    .append("[ -f \"$1\" ] || { echo 'no signature-check package' >&2; exit 1; }\n")
+                    .append("$G --status-fd 1 --verify \"$1\" \"${1%.sig}\"")
+                    .append(" > /tmp/.thothterm-verify 2>/dev/null || true\n")
+                    .append("grep -q '^\\[GNUPG:\\] VALIDSIG ").append(key).append(" ' /tmp/.thothterm-verify")
+                    .append(" && grep -qE '^\\[GNUPG:\\] TRUST_(FULLY|ULTIMATE)' /tmp/.thothterm-verify")
+                    .append(" || { cat /tmp/.thothterm-verify >&2; rm -f /tmp/.thothterm-verify; exit 1; }\n");
+        } else {
+            String all = String.join(" ", keys);
+            script.append("set -- /usr/share/thothterm/signature-check/*.sig\n")
+                    .append("[ -f \"$1\" ] || { echo 'no signature-check package' >&2; exit 1; }\n")
+                    .append("SIGNERS=\n")
+                    .append("for S in \"$@\"; do\n")
+                    .append("$G --status-fd 1 --verify \"$S\" \"${S%.sig}\"")
+                    .append(" > /tmp/.thothterm-verify 2>/dev/null || true\n")
+                    .append("SIGNER=$(sed -n 's/^\\[GNUPG:\\] VALIDSIG \\([0-9A-F]*\\) .*/\\1/p' /tmp/.thothterm-verify | head -n 1)\n")
+                    .append("case \" ").append(all).append(" \" in *\" $SIGNER \"*) ;; *)")
+                    .append(" cat /tmp/.thothterm-verify >&2; rm -f /tmp/.thothterm-verify; exit 1 ;; esac\n")
+                    .append("grep -qE '^\\[GNUPG:\\] TRUST_(FULLY|ULTIMATE)' /tmp/.thothterm-verify")
+                    .append(" || { cat /tmp/.thothterm-verify >&2; rm -f /tmp/.thothterm-verify; exit 1; }\n")
+                    .append("SIGNERS=\"$SIGNERS $SIGNER \"\n")
+                    .append("done\n");
+            for (String key : keys) {
+                script.append("case \"$SIGNERS\" in *\" ").append(key).append(" \"*) ;; *)")
+                        .append(" echo 'no signature-check package signed by ").append(key)
+                        .append("' >&2; rm -f /tmp/.thothterm-verify; exit 1 ;; esac\n");
+            }
+        }
+        return script.append("rm -f /tmp/.thothterm-verify\n")
+                .append("echo keyring-verified\n").toString();
     }
 
     // ---- managed guest configuration ---------------------------------------

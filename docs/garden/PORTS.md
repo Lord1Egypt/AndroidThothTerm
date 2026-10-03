@@ -10,8 +10,9 @@ editions can run side by side on one phone. The default is data:
 | 7681 | ThothTerm Ubuntu | `com.thothterm.ubuntu` | ubuntu-v0.2.0 |
 | 7682 | ThothTerm Trixie | `com.thothterm.debian` | trixie-v0.1.0 |
 | 7683 | ThothTerm Rolling | `com.thothterm.arch` | arch-v0.1.0 |
+| 7684 | ThothTerm BlackArch | `com.thothterm.blackarch` | not released (provisional; `docs/garden/blackarch/DESIGN.md`) |
 
-The next edition takes **7684**. A port, once assigned, never changes: users
+The next edition takes **7685**. A port, once assigned, never changes: users
 bookmark `http://<phone>:<port>/`.
 
 When the default is taken — by another edition's LAN Mode or anything else —

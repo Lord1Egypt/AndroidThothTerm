@@ -5,7 +5,7 @@
 #
 #   tests/garden-common/qa/install-qa-app.sh MODULE .qa.<name> [full|fdroid]
 #
-# MODULE is garden-arch, garden-debian or term-ubuntu. The app is
+# MODULE is garden-arch, garden-debian, garden-blackarch or term-ubuntu. The app is
 # <production id>.qa.<name> (applicationId.gradle): every variant, its PRoot
 # runtime and its native code are built for that id, so it runs in its own
 # /data/data/<QA id>/ and cannot reach a production app's storage.
@@ -28,6 +28,7 @@ FLAVOUR=${3:-full}
 case "$MODULE" in
     garden-arch) BASE=com.thothterm.arch ;;
     garden-debian) BASE=com.thothterm.debian ;;
+    garden-blackarch) BASE=com.thothterm.blackarch ;;
     term-ubuntu) BASE=com.thothterm.ubuntu ;;
     *) gate_die "unknown module $MODULE" ;;
 esac
