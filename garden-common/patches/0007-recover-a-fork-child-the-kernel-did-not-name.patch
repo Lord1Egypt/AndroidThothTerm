@@ -1,0 +1,221 @@
+Subject: recover a new child whose pid the kernel did not report, or stop
+
+PRoot learns the pid of a tracee's new child from PTRACE_GETEVENTMSG at its
+fork, vfork or clone event. When that call failed or gave 0, new_child()
+printed "ptrace(GETEVENTMSG)" and returned. A child whose SIGSTOP had
+already arrived was parked as "known, not initialized" (SIGSTOP_PENDING)
+and only new_child() restarts it, so it stayed stopped under ptrace for
+good; a vfork parent then waits for it uninterruptibly. That is the hang
+reported on a Redmi Note 10 Pro (crDroid, Android 16, kernel 4.14): the
+shell's child in state "t", the shell in "D", and
+"proot warning: ptrace(GETEVENTMSG): Invalid argument". (When the call
+succeeds but yields 0, the errno printed is stale.) Why that kernel
+withholds the pid was not established; this patch does not depend on it.
+
+The child is now found from what the kernel does report. While the parent
+is stopped at the event its new child exists, is traced by this PRoot
+(TracerPid, auto-attached by PTRACE_O_TRACE*) and has not been initialized
+by it. With CLONE_THREAD it is a thread of the parent's thread group, read
+from /proc/<tgid>/task because /proc lists no non-leader thread; otherwise
+it is a thread-group leader whose parent is the parent's thread group, or
+the parent's own parent with CLONE_PARENT. Zombies do not count.
+
+  exactly one candidate   it is the child: initialized and restarted as if
+                          the kernel had named it
+  none                    the child already exited; its exit is reported
+                          like any other and nothing waits for it
+  several, or /proc       the event cannot be matched to one child (threads
+  unreadable              of one process creating tasks at the same time):
+                          PRoot reports it and exits, which kills every
+                          tracee (atexit, PTRACE_O_EXITKILL). An ambiguous
+                          child is never resumed or guessed.
+
+PID order is never used: PIDs wrap and threads race. The tracee list is
+searched directly, as get_tracee() flushes a tracee's memory collector even
+on lookup. When the kernel reports the pid nothing changes.
+
+THOTHTERM_TEST_NO_EVENTMSG, defined only by the host check
+(tests/garden-common/proot/fork-recovery-check.sh), discards the reported
+pid so the recovery runs on a kernel that does report it.
+
+The approach follows the /proc relationship recovery in scarif-labs/horus
+native/patches/proot-android.patch (MIT); this implementation is separate,
+and differs in counting zombies out, letting a vanished child go, and
+reporting why it stops.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0006
+
+--- a/src/tracee/tracee.c
++++ b/src/tracee/tracee.c
+@@ -34,6 +34,9 @@
+ #include <inttypes.h>   /* PRI*, */
+ #include <fcntl.h>      /* open(2), O_RDWR, */
+ #include <unistd.h>     /* getsid(2), dup2(2), close(2), */
++#include <stdio.h>      /* snprintf(3), fopen(3), */
++#include <dirent.h>     /* opendir(3), readdir(3), */
++#include <limits.h>     /* INT_MAX, */
+ 
+ #include "tracee/tracee.h"
+ #include "tracee/reg.h"
+@@ -382,6 +385,123 @@
+ }
+ 
+ /**
++ * Read the host Tgid, PPid, TracerPid and State of the task @tid from
++ * /proc/@tid/status, which also exists for a thread that /proc does not
++ * list.  This function returns false if the task is gone or its status
++ * cannot be read.
++ */
++static bool read_task_status(pid_t tid, pid_t *tgid, pid_t *ppid, pid_t *tracer, char *state)
++{
++	char path[64];
++	char line[256];
++	FILE *file;
++
++	*tgid = *ppid = *tracer = -1;
++	*state = '?';
++	(void) snprintf(path, sizeof(path), "/proc/%d/status", tid);
++	file = fopen(path, "re");
++	if (file == NULL)
++		return false;
++	while (fgets(line, sizeof(line), file) != NULL) {
++		if (sscanf(line, "Tgid: %d", tgid) == 1
++		    || sscanf(line, "PPid: %d", ppid) == 1
++		    || sscanf(line, "TracerPid: %d", tracer) == 1
++		    || sscanf(line, "State: %c", state) == 1)
++			continue;
++	}
++	(void) fclose(file);
++	return *tgid > 0 && *ppid >= 0 && *tracer >= 0 && *state != '?';
++}
++
++/**
++ * Find the child of @parent's fork/vfork/clone event when the kernel did
++ * not tell its pid (PTRACE_GETEVENTMSG failed or gave 0).  Only a task this
++ * PRoot traces and has not initialized yet -- unknown, or the placeholder
++ * of a child whose SIGSTOP came before its parent's event -- can be it:
++ *
++ *   - CLONE_THREAD: a thread of @parent's thread group, from
++ *     /proc/<tgid>/task (/proc itself lists no non-leader thread);
++ *
++ *   - otherwise: a thread-group leader whose parent is @parent's thread
++ *     group, or @parent's own parent with CLONE_PARENT.
++ *
++ * While @parent is stopped at the event its child exists and matches, so
++ * exactly one live candidate is that child.  This function returns its
++ * pid; 0 if there is no live candidate (the child already died: its exit
++ * is reported as usual and nothing waits for it); -EAGAIN if there are
++ * several (threads of one process creating tasks at the same time: the
++ * relationship cannot tell them apart); -errno if /proc cannot be read.
++ * PID order is never used: PIDs wrap and threads race.
++ */
++static pid_t find_new_child(const Tracee *parent, word_t clone_flags)
++{
++	pid_t parent_tgid, parent_ppid, parent_tracer;
++	bool thread = (clone_flags & CLONE_THREAD) != 0;
++	pid_t found = 0;
++	char parent_state;
++	struct dirent *entry;
++	char path[64];
++	DIR *dir;
++
++	if (!read_task_status(parent->pid, &parent_tgid, &parent_ppid, &parent_tracer, &parent_state))
++		return -EIO;
++	if (parent_tracer != getpid())
++		return -EPERM;
++
++	if (thread)
++		(void) snprintf(path, sizeof(path), "/proc/%d/task", parent_tgid);
++	else
++		(void) snprintf(path, sizeof(path), "/proc");
++	dir = opendir(path);
++	if (dir == NULL)
++		return -errno;
++
++	while ((entry = readdir(dir)) != NULL) {
++		pid_t tgid, ppid, tracer;
++		const Tracee *known;
++		long candidate;
++		char state;
++		char *end;
++
++		errno = 0;
++		candidate = strtol(entry->d_name, &end, 10);
++		if (errno != 0 || end == entry->d_name || *end != '\0'
++		    || candidate <= 0 || candidate > INT_MAX || candidate == parent->pid)
++			continue;
++
++		/* A task PRoot already set up is not new.  get_tracee() is
++		 * not used: even a lookup flushes a tracee's memory
++		 * collector.  */
++		LIST_FOREACH(known, &tracees, link)
++			if (known->pid == candidate)
++				break;
++		if (known != NULL && (known->exe != NULL || known->parent != NULL
++				      || known->terminated || known->sigstop != SIGSTOP_PENDING))
++			continue;
++
++		if (!read_task_status((pid_t) candidate, &tgid, &ppid, &tracer, &state)
++		    || tracer != getpid() || state == 'Z' || state == 'X')
++			continue;
++		if (thread) {
++			if (tgid != parent_tgid)
++				continue;
++		}
++		else if (tgid != candidate
++			 || ppid != ((clone_flags & CLONE_PARENT) != 0 ? parent_ppid : parent_tgid))
++			continue;
++
++		if (found != 0) {
++			found = -EAGAIN;
++			break;
++		}
++		found = (pid_t) candidate;
++	}
++	(void) closedir(dir);
++
++	return found;
++}
++
++/**
+  * Make new @parent's child inherit from it.  Depending on
+  * @clone_flags, some information are copied or shared.  This function
+  * returns -errno if an error occured, otherwise 0.
+@@ -412,10 +532,35 @@
+                 clone_flags = peek_word(parent, peek_reg(parent, CURRENT, SYSARG_1));
+ 
+ 	/* Get the pid of the parent's new child.  */
++	pid = 0;
+ 	status = ptrace(PTRACE_GETEVENTMSG, parent->pid, NULL, &pid);
++#ifdef THOTHTERM_TEST_NO_EVENTMSG
++	/* Host tests only: behave like a kernel that withholds the pid.  */
++	pid = 0;
++#endif
+ 	if (status < 0 || pid == 0) {
+-		note(parent, WARNING, SYSTEM, "ptrace(GETEVENTMSG)");
+-		return status;
++		int event_errno = status < 0 ? errno : 0;
++		pid_t recovered = find_new_child(parent, clone_flags);
++
++		if (recovered == 0) {
++			VERBOSE(parent, 1, "ptrace(GETEVENTMSG) gave no child (errno %d) and no"
++				" live untracked child exists; it already exited", event_errno);
++			return 0;
++		}
++		if (recovered < 0) {
++			/* Never resume a child that cannot be identified: stop the
++			 * whole session instead (atexit and PTRACE_O_EXITKILL kill
++			 * every tracee).  The event loop ignores new_child's result,
++			 * so returning would leave that child stopped forever, and
++			 * its vfork parent with it.  */
++			note(parent, ERROR, USER, "ptrace(GETEVENTMSG) gave no child (errno %d) and"
++			     " it cannot be identified uniquely (%s); stopping",
++			     event_errno, strerror(-recovered));
++			exit(EXIT_FAILURE);
++		}
++		pid = (unsigned long) recovered;
++		VERBOSE(parent, 1, "ptrace(GETEVENTMSG) gave no child (errno %d); the only"
++			" untracked child is pid %lu", event_errno, pid);
+ 	}
+ 
+ 	child = get_tracee(parent, (pid_t) pid, true);

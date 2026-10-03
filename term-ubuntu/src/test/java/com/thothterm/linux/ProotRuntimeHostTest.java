@@ -2,6 +2,7 @@
 package com.thothterm.linux;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Assume;
@@ -29,6 +30,8 @@ public class ProotRuntimeHostTest {
             "term-ubuntu/patches/0004-hang-up-the-session-on-command-exit-and-never-outlive-proot.patch";
     private static final String CWD_PATCH =
             "term-ubuntu/patches/0005-keep-the-kernel-working-directory-in-step-with-the-guest.patch";
+    private static final String CHILD_PATCH =
+            "term-ubuntu/patches/0007-recover-a-fork-child-the-kernel-did-not-name.patch";
 
     private static File repoRoot() {
         File here = new File("").getAbsoluteFile();
@@ -58,6 +61,16 @@ public class ProotRuntimeHostTest {
                 cwd.contains("+		if ((int) syscall_result == 0) {"));
         assertTrue("the first tracee must start behind --cwd",
                 cwd.contains("+			    || chdir(host_cwd) < 0)"));
+        // garden-common's ProotRuntimeHostTest runs the 0007 host check; the
+        // patch sets are byte-identical (ProotSourceBuildTest).
+        String child = new String(Files.readAllBytes(new File(repoRoot(), CHILD_PATCH).toPath()),
+                StandardCharsets.UTF_8);
+        assertTrue("a child that cannot be identified stops the session, never resumes",
+                child.contains("+			exit(EXIT_FAILURE);"));
+        String build = new String(Files.readAllBytes(
+                new File(repoRoot(), "term-ubuntu/tools/build-proot.sh").toPath()), StandardCharsets.UTF_8);
+        assertFalse("the test-only pid override must never be built into the app",
+                build.contains("THOTHTERM_TEST_NO_EVENTMSG"));
     }
 
     /**
