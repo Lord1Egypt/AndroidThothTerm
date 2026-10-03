@@ -5,15 +5,30 @@
 # installed app's PRoot and the app's PRoot argv, under files/ga -- never the
 # app's real environment in files/linux.
 #
-#   gate.sh ROOTFS_TARBALL [STALE_TARBALL]
+#   gate.sh QA_PACKAGE ROOTFS_TARBALL [STALE_TARBALL]
 #
+# QA_PACKAGE: an installed, isolated QA build, com.thothterm.arch.qa.<name>
+# (tests/garden-common/qa/install-qa-app.sh garden-arch .qa.<name>). The gate
+# writes into that app's private files/ga, so a production or any other
+# protected package is refused before adb is used.
 # ROOTFS_TARBALL: the candidate/final rootfs. STALE_TARBALL (optional): an old
 # but valid Arch Linux ARM userland for the update-story test (stale.sh).
-# Needs: adb connected, and a debuggable com.thothterm.arch installed.
-# Exits 1 on any FAIL.
+# Exits 1 on any FAIL, 2 on a refused package.
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
-PKG=com.thothterm.arch
+. "$HERE/../../garden-common/extractor/apk-identity.sh"
+[ $# -ge 2 ] || { echo "usage: gate.sh QA_PACKAGE ROOTFS_TARBALL [STALE_TARBALL]"; exit 2; }
+PKG=$1
+shift
+case "$PKG" in
+    com.thothterm.arch.qa.*) ;;
+    *) echo "REFUSED: $PKG is not a com.thothterm.arch QA build"; exit 2 ;;
+esac
+if ! gate_is_qa_id "$PKG" || gate_is_protected "$PKG"; then
+    echo "REFUSED: $PKG is not an isolated QA package"; exit 2
+fi
+adb shell pm path "$PKG" | tr -d '\r' | grep -q '^package:' \
+    || { echo "REFUSED: $PKG is not installed"; exit 2; }
 S=/data/local/tmp/ga
 T=/data/user/0/$PKG/files/ga
 TMP="${TMPDIR:-/tmp}"

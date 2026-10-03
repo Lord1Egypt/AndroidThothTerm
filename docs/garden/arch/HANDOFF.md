@@ -110,7 +110,7 @@ usage limit). Nothing is tagged or released yet. Read this first, then
 
 ## Remaining work, in order
 
-1. Re-run `tests/garden-arch/device/gate.sh <candidate> <stale>`; fix until
+1. Re-run `tests/garden-arch/device/gate.sh com.thothterm.arch.qa.<name> <candidate> <stale>`; fix until
    0 FAIL. Write `docs/garden/arch/PACKAGE_MANAGER.md` from the results.
 2. Corresponding source: finish `collect-sources.py` (trial was running, 0
    unresolved so far); publish per-package `*.source.tar.gz` + `SOURCES.tsv`
