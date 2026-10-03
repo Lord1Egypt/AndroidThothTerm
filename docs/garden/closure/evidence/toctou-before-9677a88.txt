@@ -1,0 +1,5 @@
+# Codex round-3 chmod TOCTOU PoC against unmodified 9677a88 JvmFileOps (JDK 17, uid 1000)
+before: outside=600
+chmod returned normally
+after: outside=640 calls=2
+exit=1

@@ -108,19 +108,32 @@ public class JvmFileOps implements FileOps {
     }
 
     /**
-     * The same two paths as {@link AndroidFileOps#chmodNoFollow}. First
-     * {@code fchmod} on an {@code O_NOFOLLOW} descriptor: OpenJDK's
-     * {@code "unix:mode"} with {@code NOFOLLOW_LINKS} is exactly
-     * {@code open(O_RDONLY|O_NOFOLLOW)} + {@code fchmod}
-     * ({@code UnixFileAttributeViews.Posix.setMode},
-     * {@code UnixPath.openForAttributeAccess}); a symlink fails with ELOOP.
-     * That open needs read permission, so a file or directory its owner
-     * cannot read (0200, 0300, 0110) fails with EACCES although chmod(2)
-     * itself needs none. Then, and only for EACCES, {@code chmod(2)} on the
-     * path, after {@code lstat} has just said it is that same regular file or
-     * directory and not a symlink; the tree has a single writer, this thread.
-     * The "unix:mode" attribute carries the sticky bit; PosixFilePermission
-     * cannot.
+     * Never follows a symlink, whatever happens to the path meanwhile; every
+     * change is made through a descriptor bound to one object.
+     *
+     * <ol>
+     *   <li>{@code lstat} only picks the mask and refuses the obvious cases;
+     *       it is not what keeps the operation safe.</li>
+     *   <li>{@code "unix:mode"} with {@code NOFOLLOW_LINKS} is, in OpenJDK,
+     *       {@code open(O_RDONLY|O_NOFOLLOW)} + {@code fchmod} on that
+     *       descriptor ({@code UnixFileAttributeViews.Posix.setMode},
+     *       {@code UnixPath.openForAttributeAccess}): a symlink fails with
+     *       ELOOP, and the mode lands on the inode that was opened.</li>
+     *   <li>That open needs read permission, so an owner-unreadable file or
+     *       directory (0200, 0300, 0110, 0000) fails with EACCES although
+     *       chmod(2) needs none. The JVM cannot open {@code O_PATH}, so
+     *       {@link #O_PATH_CHMOD} does it in a helper process, exactly as
+     *       {@link AndroidFileOps#chmodNoFollow} does on the device:
+     *       {@code open(O_PATH|O_NOFOLLOW)}, {@code fstat} that descriptor,
+     *       chmod through {@code /proc/self/fd/N}, check the result. The type
+     *       that decides the mask is the descriptor's, not the earlier
+     *       {@code lstat}'s.</li>
+     * </ol>
+     *
+     * <p>A path swapped for a symlink between the steps is refused (ELOOP or
+     * the helper's type check); its target never changes.
+     * {@code FileOpsContract.chmodSwapRacesNeverReachTheTarget} holds every
+     * implementation to that.</p>
      */
     @Override
     public void chmodNoFollow(File file, int mode) throws IOException {
@@ -129,16 +142,68 @@ public class JvmFileOps implements FileOps {
             throw new IOException("Refusing to chmod " + type + ": " + file);
         }
         int masked = mode & (type == Type.DIRECTORY ? DIRECTORY_MODE_MASK : FILE_MODE_MASK);
-        Path path = file.toPath();
         try {
-            Files.setAttribute(path, "unix:mode", masked, LinkOption.NOFOLLOW_LINKS);
+            Files.setAttribute(file.toPath(), "unix:mode", masked, LinkOption.NOFOLLOW_LINKS);
         } catch (AccessDeniedException unreadable) {
-            if (type(file) != type) {
-                throw new IOException("Refusing to chmod: " + file + " changed while being changed");
-            }
-            // chmod(2): follows a final symlink, which lstat just ruled out.
-            Files.setAttribute(path, "unix:mode", masked);
+            beforeDescriptorChmod(file);
+            chmodThroughPathDescriptor(file, mode);
         }
+    }
+
+    /** Test seam: runs between the failed read-only open and the O_PATH chmod. */
+    protected void beforeDescriptorChmod(File file) throws IOException {
+    }
+
+    /**
+     * {@code argv[1]} = the path as hex UTF-8 bytes (no locale, no shell),
+     * {@code argv[2]} = the requested mode in octal. Exit 0 = done, 3 = not a
+     * regular file or directory (a symlink in particular), 4 = the mode did
+     * not take effect.
+     */
+    static final String O_PATH_CHMOD = String.join("\n",
+            "import os, stat, sys",
+            "path = bytes.fromhex(sys.argv[1]); mode = int(sys.argv[2], 8)",
+            "fd = os.open(path, os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC)",
+            "try:",
+            "    kind = os.fstat(fd).st_mode",
+            "    if stat.S_ISDIR(kind): mode &= 0o1777",
+            "    elif stat.S_ISREG(kind): mode &= 0o777",
+            "    else: sys.exit(3)",
+            "    os.chmod('/proc/self/fd/%d' % fd, mode)",
+            "    if stat.S_IMODE(os.fstat(fd).st_mode) != mode: sys.exit(4)",
+            "finally:",
+            "    os.close(fd)",
+            "");
+
+    private static void chmodThroughPathDescriptor(File file, int mode) throws IOException {
+        byte[] name = file.getAbsolutePath().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        StringBuilder hex = new StringBuilder(name.length * 2);
+        for (byte b : name) hex.append(String.format("%02x", b & 0xFF));
+        Process process = new ProcessBuilder("python3", "-c", O_PATH_CHMOD, hex.toString(),
+                Integer.toOctalString(mode)).redirectErrorStream(true).start();
+        process.getOutputStream().close();
+        String output;
+        try (InputStream in = process.getInputStream()) {
+            output = new String(readAll(in), java.nio.charset.StandardCharsets.UTF_8).trim();
+        }
+        int code;
+        try {
+            code = process.waitFor();
+        } catch (InterruptedException e) {
+            process.destroyForcibly();
+            Thread.currentThread().interrupt();
+            throw new IOException("chmod interrupted: " + file);
+        }
+        if (code == 3) throw new IOException("Refusing to chmod a non-regular file: " + file);
+        if (code != 0) throw new IOException("chmod failed (" + code + "): " + file + " " + output);
+    }
+
+    private static byte[] readAll(InputStream in) throws IOException {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        byte[] buffer = new byte[4096];
+        int n;
+        while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
+        return out.toByteArray();
     }
 
     @Override

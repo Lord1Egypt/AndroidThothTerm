@@ -1,0 +1,12 @@
+# The same PoC (unchanged source) against the closure JvmFileOps (JDK 17, uid 1000)
+before: outside=600
+chmod returned normally
+after: outside=600 calls=1
+exit=0
+# NOTE: calls=1 means the PoC's swap (on the 2nd type() call) never ran: the
+# closure code observes the type once, so this unchanged PoC proves nothing by
+# itself. The proof is JvmFileOpsRaceTest.swapAfterAnyTypeObservationNeverReachesTheTarget
+# (swap after the 1st, 2nd, ... observation, both paths) plus the mutation run:
+# with the 9677a88 fallback restored that test fails with
+#   "outside sentinel, swap after observation 2 expected:<384> but was:<416>"
+# (0600 -> 0640, Codex's exact result), and passes with the fix.

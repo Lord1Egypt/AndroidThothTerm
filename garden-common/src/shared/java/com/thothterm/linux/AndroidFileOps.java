@@ -42,6 +42,11 @@ public final class AndroidFileOps implements FileOps {
     /** O_CLOEXEC exists in OsConstants from API 27; the app's minimum is 26. */
     private static final int CLOEXEC =
             Build.VERSION.SDK_INT >= 27 ? OsConstants.O_CLOEXEC : 0;
+    /**
+     * Linux O_PATH (2.6.39+). OsConstants has no public O_PATH; the value is
+     * the generic one, which arm64, arm and x86 all use.
+     */
+    private static final int O_PATH = 010000000;
 
     @Override
     public Type type(File file) throws IOException {
@@ -203,35 +208,37 @@ public final class AndroidFileOps implements FileOps {
         }
     }
 
+    /**
+     * One object, one descriptor, no second lookup. {@code O_PATH|O_NOFOLLOW}
+     * binds the object at the path itself -- a symlink stays the symlink --
+     * and, unlike {@code O_RDONLY}, needs no read permission, so 0200, 0110,
+     * 0000 and 0300 behave like any other mode, and a FIFO is never opened
+     * for I/O. The type check, the {@code fchmod} and the check of its result
+     * are all on that descriptor: swapping the path for a symlink (or
+     * anything else) after the open cannot redirect the change. Bionic
+     * applies {@code fchmod} to an {@code O_PATH} descriptor through
+     * {@code /proc/self/fd/N}, which names the descriptor's own inode; if it
+     * could not, the call fails and nothing changes.
+     */
     @Override
     public void chmodNoFollow(File file, int mode) throws IOException {
-        String path = file.getAbsolutePath();
         FileDescriptor fd;
         try {
-            // O_NOFOLLOW: a symlink fails with ELOOP instead of being followed.
-            fd = Os.open(path, OsConstants.O_RDONLY | OsConstants.O_NOFOLLOW | CLOEXEC, 0);
+            fd = Os.open(file.getAbsolutePath(), O_PATH | OsConstants.O_NOFOLLOW | CLOEXEC, 0);
         } catch (ErrnoException e) {
-            if (e.errno != OsConstants.EACCES) throw io("chmod", file, e);
-            // An owner-unreadable file (mode 0200, 0000) cannot be opened
-            // read-only. Without a race the path is still what lstat says; the
-            // installation tree has a single writer, this thread.
-            Type type = type(file);
-            if (type != Type.REGULAR && type != Type.DIRECTORY) {
-                throw new IOException("Refusing to chmod " + type + ": " + file);
-            }
-            try {
-                Os.chmod(path, mode & (type == Type.DIRECTORY ? DIRECTORY_MODE_MASK : FILE_MODE_MASK));
-            } catch (ErrnoException chmodError) {
-                throw io("chmod", file, chmodError);
-            }
-            return;
+            throw io("chmod", file, e);
         }
         try {
             int kind = Os.fstat(fd).st_mode;
             if (!OsConstants.S_ISREG(kind) && !OsConstants.S_ISDIR(kind)) {
-                throw new IOException("Refusing to chmod a special file: " + file);
+                throw new IOException("Refusing to chmod "
+                        + (OsConstants.S_ISLNK(kind) ? "a symlink" : "a special file") + ": " + file);
             }
-            Os.fchmod(fd, mode & (OsConstants.S_ISDIR(kind) ? DIRECTORY_MODE_MASK : FILE_MODE_MASK));
+            int masked = mode & (OsConstants.S_ISDIR(kind) ? DIRECTORY_MODE_MASK : FILE_MODE_MASK);
+            Os.fchmod(fd, masked);
+            if ((Os.fstat(fd).st_mode & 07777) != masked) {
+                throw new IOException("chmod did not take effect: " + file);
+            }
         } catch (ErrnoException e) {
             throw io("fchmod", file, e);
         } finally {

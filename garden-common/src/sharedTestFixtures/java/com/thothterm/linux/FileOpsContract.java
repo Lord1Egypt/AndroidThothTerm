@@ -54,6 +54,8 @@ public final class FileOpsContract {
         c.put("chmodWorksOnUnreadableDirectoryKeepingSticky",
                 FileOpsContract::chmodWorksOnUnreadableDirectoryKeepingSticky);
         c.put("chmodRefusesSymlinkToDirectory", FileOpsContract::chmodRefusesSymlinkToDirectory);
+        c.put("chmodRefusesFifoWithoutOpeningIt", FileOpsContract::chmodRefusesFifoWithoutOpeningIt);
+        c.put("chmodSwapRacesNeverReachTheTarget", FileOpsContract::chmodSwapRacesNeverReachTheTarget);
         c.put("mkdirRefusesDanglingSymlink", FileOpsContract::mkdirRefusesDanglingSymlink);
         c.put("unlinkRemovesLinkNotTarget", FileOpsContract::unlinkRemovesLinkNotTarget);
         c.put("unlinkOfDanglingSymlinkRemovesTheLink", FileOpsContract::unlinkOfDanglingSymlinkRemovesTheLink);
@@ -198,6 +200,103 @@ public final class FileOpsContract {
             // refused
         }
         eq(0700, ExtractorSecurityCases.Fixture.mode(d.toFile()), "target directory mode unchanged");
+    }
+
+    static void chmodRefusesFifoWithoutOpeningIt(FileOps ops, File dir) throws Exception {
+        File fifo = new File(dir, "fifo");
+        Process mkfifo = new ProcessBuilder("mkfifo", "-m", "600", fifo.getAbsolutePath()).start();
+        eq(0, mkfifo.waitFor(), "mkfifo");
+        try {
+            ops.chmodNoFollow(fifo, 0666);
+            throw new AssertionError("chmod accepted a FIFO");
+        } catch (IOException expected) {
+            // a special file is refused; opening it for I/O would block
+        }
+        eq(0600, ops.permissions(fifo), "FIFO mode unchanged");
+    }
+
+    /**
+     * Codex QA round 3: a path swapped for a symlink while chmod runs must
+     * never change the symlink's target. A second thread keeps replacing the
+     * path -- an owner-unreadable regular file (so the no-read-permission
+     * path runs), a symlink to an outside sentinel, a symlink to an outside
+     * directory, nothing -- while this thread chmods it. After every attempt
+     * both outside objects keep their modes; any attempt may fail, none may
+     * follow.
+     */
+    static void chmodSwapRacesNeverReachTheTarget(FileOps ops, File dir) throws Exception {
+        final Path root = dir.toPath();
+        Path outsideDir = Files.createDirectory(root.resolve("outside"));
+        final Path sentinel = write(outsideDir.toFile(), "sentinel", "keep");
+        Files.setPosixFilePermissions(sentinel, ExtractorSecurityCases.JvmPermissions.of(0600));
+        final Path victimDir = Files.createDirectory(outsideDir.resolve("victim-dir"));
+        Files.setPosixFilePermissions(victimDir, ExtractorSecurityCases.JvmPermissions.of(0700));
+        Path tree = Files.createDirectory(root.resolve("tree"));
+        final Path target = tree.resolve("p");
+        final Path[] holds = {
+                write(tree.toFile(), "hold-file", "x"),
+                tree.resolve("hold-link"),
+                tree.resolve("hold-dirlink"),
+        };
+        Files.setPosixFilePermissions(holds[0], ExtractorSecurityCases.JvmPermissions.of(0200));
+        Files.createSymbolicLink(holds[1], sentinel);
+        Files.createSymbolicLink(holds[2], victimDir);
+
+        final java.util.concurrent.atomic.AtomicBoolean stop =
+                new java.util.concurrent.atomic.AtomicBoolean();
+        final java.util.concurrent.atomic.AtomicReference<Throwable> swapError =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        Thread swapper = new Thread(() -> {
+            java.util.Random random = new java.util.Random();
+            int i = 0;
+            try {
+                while (!stop.get()) {
+                    Path in = holds[i % holds.length];
+                    Files.move(in, target, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                    // Mostly swap at once, so an operation straddles changes;
+                    // half the time the regular file stays up to 80 ms, so whole
+                    // operations also run, and finish, on it.
+                    if (in == holds[0] && random.nextBoolean()) {
+                        java.util.concurrent.locks.LockSupport.parkNanos(
+                                random.nextInt(80_000_000));
+                    } else {
+                        Thread.yield();
+                    }
+                    Files.move(target, in, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                    i++;
+                }
+            } catch (Throwable t) {
+                swapError.set(t);
+            }
+        }, "chmod-swapper");
+        swapper.start();
+        int applied = 0;
+        try {
+            // At least 200 attempts and 3 that reached the regular file
+            // through the no-read-permission path; at most 15 s.
+            long deadline = System.nanoTime() + 15_000_000_000L;
+            for (int attempt = 0; (attempt < 200 || applied < 3) && System.nanoTime() < deadline;
+                    attempt++) {
+                try {
+                    ops.chmodNoFollow(target.toFile(), attempt % 2 == 0 ? 0000 : 0200);
+                    applied++;
+                } catch (IOException raced) {
+                    // refused or the path was briefly absent; never followed
+                }
+                eq(0600, ExtractorSecurityCases.Fixture.mode(sentinel.toFile()),
+                        "outside sentinel mode after attempt " + attempt);
+                eq(0700, ExtractorSecurityCases.Fixture.mode(victimDir.toFile()),
+                        "outside directory mode after attempt " + attempt);
+            }
+        } finally {
+            stop.set(true);
+            swapper.join();
+        }
+        if (swapError.get() != null) throw new AssertionError("swapper failed", swapError.get());
+        eq("keep", read(outsideDir.toFile(), "sentinel"), "outside sentinel content");
+        // The regular file did take modes in between: the race really ran
+        // through the no-read-permission path, not only through refusals.
+        if (applied < 3) throw new AssertionError("only " + applied + " chmods reached the regular file");
     }
 
     static void mkdirRefusesDanglingSymlink(FileOps ops, File dir) throws Exception {
