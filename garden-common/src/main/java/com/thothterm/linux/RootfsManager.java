@@ -918,13 +918,7 @@ public final class RootfsManager {
         managed("sudoers entry", () -> writeGuest(root, thothSudoers,
                 GuestConfig.sudoersEntry(), 0440));
 
-        // sudo/visudo require every sudoers.d file to be mode 0440; the package
-        // README is not a conffile and can arrive with a laxer mode, which makes
-        // `visudo -c` report "bad permissions" even though the syntax is valid.
-        File sudoersReadme = new File(sudoersDir, "README");
-        if (fileOps.isRegularFile(sudoersReadme)) {
-            fileOps.setMode(sudoersReadme, 0440);
-        }
+        sudoersReadmeMode(root);
 
         // The real sudo is the only elevation path; drop the v2 passwordless
         // su customization so su returns to its stock policy.
@@ -932,6 +926,21 @@ public final class RootfsManager {
         if (guestIsFile(root, pamSu)) {
             managed("/etc/pam.d/su", () -> writeGuest(root, pamSu,
                     GuestConfig.removePasswordlessSu(ManagedFiles.read(fileOps, root, pamSu))));
+        }
+    }
+
+    /**
+     * visudo -c requires the default sudoers files to be mode 0440. dpkg runs
+     * under PRoot's fake root, which keeps owner write on every file so the
+     * fake root can still change it, so sudo-common's README arrives 0640
+     * and a chmod inside the guest gets the same treatment. The app sets the
+     * real mode from outside, through one no-follow descriptor: after every
+     * session start and right after sudo is installed, before it is verified.
+     */
+    private void sudoersReadmeMode(File root) throws IOException {
+        File sudoersReadme = new File(guestDir(root, "/etc/sudoers.d"), "README");
+        if (fileOps.isRegularFile(sudoersReadme)) {
+            fileOps.setMode(sudoersReadme, 0440);
         }
     }
 
@@ -1090,6 +1099,7 @@ public final class RootfsManager {
                 // re-implementing that check.
                 runProvisioning(root, isPacman() ? sudoPacmanInstallScript() : sudoAptInstallScript());
                 boolean setuid = forceSudoSetuid(root);
+                sudoersReadmeMode(root);
                 String report = runProvisioning(root, sudoVerifyScript());
                 ThothLog.i(LogCategory.ROOTFS, "sudo provisioning complete setuid="
                         + setuid + " report=" + report.replace('\n', ' ').trim());
@@ -1112,6 +1122,7 @@ public final class RootfsManager {
             try {
                 runProvisioning(root, dpkgConfigureScript());
                 boolean setuid = forceSudoSetuid(root);
+                sudoersReadmeMode(root);
                 String report = runProvisioning(root, sudoVerifyScript());
                 ThothLog.i(LogCategory.ROOTFS, "sudo configuration completed setuid="
                         + setuid + " report=" + report.replace('\n', ' ').trim());
@@ -1151,13 +1162,7 @@ public final class RootfsManager {
                 + "cd /\n"
                 + "apt-get update\n"
                 + "apt-get install -y --no-install-recommends sudo\n"
-                + "dpkg --configure -a\n"
-                // sudo refuses to read a drop-in that is not 0440, and under
-                // PRoot's fake root dpkg does not reproduce that mode on the
-                // README that sudo-common ships. visudo -c then reports the
-                // whole directory as bad even though our own file is fine.
-                + "[ -f /etc/sudoers.d/README ] && chmod 0440 /etc/sudoers.d/README\n"
-                + "exit 0\n";
+                + "dpkg --configure -a\n";
     }
 
     /**
