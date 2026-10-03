@@ -1,0 +1,66 @@
+Subject: keep the guest owner on link2symlink hard links
+
+A fake hard link made by --link2symlink is a symlink to a hidden ".l2s.NAME"
+file in the same directory. When the guest stats it, the link2symlink
+extension answers with the backing file's stat -- it has to, for the type,
+the link count and the inode -- and, outside the USERLAND build, wrote that
+whole stat, owner included, over the buffer the kernel filled in. The
+backing file is owned by the app like every other file of the guest, and
+fake_id0 maps "owned by the app's uid" to the guest's uid (0 for --root-id)
+on stat results. When fake_id0's handler ran before this one, the mapped
+owner was overwritten with the raw host owner: the guest then saw the app's
+uid (10727 on the test phone) on fake hard links through lstat, stat, fstat
+and fstatat, while statx and ordinary files showed 0.
+
+Observed by pacman -Qkk (libalpm compares the mtree's uid/gid with lstat):
+every file that a package installs as a hard link (1093 of tzdata's 1887,
+46 of coreutils', 14 of pacman's) reported "UID mismatch" and "GID mismatch";
+bsdtar and find(1) show the same numbers. Contents and modes were never
+affected.
+
+The owner is now taken from the buffer as it stands -- mapped already, or
+raw and mapped afterwards by fake_id0 -- so the result is the same in either
+order. Everything else the extension fixes (type, mode bits, link count,
+inode, size) is unchanged, and the USERLAND build keeps its own handling.
+tests/garden-common/proot/owner-check.sh makes fake hard links, symlinks and
+ordinary files and reads their owner through every stat flavour and find(1),
+as root and as a fake non-root id.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0007
+
+diff -ruN a/src/extension/link2symlink/link2symlink.c b/src/extension/link2symlink/link2symlink.c
+--- a/src/extension/link2symlink/link2symlink.c
++++ b/src/extension/link2symlink/link2symlink.c
+@@ -23,6 +23,7 @@
+ #include "execve/execve.h"
+ #include "path/f2fs-bug.h"
+ #include "arch.h"
++#include "tracee/abi.h"
+ #include "attribute.h"
+ 
+ #ifdef USERLAND
+@@ -975,6 +976,24 @@
+ 		else
+ 			sysarg_stat = SYSARG_2;
+ 
++		#ifndef USERLAND
++			/* The owner is whatever the tracee's stat buffer says now, not the
++			 * backing file's host owner: fake_id0 (which runs before or after
++			 * this handler, depending on how the syscall was reached) has
++			 * mapped, or will map, the app's uid and gid to the guest's, and
++			 * the file standing in for the hard link is owned by the app like
++			 * every other file. Writing the backing file's host owner over
++			 * the mapped one made a link look owned by the app's uid.  */
++			{
++				word_t buffer = peek_reg(tracee, ORIGINAL, sysarg_stat);
++				uint32_t current_uid = peek_uint32(tracee, buffer + offsetof_stat_uid(tracee));
++				if (errno == 0)
++					finalStat.st_uid = current_uid;
++				uint32_t current_gid = peek_uint32(tracee, buffer + offsetof_stat_gid(tracee));
++				if (errno == 0)
++					finalStat.st_gid = current_gid;
++			}
++		#endif
+ 		#ifdef USERLAND
+ 			/* Overwrite the stat struct with the correct number of "links". */
+ 			read_data(tracee, &statl, peek_reg(tracee, ORIGINAL, sysarg_stat), sizeof(statl));

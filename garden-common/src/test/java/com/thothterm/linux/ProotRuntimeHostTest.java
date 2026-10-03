@@ -30,6 +30,8 @@ public class ProotRuntimeHostTest {
             "garden-common/patches/0004-hang-up-the-session-on-command-exit-and-never-outlive-proot.patch";
     private static final String CWD_PATCH =
             "garden-common/patches/0005-keep-the-kernel-working-directory-in-step-with-the-guest.patch";
+    private static final String OWNER_PATCH =
+            "garden-common/patches/0008-keep-the-guest-owner-on-link2symlink-hard-links.patch";
     private static final String CHILD_PATCH =
             "garden-common/patches/0007-recover-a-fork-child-the-kernel-did-not-name.patch";
 
@@ -67,6 +69,10 @@ public class ProotRuntimeHostTest {
                 child.contains("+			exit(EXIT_FAILURE);"));
         assertTrue("only an unknown or not yet initialized traced task is a candidate",
                 child.contains("+		    || tracer != getpid() || state == 'Z' || state == 'X')"));
+        String owner = new String(Files.readAllBytes(new File(repoRoot(), OWNER_PATCH).toPath()),
+                StandardCharsets.UTF_8);
+        assertTrue("the owner is taken from the buffer as it stands",
+                owner.contains("finalStat.st_uid = current_uid;") && owner.contains("finalStat.st_gid = current_gid;"));
         for (String script : new String[]{"garden-common/tools/build-proot.sh",
                 "term-ubuntu/tools/build-proot.sh"}) {
             String text = new String(Files.readAllBytes(new File(repoRoot(), script).toPath()),
@@ -98,6 +104,33 @@ public class ProotRuntimeHostTest {
         assertEquals(output, 0, status);
         assertTrue(output, output.contains("PASS stuck: a child is left stopped under ptrace (t)"));
         assertTrue(output, output.contains("PASS forced vfork: every child recovered, no hang"));
+        assertFalse(output, output.contains("FAIL"));
+    }
+
+    /**
+     * Patch 0008: a link2symlink fake hard link, a symlink, an ordinary file
+     * and the hidden backing files all show the guest's owner through every
+     * stat flavour and find(1), as root and as a fake non-root id; without
+     * it 45 of 106 observations showed the app's uid (pacman -Qkk "UID
+     * mismatch"). tests/garden-common/proot/owner-check.sh.
+     */
+    @Test
+    public void fakeHardLinksShowTheGuestOwner() throws Exception {
+        Assume.assumeTrue("needs a Linux host", new File("/proc/self/exe").exists());
+        Assume.assumeFalse("needs an ordinary user", "root".equals(System.getProperty("user.name")));
+        File script = new File(repoRoot(), "tests/garden-common/proot/owner-check.sh");
+        File work = new File(repoRoot(), "garden-common/build/proot-owner-check");
+        deleteRecursively(work);
+        ProcessBuilder builder = new ProcessBuilder("sh", script.getPath()).redirectErrorStream(true);
+        builder.environment().put("WORK", work.getPath());
+        Process process = builder.start();
+        String output = readAll(process.getInputStream());
+        assertTrue("owner check timed out", process.waitFor(20, TimeUnit.MINUTES));
+        int status = process.exitValue();
+        Assume.assumeTrue("cannot run here: " + output.trim(), status != 2);
+        assertEquals(output, 0, status);
+        assertTrue(output, output.contains("PASS with 0008 every flavour sees 0 0 on every object (-0)"));
+        assertTrue(output, output.contains("PASS with 0008 every flavour sees 1234 1234"));
         assertFalse(output, output.contains("FAIL"));
     }
 

@@ -1,0 +1,14 @@
+--- id option '-0' (expect every object 0 0): owners seen, before / after 0008
+  before     108 0 0
+  before     131 1000 1000
+  after      239 0 0
+PASS with 0008 every flavour sees 0 0 on every object (-0)
+--- id option '-i 1234:1234' (expect every object 1234 1234): owners seen, before / after 0008
+  before     131 1000 1000
+  before     108 1234 1234
+  after      239 1234 1234
+PASS with 0008 every flavour sees 1234 1234 on every object (-i 1234:1234)
+--- before 0008 (information)
+      131 1000 1000
+      108 1234 1234
+exit=0
