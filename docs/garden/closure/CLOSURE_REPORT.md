@@ -288,3 +288,15 @@ Known, not ownership: (a) 5 package files with non-root groups (dbus helper, wal
 implemented in the non-USERLAND build; (b) the app extractor cannot set the time of symlinks
 (no public no-follow utimes), so `pacman -Qkk coreutils/pacman` lists ~60 symlink
 "Modification time mismatch" lines on a fresh image (gone for packages pacman reinstalls).
+
+## Addendum 4 — release (2026-10-03)
+
+All gates satisfied except the kernel-4.14 item (unverified). Tags (annotated, all at tested commit
+`54a965f`): `arch-v0.1.0`, `ubuntu-v0.3.1`, `trixie-v0.2.1`; GitHub releases with unsigned R8 APKs,
+debug-key `-test` APKs and SHA256SUMS. Rootfs release `arch-rootfs-aarch64-03a4c669ed6f` (download
+verified, F-Droid QA build installed from it; 120 corresponding-source archives attached).
+Clean run at 54a965f: unit garden-common 337, Ubuntu 606, Arch 56, Trixie 40; lint 0 errors;
+verify-apks 60/60; host extractor gates 3/3; PRoot 0006/0007/0008 host checks; device after 0008:
+Rolling gate 89/0, Trixie gate 26/0, extractor 3x46/0, Ubuntu first run. Historical tags unchanged.
+F-Droid: !49556 and !50342 updated (latest Build only), new !51045 (Rolling); squash on, auto-merge
+off, nothing merged. Reviewer reply still NOT posted (waits for the updated CI build).
