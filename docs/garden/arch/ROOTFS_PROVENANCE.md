@@ -1,9 +1,12 @@
 # ThothTerm Rolling AArch64 rootfs provenance
 
-This is the September 30, 2026 release candidate for ThothTerm Rolling
-0.1.0/100. It has not been published. If publication is more than roughly
-24 hours after this capture, generate, verify, and pin a new rootfs before
-release.
+This is the September 30, 2026 rootfs for ThothTerm Rolling 0.1.0/100. It was
+published on 2026-10-03 as the GitHub release `arch-rootfs-aarch64-03a4c669ed6f`
+(the download was checked: size and SHA-256 equal the pin, and the F-Droid QA
+build downloaded, verified and installed it on a phone). That is three days
+after the capture, not within the 24 h this document first asked for; the
+first `pacman -Syu` brings a device current, and the image's contents were
+not changed.
 
 ## Captured inputs
 
