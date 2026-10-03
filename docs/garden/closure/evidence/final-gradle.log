@@ -1,0 +1,1611 @@
+> Task :emulatorview:preBuild UP-TO-DATE
+> Task :emulatorview:preDebugBuild UP-TO-DATE
+> Task :emulatorview:generateDebugResources
+> Task :emulatorview:packageDebugResources
+> Task :emulatorview:processDebugNavigationResources
+> Task :emulatorview:processDebugJavaRes NO-SOURCE
+> Task :garden-common:preBuild UP-TO-DATE
+> Task :garden-common:preDebugBuild UP-TO-DATE
+> Task :emulatorview:javaPreCompileDebug
+> Task :emulatorview:parseDebugLocalResources
+> Task :garden-common:generateDebugBuildConfig
+> Task :garden-common:generateDebugResources
+> Task :emulatorview:generateDebugRFile
+> Task :garden-common:packageDebugResources
+
+> Task :emulatorview:compileDebugJavaWithJavac
+Note: /home/lordegypt/AndroidThothTerm/wt-closure/emulatorview/src/main/java/jackpal/androidterm/emulatorview/EmulatorView.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :garden-common:processDebugNavigationResources
+> Task :emulatorview:bundleLibRuntimeToJarDebug
+> Task :emulatorview:bundleLibCompileToJarDebug
+> Task :libtermexec:preBuild UP-TO-DATE
+> Task :libtermexec:preDebugBuild UP-TO-DATE
+> Task :garden-common:javaPreCompileDebug
+> Task :garden-common:parseDebugLocalResources
+> Task :libtermexec:generateDebugResources
+> Task :garden-common:generateDebugRFile
+> Task :libtermexec:packageDebugResources
+> Task :libtermexec:processDebugNavigationResources
+> Task :libtermexec:parseDebugLocalResources
+> Task :libtermexec:javaPreCompileDebug
+> Task :garden-common:preDebugUnitTestBuild UP-TO-DATE
+> Task :garden-common:processDebugJavaRes NO-SOURCE
+> Task :garden-common:javaPreCompileDebugUnitTest
+> Task :libtermexec:generateDebugRFile
+> Task :garden-common:processDebugUnitTestJavaRes
+> Task :libtermexec:compileDebugAidl
+> Task :garden-common:generateDebugUnitTestStubRFile
+> Task :libtermexec:compileDebugJavaWithJavac
+> Task :libtermexec:bundleLibCompileToJarDebug
+> Task :libtermexec:bundleLibRuntimeToJarDebug
+
+> Task :garden-common:compileDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :libtermexec:processDebugJavaRes NO-SOURCE
+> Task :term-ubuntu:buildProotRuntime UP-TO-DATE
+> Task :term-ubuntu:preBuild UP-TO-DATE
+> Task :garden-common:bundleLibRuntimeToJarDebug
+> Task :garden-common:bundleLibCompileToJarDebug
+
+> Task :term-ubuntu:prepareUbuntuRuntime
+prepare-assets: cache hit: ubuntu-base-26.04.1-base-arm64.tar.gz
+prepare-assets: cache hit: libapparmor1_5.0.0~beta1-0ubuntu7_arm64.deb
+prepare-assets: cache hit: sudo-common_1.2ubuntu_all.deb
+prepare-assets: cache hit: sudo_1.9.17p2-1ubuntu3_arm64.deb
+prepare-assets: ready (full flavour payload)
+prepare-assets:   rootfs : src/full/assets/ubuntu/ubuntu-base-26.04.1-base-arm64.tgz
+prepare-assets:   meta   : src/main/assets/ubuntu/image.properties
+prepare-assets:   sudo   : src/full/assets/sudo (offline admin packages)
+
+> Task :garden-common:compileDebugUnitTestJavaWithJavac
+> Task :garden-common:testDebugUnitTest
+> Task :term-ubuntu:preFullDebugBuild
+> Task :term-ubuntu:generateFullDebugBuildConfig
+> Task :term-ubuntu:generateFullDebugResources
+> Task :term-ubuntu:compileFullDebugAidl
+> Task :term-ubuntu:packageFullDebugResources
+> Task :term-ubuntu:processFullDebugNavigationResources
+> Task :term-ubuntu:javaPreCompileFullDebug
+> Task :emulatorview:mapDebugSourceSetPaths
+> Task :libtermexec:mapDebugSourceSetPaths
+> Task :term-ubuntu:parseFullDebugLocalResources
+> Task :emulatorview:compileDebugLibraryResources
+> Task :libtermexec:compileDebugLibraryResources
+> Task :emulatorview:writeDebugAarMetadata
+> Task :libtermexec:writeDebugAarMetadata
+> Task :term-ubuntu:generateFullDebugRFile
+> Task :term-ubuntu:checkFullDebugAarMetadata
+
+> Task :term-ubuntu:compileFullDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :term-ubuntu:mapFullDebugSourceSetPaths
+> Task :term-ubuntu:compileFullDebugNavigationResources
+> Task :term-ubuntu:createFullDebugCompatibleScreenManifests
+> Task :emulatorview:extractDeepLinksDebug
+> Task :libtermexec:extractDeepLinksDebug
+> Task :emulatorview:processDebugManifest
+> Task :term-ubuntu:extractDeepLinksFullDebug
+> Task :term-ubuntu:preFullDebugUnitTestBuild
+> Task :libtermexec:processDebugManifest
+> Task :term-ubuntu:javaPreCompileFullDebugUnitTest
+> Task :term-ubuntu:processFullDebugMainManifest
+> Task :term-ubuntu:processFullDebugManifest
+> Task :term-ubuntu:processFullDebugJavaRes NO-SOURCE
+> Task :term-ubuntu:processFullDebugUnitTestJavaRes NO-SOURCE
+> Task :term-ubuntu:preFdroidDebugBuild UP-TO-DATE
+> Task :term-ubuntu:generateFdroidDebugBuildConfig
+> Task :term-ubuntu:generateFdroidDebugResources
+> Task :term-ubuntu:compileFdroidDebugAidl
+> Task :term-ubuntu:mergeFullDebugResources
+> Task :term-ubuntu:packageFdroidDebugResources
+> Task :term-ubuntu:processFdroidDebugNavigationResources
+> Task :term-ubuntu:javaPreCompileFdroidDebug
+> Task :term-ubuntu:mapFdroidDebugSourceSetPaths
+> Task :term-ubuntu:checkFdroidDebugAarMetadata
+> Task :term-ubuntu:compileFdroidDebugNavigationResources
+> Task :term-ubuntu:parseFdroidDebugLocalResources
+> Task :term-ubuntu:processFullDebugManifestForPackage
+> Task :term-ubuntu:createFdroidDebugCompatibleScreenManifests
+> Task :term-ubuntu:generateFdroidDebugRFile
+> Task :term-ubuntu:extractDeepLinksFdroidDebug
+> Task :term-ubuntu:mergeFdroidDebugResources
+
+> Task :term-ubuntu:compileFdroidDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :term-ubuntu:processFdroidDebugMainManifest
+> Task :term-ubuntu:processFdroidDebugManifest
+> Task :term-ubuntu:preFdroidDebugUnitTestBuild UP-TO-DATE
+> Task :term-ubuntu:javaPreCompileFdroidDebugUnitTest
+> Task :term-ubuntu:processFdroidDebugManifestForPackage
+> Task :term-ubuntu:processFdroidDebugJavaRes NO-SOURCE
+> Task :term-ubuntu:processFdroidDebugUnitTestJavaRes NO-SOURCE
+> Task :term-ubuntu:processFullDebugResources
+
+> Task :garden-arch:buildProotRuntime
+build-proot: NDK      : /home/lordegypt/Android/Sdk/ndk/23.2.8568313
+build-proot: compiler : aarch64-linux-android26-clang
+build-proot: make     : /home/lordegypt/Android/Sdk/ndk/23.2.8568313/prebuilt/linux-x86_64/bin/make
+build-proot: patch    : 0001-ashmem_memfd-include-string.h.patch
+build-proot: patch    : 0002-loader-info-generate-without-host-binutils-or-gawk.patch
+build-proot: patch    : 0003-link2symlink-name-proc-self-exe-after-the-faked-hard-link.patch
+build-proot: patch    : 0004-hang-up-the-session-on-command-exit-and-never-outlive-proot.patch
+build-proot: patch    : 0005-keep-the-kernel-working-directory-in-step-with-the-guest.patch
+build-proot: patch    : 0006-translate-fchmodat2-with-the-kernel-semantics.patch
+build-proot: patch    : 0007-recover-a-fork-child-the-kernel-did-not-name.patch
+build-proot: building libtalloc.so.2
+
+> Task :term-ubuntu:processFdroidDebugResources
+
+> Task :garden-arch:buildProotRuntime
+build-proot: building libandroid-shmem.so
+build-proot: building proot and loader
+  GEN	build.h
+  CC	cli/cli.o
+./cli/cli.c:572:14: warning: unused variable 'pointers' [-Wunused-variable]
+        void *const pointers[] = { this_function, call_site };
+                    ^
+1 warning generated.
+  CC	cli/proot.o
+  CC	cli/note.o
+  CC	execve/enter.o
+  CC	execve/exit.o
+  CC	execve/shebang.o
+  CC	execve/elf.o
+  CC	execve/ldso.o
+  CC	execve/auxv.o
+  CC	execve/aoxp.o
+  CC	path/binding.o
+  CC	path/glue.o
+./path/glue.c:76:14: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        autofreed = talloc_autofree_context();
+                    ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+1 warning generated.
+  CC	path/canon.o
+  CC	path/f2fs-bug.o
+  CC	path/path.o
+  CC	path/proc.o
+  CC	path/temp.o
+./path/temp.c:37:33: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        temp_directory = talloc_strdup(talloc_autofree_context(), tmp);
+                                       ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+./path/temp.c:273:13: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+                context = talloc_autofree_context();
+                          ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+2 warnings generated.
+  CC	syscall/seccomp.o
+  CC	syscall/syscall.o
+  CC	syscall/chain.o
+  CC	syscall/enter.o
+  CC	syscall/exit.o
+  CC	syscall/sysnum.o
+  CC	syscall/socket.o
+./syscall/socket.c:123:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+                (void) mktemp(shorter_host_path);
+                       ^
+/home/lordegypt/Android/Sdk/ndk/23.2.8568313/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include/stdlib.h:68:47: note: 'mktemp' has been explicitly marked deprecated here
+char* mktemp(char* __template) __attribute__((deprecated("mktemp is unsafe, use mkstemp or tmpfile instead")));
+                                              ^
+1 warning generated.
+  CC	syscall/heap.o
+  CC	syscall/rlimit.o
+  CC	syscall/pipe_shadow.o
+  CC	tracee/tracee.o
+  CC	tracee/mem.o
+  CC	tracee/reg.o
+  CC	tracee/event.o
+  CC	tracee/seccomp.o
+./tracee/seccomp.c:619:29: warning: comparison of integers of different signs: 'gid_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+                if (rxid != rxid_ && rxid != -1)
+                                     ~~~~ ^  ~~
+./tracee/seccomp.c:621:29: warning: comparison of integers of different signs: 'gid_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+                if (exid != exid_ && exid != -1)
+                                     ~~~~ ^  ~~
+./tracee/seccomp.c:623:29: warning: comparison of integers of different signs: 'gid_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+                if (sxid != sxid_ && sxid != -1)
+                                     ~~~~ ^  ~~
+./tracee/seccomp.c:612:12: warning: variable 'ret' is used uninitialized whenever 'if' condition is false [-Wsometimes-uninitialized]
+                else if (sysnum == PR_setresgid)
+                         ^~~~~~~~~~~~~~~~~~~~~~
+./tracee/seccomp.c:614:7: note: uninitialized use occurs here
+                if (ret) {  // EFAULT = address outside address space
+                    ^~~
+./tracee/seccomp.c:612:8: note: remove the 'if' if its condition is always true
+                else if (sysnum == PR_setresgid)
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+./tracee/seccomp.c:135:9: note: initialize the variable 'ret' to silence this warning
+        int ret;
+               ^
+                = 0
+4 warnings generated.
+  CC	tracee/statx.o
+  CC	ptrace/ptrace.o
+  CC	ptrace/user.o
+  CC	ptrace/wait.o
+  CC	extension/extension.o
+  CC	extension/ashmem_memfd/ashmem_memfd.o
+./extension/ashmem_memfd/ashmem_memfd.c:173:96: warning: unused parameter 'data2' [-Wunused-parameter]
+int ashmem_memfd_callback(Extension *extension, ExtensionEvent event, intptr_t data1, intptr_t data2)
+                                                                                               ^
+1 warning generated.
+  CC	extension/kompat/kompat.o
+  CC	extension/fake_id0/chown.o
+  CC	extension/fake_id0/chroot.o
+./extension/fake_id0/chroot.c:54:2: warning: ignoring return value of function declared with 'warn_unused_result' attribute [-Wunused-result]
+        realpath(path, path_host_absolute);
+        ^~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+  CC	extension/fake_id0/getsockopt.o
+  CC	extension/fake_id0/sendmsg.o
+  CC	extension/fake_id0/socket.o
+  CC	extension/fake_id0/open.o
+  CC	extension/fake_id0/unlink.o
+  CC	extension/fake_id0/rename.o
+  CC	extension/fake_id0/chmod.o
+  CC	extension/fake_id0/utimensat.o
+  CC	extension/fake_id0/access.o
+  CC	extension/fake_id0/exec.o
+  CC	extension/fake_id0/link.o
+  CC	extension/fake_id0/symlink.o
+  CC	extension/fake_id0/mk.o
+  CC	extension/fake_id0/stat.o
+  CC	extension/fake_id0/helper_functions.o
+./extension/fake_id0/helper_functions.c:185:3: warning: misleading indentation; statement is not part of the previous 'else' [-Wmisleading-indentation]
+                emulated_gid = config->egid;
+                ^
+./extension/fake_id0/helper_functions.c:183:2: note: previous statement is here
+        else
+        ^
+1 warning generated.
+  CC	extension/fake_id0/fake_id0.o
+  CC	extension/hidden_files/hidden_files.o
+  CC	extension/mountinfo/mountinfo.o
+  CC	extension/port_switch/port_switch.o
+./extension/port_switch/port_switch.c:174:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+./extension/port_switch/port_switch.c:182:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+./extension/port_switch/port_switch.c:204:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+./extension/port_switch/port_switch.c:212:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+4 warnings generated.
+  CC	extension/sysvipc/sysvipc.o
+  CC	extension/sysvipc/sysvipc_msg.o
+  CC	extension/sysvipc/sysvipc_sem.o
+  CC	extension/sysvipc/sysvipc_shm.o
+./extension/sysvipc/sysvipc_shm.c:814:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+                (void) mktemp(path);
+                       ^
+/home/lordegypt/Android/Sdk/ndk/23.2.8568313/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include/stdlib.h:68:47: note: 'mktemp' has been explicitly marked deprecated here
+char* mktemp(char* __template) __attribute__((deprecated("mktemp is unsafe, use mkstemp or tmpfile instead")));
+                                              ^
+1 warning generated.
+  CC	extension/link2symlink/link2symlink.o
+  CC	extension/fix_symlink_size/fix_symlink_size.o
+  CC	loader/loader.o
+./loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+./loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+1 warning generated.
+  CC	loader/assembly.o
+  LD	loader/loader
+  CC	loader/loader-info.o
+  CC	loader/loader-m32.o
+./loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP, PC [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+./loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+1 warning generated.
+  CC	loader/assembly-m32.o
+  LD	loader/loader-m32
+ld: warning: lld uses blx instruction, no object with architecture supporting feature detected
+  LD	proot
+build-proot: alignment      : proot 0x4000
+build-proot: alignment      : loader 0x4000
+build-proot: alignment      : libtalloc.so.2 0x4000
+build-proot: alignment      : libandroid-shmem.so 0x4000
+build-proot: runtime ids    : /data/data/com.thothterm.arch/ only
+build-proot: ready
+build-proot:   proot          : /home/lordegypt/AndroidThothTerm/wt-closure/garden-arch/build/garden/jniLibs/arm64-v8a/libproot.so
+build-proot:   loader         : /home/lordegypt/AndroidThothTerm/wt-closure/garden-arch/build/garden/jniLibs/arm64-v8a/libproot_loader.so
+build-proot:   libtalloc.so.2 : /home/lordegypt/AndroidThothTerm/wt-closure/garden-arch/build/garden/assets/runtime/arm64-v8a/libtalloc.so.2
+build-proot:   libandroid-shmem.so : /home/lordegypt/AndroidThothTerm/wt-closure/garden-arch/build/garden/assets/runtime/arm64-v8a/libandroid-shmem.so
+
+> Task :garden-arch:preBuild
+> Task :term-ubuntu:bundleFullDebugClassesToRuntimeJar
+> Task :term-ubuntu:bundleFdroidDebugClassesToCompileJar
+> Task :term-ubuntu:bundleFdroidDebugClassesToRuntimeJar
+> Task :term-ubuntu:bundleFullDebugClassesToCompileJar
+> Task :garden-arch:stageArchRootfs
+> Task :term-ubuntu:compileFullDebugUnitTestJavaWithJavac
+> Task :term-ubuntu:testFullDebugUnitTest
+> Task :term-ubuntu:compileFdroidDebugUnitTestJavaWithJavac
+> Task :term-ubuntu:testFdroidDebugUnitTest
+> Task :garden-arch:preFullDebugBuild
+> Task :garden-arch:generateFullDebugResources
+> Task :garden-arch:packageFullDebugResources
+> Task :garden-arch:processFullDebugNavigationResources
+> Task :garden-arch:javaPreCompileFullDebug
+> Task :garden-common:writeDebugAarMetadata
+> Task :garden-arch:mapFullDebugSourceSetPaths
+> Task :garden-arch:parseFullDebugLocalResources
+> Task :garden-arch:checkFullDebugAarMetadata
+> Task :garden-arch:compileFullDebugNavigationResources
+> Task :garden-arch:generateFullDebugRFile
+> Task :garden-arch:compileFullDebugJavaWithJavac NO-SOURCE
+> Task :garden-arch:createFullDebugCompatibleScreenManifests
+> Task :garden-arch:extractDeepLinksFullDebug
+> Task :garden-common:extractDeepLinksDebug
+> Task :garden-common:processDebugManifest
+> Task :garden-common:mapDebugSourceSetPaths
+> Task :garden-arch:processFullDebugMainManifest
+> Task :garden-arch:processFullDebugManifest
+> Task :garden-arch:processFullDebugManifestForPackage
+> Task :garden-arch:preFullDebugUnitTestBuild
+> Task :garden-arch:javaPreCompileFullDebugUnitTest
+> Task :garden-arch:processFullDebugJavaRes NO-SOURCE
+> Task :garden-arch:processFullDebugUnitTestJavaRes NO-SOURCE
+> Task :garden-arch:preFdroidDebugBuild
+> Task :garden-common:compileDebugLibraryResources
+> Task :garden-arch:generateFdroidDebugResources
+> Task :garden-arch:packageFdroidDebugResources
+> Task :garden-arch:processFdroidDebugNavigationResources
+> Task :garden-arch:javaPreCompileFdroidDebug
+> Task :garden-arch:parseFdroidDebugLocalResources
+> Task :garden-arch:checkFdroidDebugAarMetadata
+> Task :garden-arch:mergeFullDebugResources
+> Task :garden-arch:generateFdroidDebugRFile
+> Task :garden-arch:compileFdroidDebugJavaWithJavac NO-SOURCE
+> Task :garden-arch:mapFdroidDebugSourceSetPaths
+> Task :garden-arch:compileFdroidDebugNavigationResources
+> Task :garden-arch:createFdroidDebugCompatibleScreenManifests
+> Task :garden-arch:extractDeepLinksFdroidDebug
+> Task :garden-arch:processFdroidDebugMainManifest
+> Task :garden-arch:processFdroidDebugManifest
+> Task :garden-arch:preFdroidDebugUnitTestBuild
+> Task :garden-arch:processFdroidDebugManifestForPackage
+> Task :garden-arch:processFdroidDebugJavaRes NO-SOURCE
+> Task :garden-arch:javaPreCompileFdroidDebugUnitTest
+> Task :garden-arch:processFdroidDebugUnitTestJavaRes NO-SOURCE
+
+> Task :garden-debian:buildProotRuntime
+build-proot: NDK      : /home/lordegypt/Android/Sdk/ndk/23.2.8568313
+build-proot: compiler : aarch64-linux-android26-clang
+build-proot: make     : /home/lordegypt/Android/Sdk/ndk/23.2.8568313/prebuilt/linux-x86_64/bin/make
+build-proot: patch    : 0001-ashmem_memfd-include-string.h.patch
+build-proot: patch    : 0002-loader-info-generate-without-host-binutils-or-gawk.patch
+build-proot: patch    : 0003-link2symlink-name-proc-self-exe-after-the-faked-hard-link.patch
+build-proot: patch    : 0004-hang-up-the-session-on-command-exit-and-never-outlive-proot.patch
+build-proot: patch    : 0005-keep-the-kernel-working-directory-in-step-with-the-guest.patch
+build-proot: patch    : 0006-translate-fchmodat2-with-the-kernel-semantics.patch
+build-proot: patch    : 0007-recover-a-fork-child-the-kernel-did-not-name.patch
+build-proot: building libtalloc.so.2
+
+> Task :garden-arch:processFullDebugResources
+> Task :garden-arch:mergeFdroidDebugResources
+
+> Task :garden-debian:buildProotRuntime
+build-proot: building libandroid-shmem.so
+build-proot: building proot and loader
+make: Warning: File 'GNUmakefile' has modification time 2.3 s in the future
+  GEN	build.h
+  CC	cli/cli.o
+./cli/cli.c:572:14: warning: unused variable 'pointers' [-Wunused-variable]
+        void *const pointers[] = { this_function, call_site };
+                    ^
+1 warning generated.
+  CC	cli/proot.o
+  CC	cli/note.o
+  CC	execve/enter.o
+  CC	execve/exit.o
+  CC	execve/shebang.o
+  CC	execve/elf.o
+  CC	execve/ldso.o
+  CC	execve/auxv.o
+  CC	execve/aoxp.o
+  CC	path/binding.o
+  CC	path/glue.o
+./path/glue.c:76:14: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        autofreed = talloc_autofree_context();
+                    ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+1 warning generated.
+  CC	path/canon.o
+  CC	path/f2fs-bug.o
+  CC	path/path.o
+  CC	path/proc.o
+  CC	path/temp.o
+./path/temp.c:37:33: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        temp_directory = talloc_strdup(talloc_autofree_context(), tmp);
+                                       ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+./path/temp.c:273:13: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+                context = talloc_autofree_context();
+                          ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+/home/lordegypt/AndroidThothTerm/wt-closure/third_party/talloc/talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+2 warnings generated.
+  CC	syscall/seccomp.o
+  CC	syscall/syscall.o
+  CC	syscall/chain.o
+  CC	syscall/enter.o
+  CC	syscall/exit.o
+  CC	syscall/sysnum.o
+  CC	syscall/socket.o
+./syscall/socket.c:123:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+                (void) mktemp(shorter_host_path);
+                       ^
+/home/lordegypt/Android/Sdk/ndk/23.2.8568313/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include/stdlib.h:68:47: note: 'mktemp' has been explicitly marked deprecated here
+char* mktemp(char* __template) __attribute__((deprecated("mktemp is unsafe, use mkstemp or tmpfile instead")));
+                                              ^
+1 warning generated.
+  CC	syscall/heap.o
+  CC	syscall/rlimit.o
+  CC	syscall/pipe_shadow.o
+  CC	tracee/tracee.o
+  CC	tracee/mem.o
+  CC	tracee/reg.o
+  CC	tracee/event.o
+  CC	tracee/seccomp.o
+./tracee/seccomp.c:619:29: warning: comparison of integers of different signs: 'gid_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+                if (rxid != rxid_ && rxid != -1)
+                                     ~~~~ ^  ~~
+./tracee/seccomp.c:621:29: warning: comparison of integers of different signs: 'gid_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+                if (exid != exid_ && exid != -1)
+                                     ~~~~ ^  ~~
+./tracee/seccomp.c:623:29: warning: comparison of integers of different signs: 'gid_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+                if (sxid != sxid_ && sxid != -1)
+                                     ~~~~ ^  ~~
+./tracee/seccomp.c:612:12: warning: variable 'ret' is used uninitialized whenever 'if' condition is false [-Wsometimes-uninitialized]
+                else if (sysnum == PR_setresgid)
+                         ^~~~~~~~~~~~~~~~~~~~~~
+./tracee/seccomp.c:614:7: note: uninitialized use occurs here
+                if (ret) {  // EFAULT = address outside address space
+                    ^~~
+./tracee/seccomp.c:612:8: note: remove the 'if' if its condition is always true
+                else if (sysnum == PR_setresgid)
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+./tracee/seccomp.c:135:9: note: initialize the variable 'ret' to silence this warning
+        int ret;
+               ^
+                = 0
+4 warnings generated.
+  CC	tracee/statx.o
+  CC	ptrace/ptrace.o
+  CC	ptrace/user.o
+  CC	ptrace/wait.o
+  CC	extension/extension.o
+  CC	extension/ashmem_memfd/ashmem_memfd.o
+./extension/ashmem_memfd/ashmem_memfd.c:173:96: warning: unused parameter 'data2' [-Wunused-parameter]
+int ashmem_memfd_callback(Extension *extension, ExtensionEvent event, intptr_t data1, intptr_t data2)
+                                                                                               ^
+1 warning generated.
+  CC	extension/kompat/kompat.o
+  CC	extension/fake_id0/chown.o
+  CC	extension/fake_id0/chroot.o
+./extension/fake_id0/chroot.c:54:2: warning: ignoring return value of function declared with 'warn_unused_result' attribute [-Wunused-result]
+        realpath(path, path_host_absolute);
+        ^~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+  CC	extension/fake_id0/getsockopt.o
+  CC	extension/fake_id0/sendmsg.o
+  CC	extension/fake_id0/socket.o
+  CC	extension/fake_id0/open.o
+  CC	extension/fake_id0/unlink.o
+  CC	extension/fake_id0/rename.o
+  CC	extension/fake_id0/chmod.o
+  CC	extension/fake_id0/utimensat.o
+  CC	extension/fake_id0/access.o
+  CC	extension/fake_id0/exec.o
+  CC	extension/fake_id0/link.o
+  CC	extension/fake_id0/symlink.o
+  CC	extension/fake_id0/mk.o
+  CC	extension/fake_id0/stat.o
+  CC	extension/fake_id0/helper_functions.o
+./extension/fake_id0/helper_functions.c:185:3: warning: misleading indentation; statement is not part of the previous 'else' [-Wmisleading-indentation]
+                emulated_gid = config->egid;
+                ^
+./extension/fake_id0/helper_functions.c:183:2: note: previous statement is here
+        else
+        ^
+1 warning generated.
+  CC	extension/fake_id0/fake_id0.o
+  CC	extension/hidden_files/hidden_files.o
+  CC	extension/mountinfo/mountinfo.o
+  CC	extension/port_switch/port_switch.o
+./extension/port_switch/port_switch.c:174:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+./extension/port_switch/port_switch.c:182:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+./extension/port_switch/port_switch.c:204:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+./extension/port_switch/port_switch.c:212:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long []' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+./extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+4 warnings generated.
+  CC	extension/sysvipc/sysvipc.o
+  CC	extension/sysvipc/sysvipc_msg.o
+  CC	extension/sysvipc/sysvipc_sem.o
+  CC	extension/sysvipc/sysvipc_shm.o
+./extension/sysvipc/sysvipc_shm.c:814:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+                (void) mktemp(path);
+                       ^
+/home/lordegypt/Android/Sdk/ndk/23.2.8568313/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include/stdlib.h:68:47: note: 'mktemp' has been explicitly marked deprecated here
+char* mktemp(char* __template) __attribute__((deprecated("mktemp is unsafe, use mkstemp or tmpfile instead")));
+                                              ^
+1 warning generated.
+  CC	extension/link2symlink/link2symlink.o
+  CC	extension/fix_symlink_size/fix_symlink_size.o
+  CC	loader/loader.o
+./loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+./loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+1 warning generated.
+  CC	loader/assembly.o
+  LD	loader/loader
+  CC	loader/loader-info.o
+  CC	loader/loader-m32.o
+./loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP, PC [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+./loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+./loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+<inline asm>:1:1: note: instantiated into assembly here
+        // Restore initial stack pointer.       
+^
+1 warning generated.
+  CC	loader/assembly-m32.o
+  LD	loader/loader-m32
+ld: warning: lld uses blx instruction, no object with architecture supporting feature detected
+  LD	proot
+make: warning:  Clock skew detected.  Your build may be incomplete.
+build-proot: alignment      : proot 0x4000
+build-proot: alignment      : loader 0x4000
+build-proot: alignment      : libtalloc.so.2 0x4000
+build-proot: alignment      : libandroid-shmem.so 0x4000
+build-proot: runtime ids    : /data/data/com.thothterm.debian/ only
+build-proot: ready
+build-proot:   proot          : /home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/garden/jniLibs/arm64-v8a/libproot.so
+build-proot:   loader         : /home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/garden/jniLibs/arm64-v8a/libproot_loader.so
+build-proot:   libtalloc.so.2 : /home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/garden/assets/runtime/arm64-v8a/libtalloc.so.2
+build-proot:   libandroid-shmem.so : /home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/garden/assets/runtime/arm64-v8a/libandroid-shmem.so
+
+> Task :garden-arch:bundleFullDebugClassesToRuntimeJar
+> Task :garden-arch:bundleFullDebugClassesToCompileJar
+> Task :garden-arch:compileFullDebugUnitTestJavaWithJavac
+> Task :garden-arch:processFdroidDebugResources
+> Task :garden-arch:testFullDebugUnitTest
+> Task :garden-debian:preBuild
+> Task :garden-arch:bundleFdroidDebugClassesToRuntimeJar
+> Task :garden-arch:bundleFdroidDebugClassesToCompileJar
+
+> Task :garden-debian:stageDebianRootfs
+Downloading https://github.com/Lord1Egypt/AndroidThothTerm/releases/download/debian-rootfs-trixie-arm64-f6520ff1c6ee/thothterm-debian-trixie-arm64-rootfs-f6520ff1c6ee.tar.gz
+
+> Task :garden-arch:compileFdroidDebugUnitTestJavaWithJavac
+> Task :garden-arch:testFdroidDebugUnitTest
+> Task :garden-debian:preFullDebugBuild
+> Task :garden-debian:generateFullDebugResources
+> Task :garden-debian:packageFullDebugResources
+> Task :garden-debian:processFullDebugNavigationResources
+> Task :garden-debian:javaPreCompileFullDebug
+> Task :garden-debian:parseFullDebugLocalResources
+> Task :garden-debian:checkFullDebugAarMetadata
+> Task :garden-debian:generateFullDebugRFile
+> Task :garden-debian:mapFullDebugSourceSetPaths
+> Task :garden-debian:compileFullDebugJavaWithJavac NO-SOURCE
+> Task :garden-debian:compileFullDebugNavigationResources
+> Task :garden-debian:createFullDebugCompatibleScreenManifests
+> Task :garden-debian:extractDeepLinksFullDebug
+> Task :garden-debian:processFullDebugMainManifest
+> Task :garden-debian:processFullDebugManifest
+> Task :garden-debian:preFullDebugUnitTestBuild
+> Task :garden-debian:javaPreCompileFullDebugUnitTest
+> Task :garden-debian:processFullDebugJavaRes NO-SOURCE
+> Task :garden-debian:processFullDebugUnitTestJavaRes NO-SOURCE
+> Task :garden-debian:preFdroidDebugBuild
+> Task :garden-debian:generateFdroidDebugResources
+> Task :garden-debian:packageFdroidDebugResources
+> Task :garden-debian:processFdroidDebugNavigationResources
+> Task :garden-debian:javaPreCompileFdroidDebug
+> Task :garden-debian:parseFdroidDebugLocalResources
+> Task :garden-debian:checkFdroidDebugAarMetadata
+> Task :garden-debian:mapFdroidDebugSourceSetPaths
+> Task :garden-debian:generateFdroidDebugRFile
+> Task :garden-debian:compileFdroidDebugJavaWithJavac NO-SOURCE
+> Task :garden-debian:compileFdroidDebugNavigationResources
+> Task :garden-debian:mergeFullDebugResources
+> Task :garden-debian:createFdroidDebugCompatibleScreenManifests
+> Task :garden-debian:extractDeepLinksFdroidDebug
+> Task :garden-debian:processFdroidDebugMainManifest
+> Task :garden-debian:processFdroidDebugManifest
+> Task :garden-debian:preFdroidDebugUnitTestBuild
+> Task :garden-debian:javaPreCompileFdroidDebugUnitTest
+> Task :garden-debian:processFdroidDebugJavaRes NO-SOURCE
+> Task :garden-debian:processFdroidDebugUnitTestJavaRes NO-SOURCE
+> Task :garden-debian:processFdroidDebugManifestForPackage
+> Task :emulatorview:checkDebugAarMetadata
+> Task :emulatorview:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :emulatorview:generateDebugAssets UP-TO-DATE
+> Task :emulatorview:mergeDebugAssets
+> Task :emulatorview:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :emulatorview:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :emulatorview:prepareDebugArtProfile UP-TO-DATE
+> Task :emulatorview:prepareLintJarForPublish UP-TO-DATE
+> Task :emulatorview:mergeDebugJavaResource
+> Task :emulatorview:createFullJarDebug
+> Task :emulatorview:preDebugAndroidTestBuild UP-TO-DATE
+> Task :emulatorview:writeDebugLintModelMetadata
+> Task :emulatorview:extractProguardFiles
+> Task :garden-debian:mergeFdroidDebugResources
+> Task :emulatorview:generateDebugLintModel
+> Task :garden-debian:processFullDebugManifestForPackage
+> Task :emulatorview:preDebugUnitTestBuild UP-TO-DATE
+> Task :garden-common:checkDebugAarMetadata
+> Task :garden-common:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :garden-common:generateDebugAssets UP-TO-DATE
+> Task :garden-common:mergeDebugAssets
+> Task :garden-common:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :garden-common:mergeDebugConsumerProguardFiles
+> Task :garden-common:prepareDebugArtProfile UP-TO-DATE
+> Task :garden-common:prepareLintJarForPublish UP-TO-DATE
+> Task :garden-common:mergeDebugJavaResource
+> Task :libtermexec:checkDebugAarMetadata
+> Task :libtermexec:extractDebugAnnotations
+> Task :libtermexec:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :libtermexec:generateDebugAssets UP-TO-DATE
+> Task :libtermexec:mergeDebugAssets
+> Task :libtermexec:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :libtermexec:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :libtermexec:prepareDebugArtProfile UP-TO-DATE
+> Task :libtermexec:prepareLintJarForPublish UP-TO-DATE
+> Task :libtermexec:mergeDebugJavaResource
+> Task :garden-common:createFullJarDebug
+> Task :emulatorview:extractDebugAnnotations
+> Task :libtermexec:syncDebugLibJars
+> Task :emulatorview:syncDebugLibJars
+> Task :emulatorview:bundleDebugLocalLintAar
+> Task :emulatorview:generateDebugAndroidTestLintModel
+> Task :emulatorview:generateDebugUnitTestLintModel
+> Task :libtermexec:bundleDebugLocalLintAar
+> Task :garden-common:preDebugAndroidTestBuild UP-TO-DATE
+> Task :garden-common:writeDebugLintModelMetadata
+> Task :garden-common:extractDebugAnnotations
+> Task :libtermexec:createFullJarDebug
+> Task :emulatorview:lintAnalyzeDebugAndroidTest
+> Task :emulatorview:lintAnalyzeDebugUnitTest
+> Task :garden-debian:processFdroidDebugResources
+> Task :garden-debian:processFullDebugResources
+> Task :garden-common:syncDebugLibJars
+> Task :garden-debian:bundleFullDebugClassesToRuntimeJar
+> Task :garden-debian:bundleFdroidDebugClassesToRuntimeJar
+> Task :garden-debian:bundleFullDebugClassesToCompileJar
+> Task :garden-debian:bundleFdroidDebugClassesToCompileJar
+> Task :garden-common:bundleDebugLocalLintAar
+> Task :garden-debian:compileFullDebugUnitTestJavaWithJavac
+> Task :emulatorview:lintAnalyzeDebug
+> Task :garden-debian:testFullDebugUnitTest
+> Task :garden-debian:compileFdroidDebugUnitTestJavaWithJavac
+> Task :garden-debian:testFdroidDebugUnitTest
+> Task :libtermexec:writeDebugLintModelMetadata
+> Task :garden-common:generateDebugAndroidTestLintModel
+> Task :garden-common:extractProguardFiles
+> Task :libtermexec:extractProguardFiles
+> Task :libtermexec:generateDebugLintModel
+> Task :garden-common:generateDebugLintReportModel
+> Task :garden-common:generateDebugUnitTestLintModel
+> Task :libtermexec:preDebugAndroidTestBuild UP-TO-DATE
+> Task :libtermexec:generateDebugAndroidTestLintModel
+> Task :libtermexec:preDebugUnitTestBuild UP-TO-DATE
+> Task :libtermexec:generateDebugUnitTestLintModel
+> Task :term-ubuntu:preFullDebugAndroidTestBuild SKIPPED
+> Task :term-ubuntu:generateFullDebugAndroidTestLintModel
+> Task :term-ubuntu:extractProguardFiles
+> Task :libtermexec:lintAnalyzeDebug
+> Task :garden-common:lintAnalyzeDebugAndroidTest
+> Task :term-ubuntu:generateFullDebugLintReportModel
+> Task :term-ubuntu:generateFullDebugUnitTestLintModel
+> Task :term-ubuntu:preFdroidDebugAndroidTestBuild SKIPPED
+> Task :term-ubuntu:generateFdroidDebugAndroidTestLintModel
+> Task :term-ubuntu:generateFdroidDebugLintReportModel
+> Task :libtermexec:lintAnalyzeDebugAndroidTest
+> Task :term-ubuntu:generateFdroidDebugUnitTestLintModel
+> Task :garden-arch:preFullDebugAndroidTestBuild SKIPPED
+> Task :garden-arch:generateFullDebugAndroidTestLintModel
+> Task :garden-arch:extractProguardFiles
+> Task :libtermexec:lintAnalyzeDebugUnitTest
+> Task :garden-common:generateDebugLintModel
+> Task :garden-arch:generateFullDebugLintReportModel
+> Task :garden-arch:generateFullDebugUnitTestLintModel
+> Task :garden-arch:preFdroidDebugAndroidTestBuild SKIPPED
+> Task :garden-arch:generateFdroidDebugAndroidTestLintModel
+> Task :garden-arch:generateFdroidDebugLintReportModel
+> Task :garden-arch:generateFdroidDebugUnitTestLintModel
+> Task :garden-debian:preFullDebugAndroidTestBuild SKIPPED
+> Task :garden-debian:generateFullDebugAndroidTestLintModel
+> Task :garden-debian:extractProguardFiles
+> Task :garden-debian:generateFullDebugLintReportModel
+> Task :garden-debian:generateFullDebugUnitTestLintModel
+> Task :garden-debian:preFdroidDebugAndroidTestBuild SKIPPED
+> Task :garden-debian:generateFdroidDebugAndroidTestLintModel
+> Task :garden-debian:generateFdroidDebugLintReportModel
+> Task :garden-debian:generateFdroidDebugUnitTestLintModel
+> Task :emulatorview:preReleaseBuild UP-TO-DATE
+> Task :emulatorview:mergeReleaseJniLibFolders
+> Task :emulatorview:mergeReleaseNativeLibs NO-SOURCE
+> Task :garden-arch:preFullReleaseBuild
+> Task :emulatorview:copyReleaseJniLibsProjectOnly
+> Task :garden-arch:mergeFullReleaseJniLibFolders
+> Task :garden-common:preReleaseBuild UP-TO-DATE
+> Task :garden-common:mergeReleaseJniLibFolders
+> Task :garden-common:mergeReleaseNativeLibs NO-SOURCE
+> Task :libtermexec:preReleaseBuild UP-TO-DATE
+> Task :garden-common:copyReleaseJniLibsProjectOnly
+> Task :libtermexec:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :libtermexec:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :libtermexec:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :libtermexec:buildCMakeRelWithDebInfo[armeabi-v7a]
+> Task :libtermexec:configureCMakeRelWithDebInfo[x86]
+> Task :libtermexec:buildCMakeRelWithDebInfo[x86]
+> Task :libtermexec:configureCMakeRelWithDebInfo[x86_64]
+> Task :garden-common:lintAnalyzeDebugUnitTest
+> Task :libtermexec:buildCMakeRelWithDebInfo[x86_64]
+> Task :libtermexec:mergeReleaseJniLibFolders
+> Task :emulatorview:generateReleaseResources
+> Task :libtermexec:mergeReleaseNativeLibs
+> Task :emulatorview:packageReleaseResources
+> Task :emulatorview:processReleaseNavigationResources
+> Task :libtermexec:copyReleaseJniLibsProjectOnly
+> Task :emulatorview:parseReleaseLocalResources
+> Task :emulatorview:generateReleaseRFile
+> Task :emulatorview:javaPreCompileRelease
+> Task :garden-arch:mergeFullReleaseNativeLibs
+
+> Task :emulatorview:compileReleaseJavaWithJavac
+Note: /home/lordegypt/AndroidThothTerm/wt-closure/emulatorview/src/main/java/jackpal/androidterm/emulatorview/EmulatorView.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :garden-common:generateReleaseBuildConfig
+> Task :emulatorview:bundleLibCompileToJarRelease
+> Task :garden-common:generateReleaseResources
+> Task :garden-arch:stripFullReleaseDebugSymbols
+> Task :garden-common:packageReleaseResources
+> Task :garden-common:processReleaseNavigationResources
+> Task :garden-common:javaPreCompileRelease
+> Task :garden-common:parseReleaseLocalResources
+> Task :garden-arch:extractFullReleaseNativeSymbolTables
+> Task :libtermexec:generateReleaseResources
+> Task :garden-arch:mergeFullReleaseNativeDebugMetadata
+> Task :garden-common:generateReleaseRFile
+> Task :libtermexec:packageReleaseResources
+> Task :libtermexec:processReleaseNavigationResources
+> Task :emulatorview:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :libtermexec:parseReleaseLocalResources
+> Task :libtermexec:javaPreCompileRelease
+> Task :emulatorview:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :libtermexec:compileReleaseAidl
+> Task :libtermexec:generateReleaseRFile
+> Task :emulatorview:bundleLibRuntimeToJarRelease
+> Task :garden-arch:checkFullReleaseDuplicateClasses
+> Task :libtermexec:compileReleaseJavaWithJavac
+> Task :libtermexec:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :libtermexec:bundleLibCompileToJarRelease
+> Task :libtermexec:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :term-ubuntu:lintAnalyzeFullDebugAndroidTest
+
+> Task :garden-common:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :garden-common:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :garden-common:exportReleaseConsumerProguardFiles
+> Task :garden-arch:generateFullReleaseResources
+> Task :garden-arch:packageFullReleaseResources
+> Task :garden-arch:processFullReleaseNavigationResources
+> Task :garden-arch:parseFullReleaseLocalResources
+> Task :garden-arch:javaPreCompileFullRelease
+> Task :emulatorview:prepareReleaseArtProfile UP-TO-DATE
+> Task :garden-common:prepareReleaseArtProfile UP-TO-DATE
+> Task :garden-arch:generateFullReleaseRFile
+> Task :libtermexec:prepareReleaseArtProfile UP-TO-DATE
+> Task :garden-common:bundleLibCompileToJarRelease
+> Task :garden-arch:compileFullReleaseJavaWithJavac NO-SOURCE
+> Task :garden-arch:mergeFullReleaseArtProfile
+> Task :emulatorview:mapReleaseSourceSetPaths
+> Task :emulatorview:writeReleaseAarMetadata
+> Task :garden-common:writeReleaseAarMetadata
+> Task :emulatorview:compileReleaseLibraryResources
+> Task :libtermexec:writeReleaseAarMetadata
+> Task :garden-arch:mapFullReleaseSourceSetPaths
+> Task :garden-arch:checkFullReleaseAarMetadata
+> Task :garden-arch:compileFullReleaseNavigationResources
+> Task :garden-arch:createFullReleaseCompatibleScreenManifests
+> Task :emulatorview:extractDeepLinksRelease
+> Task :emulatorview:processReleaseManifest
+> Task :garden-arch:extractDeepLinksFullRelease
+> Task :garden-common:extractDeepLinksRelease
+> Task :libtermexec:extractDeepLinksRelease
+> Task :garden-common:processReleaseManifest
+> Task :libtermexec:processReleaseManifest
+> Task :garden-common:mapReleaseSourceSetPaths
+> Task :garden-arch:processFullReleaseMainManifest
+> Task :garden-arch:processFullReleaseManifest
+> Task :libtermexec:mapReleaseSourceSetPaths
+> Task :libtermexec:compileReleaseLibraryResources
+> Task :garden-common:compileReleaseLibraryResources
+> Task :emulatorview:processReleaseJavaRes NO-SOURCE
+> Task :garden-arch:processFullReleaseJavaRes NO-SOURCE
+> Task :libtermexec:bundleLibRuntimeToJarRelease
+> Task :garden-common:bundleLibRuntimeToJarRelease
+> Task :garden-common:processReleaseJavaRes NO-SOURCE
+> Task :libtermexec:processReleaseJavaRes NO-SOURCE
+> Task :garden-arch:mergeFullReleaseResources
+> Task :garden-arch:mergeFullReleaseStartupProfile UP-TO-DATE
+> Task :emulatorview:generateReleaseAssets UP-TO-DATE
+> Task :emulatorview:mergeReleaseAssets
+> Task :garden-arch:generateFullReleaseAssets UP-TO-DATE
+> Task :garden-common:generateReleaseAssets UP-TO-DATE
+> Task :garden-common:mergeReleaseAssets
+> Task :libtermexec:generateReleaseAssets UP-TO-DATE
+> Task :libtermexec:mergeReleaseAssets
+> Task :garden-arch:mergeFullReleaseJavaResource
+> Task :garden-arch:mergeFullReleaseAssets
+> Task :garden-arch:extractFullReleaseVersionControlInfo
+> Task :emulatorview:generateReleaseLintVitalModel
+> Task :emulatorview:createFullJarRelease
+> Task :emulatorview:generateReleaseLintModel
+> Task :garden-common:createFullJarRelease
+> Task :libtermexec:createFullJarRelease
+> Task :libtermexec:generateReleaseLintModel
+> Task :garden-common:generateReleaseLintModel
+> Task :garden-arch:generateFullReleaseLintVitalReportModel
+> Task :garden-common:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :garden-common:checkReleaseAarMetadata
+> Task :garden-common:mergeReleaseConsumerProguardFiles
+> Task :garden-common:mergeReleaseJavaResource
+> Task :emulatorview:checkReleaseAarMetadata
+> Task :emulatorview:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :emulatorview:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :emulatorview:mergeReleaseJavaResource
+> Task :libtermexec:checkReleaseAarMetadata
+> Task :libtermexec:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :libtermexec:extractReleaseAnnotations
+> Task :libtermexec:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :libtermexec:mergeReleaseJavaResource
+> Task :emulatorview:writeReleaseLintModelMetadata
+> Task :emulatorview:extractReleaseAnnotations
+> Task :libtermexec:syncReleaseLibJars
+> Task :emulatorview:syncReleaseLibJars
+> Task :emulatorview:bundleReleaseLocalLintAar
+> Task :libtermexec:bundleReleaseLocalLintAar
+> Task :garden-arch:processFullReleaseManifestForPackage
+> Task :garden-common:extractReleaseAnnotations
+> Task :garden-common:syncReleaseLibJars
+> Task :garden-common:bundleReleaseLocalLintAar
+> Task :libtermexec:writeReleaseLintModelMetadata
+> Task :garden-common:writeReleaseLintModelMetadata
+> Task :garden-common:generateReleaseLintVitalModel
+> Task :libtermexec:generateReleaseLintVitalModel
+> Task :term-ubuntu:lintAnalyzeFullDebugUnitTest
+> Task :garden-common:lintAnalyzeDebug
+> Task :garden-arch:collectFullReleaseDependencies
+> Task :garden-arch:sdkFullReleaseDependencyData
+> Task :garden-arch:compressFullReleaseAssets
+> Task :garden-arch:writeFullReleaseAppMetadata
+> Task :garden-arch:writeFullReleaseSigningConfigVersions
+> Task :garden-arch:preFdroidReleaseBuild
+> Task :garden-arch:mergeFdroidReleaseJniLibFolders
+> Task :garden-arch:mergeFdroidReleaseNativeLibs
+> Task :garden-arch:checkFdroidReleaseDuplicateClasses
+> Task :garden-arch:generateFdroidReleaseResources
+
+> Task :garden-common:lintReportDebug
+Wrote HTML report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-common/build/reports/lint-results-debug.html
+Wrote SARIF report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-common/build/reports/lint-results-debug.sarif
+
+> Task :garden-arch:packageFdroidReleaseResources
+> Task :garden-common:lintDebug
+> Task :garden-arch:processFdroidReleaseNavigationResources
+> Task :garden-arch:stripFdroidReleaseDebugSymbols
+> Task :garden-arch:parseFdroidReleaseLocalResources
+> Task :garden-arch:javaPreCompileFdroidRelease
+> Task :garden-arch:generateFdroidReleaseRFile
+> Task :garden-arch:compileFdroidReleaseJavaWithJavac NO-SOURCE
+> Task :garden-arch:mergeFdroidReleaseArtProfile
+> Task :garden-arch:checkFdroidReleaseAarMetadata
+> Task :garden-arch:mapFdroidReleaseSourceSetPaths
+> Task :garden-arch:compileFdroidReleaseNavigationResources
+> Task :garden-arch:extractFdroidReleaseNativeSymbolTables
+> Task :garden-arch:processFullReleaseResources
+> Task :term-ubuntu:lintAnalyzeFullDebug
+> Task :garden-arch:mergeFullReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :garden-arch:mergeFdroidReleaseNativeDebugMetadata
+> Task :garden-arch:createFdroidReleaseCompatibleScreenManifests
+> Task :garden-arch:extractDeepLinksFdroidRelease
+> Task :garden-arch:processFdroidReleaseMainManifest
+> Task :garden-arch:processFdroidReleaseManifest
+> Task :garden-arch:processFdroidReleaseJavaRes NO-SOURCE
+> Task :garden-arch:processFdroidReleaseManifestForPackage
+> Task :garden-arch:mergeFdroidReleaseStartupProfile UP-TO-DATE
+> Task :garden-arch:generateFdroidReleaseAssets UP-TO-DATE
+> Task :garden-arch:mergeFdroidReleaseAssets
+> Task :garden-arch:mergeFdroidReleaseResources
+> Task :garden-arch:optimizeFullReleaseResources
+> Task :garden-arch:extractFdroidReleaseVersionControlInfo
+
+> Task :term-ubuntu:lintReportFullDebug
+Wrote HTML report to file:///home/lordegypt/AndroidThothTerm/wt-closure/term-ubuntu/build/reports/lint-results-fullDebug.html
+Wrote SARIF report to file:///home/lordegypt/AndroidThothTerm/wt-closure/term-ubuntu/build/reports/lint-results-fullDebug.sarif
+
+> Task :garden-arch:compressFdroidReleaseAssets
+> Task :garden-arch:generateFdroidReleaseLintVitalReportModel
+> Task :term-ubuntu:lintFullDebug
+> Task :garden-arch:collectFdroidReleaseDependencies
+> Task :garden-arch:sdkFdroidReleaseDependencyData
+> Task :garden-arch:writeFdroidReleaseAppMetadata
+> Task :garden-arch:writeFdroidReleaseSigningConfigVersions
+> Task :garden-debian:preFullReleaseBuild
+> Task :term-ubuntu:lintAnalyzeFdroidDebugAndroidTest
+> Task :garden-debian:mergeFullReleaseJniLibFolders
+> Task :garden-debian:mergeFullReleaseNativeLibs
+> Task :garden-arch:expandFullReleaseArtProfileWildcards
+> Task :garden-debian:checkFullReleaseDuplicateClasses
+> Task :garden-debian:generateFullReleaseResources
+> Task :garden-debian:packageFullReleaseResources
+> Task :garden-debian:processFullReleaseNavigationResources
+> Task :garden-debian:parseFullReleaseLocalResources
+> Task :garden-debian:javaPreCompileFullRelease
+> Task :garden-debian:stripFullReleaseDebugSymbols
+> Task :garden-debian:generateFullReleaseRFile
+> Task :garden-debian:compileFullReleaseJavaWithJavac NO-SOURCE
+> Task :garden-debian:mergeFullReleaseArtProfile
+> Task :garden-debian:checkFullReleaseAarMetadata
+> Task :garden-debian:mapFullReleaseSourceSetPaths
+> Task :garden-debian:extractFullReleaseNativeSymbolTables
+> Task :garden-debian:compileFullReleaseNavigationResources
+> Task :garden-arch:mergeFdroidReleaseJavaResource
+> Task :garden-debian:mergeFullReleaseNativeDebugMetadata
+> Task :garden-arch:lintAnalyzeFullDebug
+> Task :garden-arch:processFdroidReleaseResources
+> Task :garden-arch:mergeFdroidReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :garden-debian:createFullReleaseCompatibleScreenManifests
+> Task :garden-debian:extractDeepLinksFullRelease
+> Task :garden-debian:processFullReleaseMainManifest
+> Task :garden-debian:processFullReleaseManifest
+> Task :garden-debian:processFullReleaseJavaRes NO-SOURCE
+> Task :garden-debian:mergeFullReleaseStartupProfile UP-TO-DATE
+> Task :garden-debian:generateFullReleaseAssets UP-TO-DATE
+> Task :garden-arch:expandFdroidReleaseArtProfileWildcards
+> Task :garden-debian:mergeFullReleaseResources
+> Task :garden-debian:mergeFullReleaseAssets
+> Task :garden-debian:extractFullReleaseVersionControlInfo
+> Task :garden-debian:generateFullReleaseLintVitalReportModel
+> Task :garden-debian:collectFullReleaseDependencies
+> Task :garden-debian:mergeFullReleaseJavaResource
+> Task :garden-debian:sdkFullReleaseDependencyData
+> Task :garden-debian:writeFullReleaseAppMetadata
+> Task :garden-debian:writeFullReleaseSigningConfigVersions
+> Task :garden-debian:preFdroidReleaseBuild
+> Task :garden-debian:mergeFdroidReleaseJniLibFolders
+> Task :garden-debian:generateFdroidReleaseResources
+> Task :garden-debian:mergeFdroidReleaseNativeLibs
+> Task :garden-debian:checkFdroidReleaseDuplicateClasses
+> Task :garden-arch:lintAnalyzeFullDebugAndroidTest
+> Task :garden-debian:packageFdroidReleaseResources
+> Task :garden-debian:processFdroidReleaseNavigationResources
+> Task :garden-debian:javaPreCompileFdroidRelease
+> Task :garden-arch:optimizeFdroidReleaseResources
+> Task :garden-debian:parseFdroidReleaseLocalResources
+> Task :garden-debian:mergeFdroidReleaseArtProfile
+> Task :garden-debian:stripFdroidReleaseDebugSymbols
+> Task :garden-debian:checkFdroidReleaseAarMetadata
+> Task :garden-debian:generateFdroidReleaseRFile
+> Task :garden-debian:compileFdroidReleaseJavaWithJavac NO-SOURCE
+> Task :garden-debian:mapFdroidReleaseSourceSetPaths
+> Task :garden-debian:compileFdroidReleaseNavigationResources
+> Task :garden-debian:processFullReleaseManifestForPackage
+> Task :garden-debian:extractFdroidReleaseNativeSymbolTables
+> Task :garden-arch:lintAnalyzeFullDebugUnitTest
+> Task :term-ubuntu:lintAnalyzeFdroidDebugUnitTest
+> Task :garden-debian:compressFullReleaseAssets
+> Task :garden-debian:mergeFdroidReleaseNativeDebugMetadata
+> Task :garden-debian:createFdroidReleaseCompatibleScreenManifests
+> Task :garden-debian:extractDeepLinksFdroidRelease
+
+> Task :garden-arch:lintReportFullDebug
+Wrote HTML report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-arch/build/reports/lint-results-fullDebug.html
+Wrote SARIF report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-arch/build/reports/lint-results-fullDebug.sarif
+
+> Task :garden-debian:processFdroidReleaseMainManifest
+> Task :garden-arch:lintFullDebug
+> Task :garden-debian:mergeFdroidReleaseResources
+> Task :garden-debian:processFdroidReleaseManifest
+> Task :garden-debian:processFdroidReleaseManifestForPackage
+> Task :garden-debian:processFdroidReleaseJavaRes NO-SOURCE
+> Task :garden-debian:mergeFdroidReleaseStartupProfile UP-TO-DATE
+> Task :garden-debian:generateFdroidReleaseAssets UP-TO-DATE
+> Task :garden-debian:processFullReleaseResources
+> Task :garden-debian:mergeFdroidReleaseAssets
+> Task :garden-debian:mergeFullReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :garden-debian:extractFdroidReleaseVersionControlInfo
+> Task :garden-debian:generateFdroidReleaseLintVitalReportModel
+> Task :garden-debian:compressFdroidReleaseAssets
+> Task :garden-debian:expandFullReleaseArtProfileWildcards
+> Task :garden-debian:collectFdroidReleaseDependencies
+> Task :garden-debian:sdkFdroidReleaseDependencyData
+> Task :garden-debian:writeFdroidReleaseAppMetadata
+> Task :garden-debian:writeFdroidReleaseSigningConfigVersions
+> Task :term-ubuntu:preFdroidReleaseBuild UP-TO-DATE
+> Task :term-ubuntu:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :garden-arch:lintAnalyzeFdroidDebug
+> Task :garden-debian:mergeFdroidReleaseJavaResource
+> Task :term-ubuntu:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :garden-arch:lintAnalyzeFdroidDebugAndroidTest
+> Task :term-ubuntu:preFullReleaseBuild
+> Task :term-ubuntu:mergeFullReleaseJniLibFolders
+> Task :garden-debian:processFdroidReleaseResources
+> Task :term-ubuntu:mergeFullReleaseNativeLibs
+> Task :term-ubuntu:checkFullReleaseDuplicateClasses
+> Task :garden-debian:mergeFdroidReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :term-ubuntu:generateFullReleaseBuildConfig
+> Task :term-ubuntu:generateFullReleaseResources
+> Task :term-ubuntu:stripFullReleaseDebugSymbols
+> Task :garden-debian:expandFdroidReleaseArtProfileWildcards
+> Task :term-ubuntu:compileFullReleaseAidl
+> Task :term-ubuntu:packageFullReleaseResources
+> Task :term-ubuntu:processFullReleaseNavigationResources
+> Task :term-ubuntu:javaPreCompileFullRelease
+> Task :garden-arch:lintAnalyzeFdroidDebugUnitTest
+> Task :garden-debian:optimizeFdroidReleaseResources
+> Task :term-ubuntu:parseFullReleaseLocalResources
+> Task :garden-debian:optimizeFullReleaseResources
+> Task :term-ubuntu:extractFullReleaseNativeSymbolTables
+> Task :term-ubuntu:mergeFullReleaseArtProfile
+> Task :term-ubuntu:generateFullReleaseRFile
+
+> Task :garden-arch:lintReportFdroidDebug
+Wrote HTML report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-arch/build/reports/lint-results-fdroidDebug.html
+Wrote SARIF report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-arch/build/reports/lint-results-fdroidDebug.sarif
+
+> Task :term-ubuntu:mergeFullReleaseNativeDebugMetadata
+> Task :garden-debian:lintAnalyzeFullDebug
+
+> Task :term-ubuntu:compileFullReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :garden-arch:lintFdroidDebug
+> Task :term-ubuntu:checkFullReleaseAarMetadata
+> Task :term-ubuntu:mapFullReleaseSourceSetPaths
+> Task :term-ubuntu:compileFullReleaseNavigationResources
+> Task :garden-debian:lintAnalyzeFullDebugUnitTest
+> Task :term-ubuntu:createFullReleaseCompatibleScreenManifests
+> Task :garden-debian:lintAnalyzeFullDebugAndroidTest
+> Task :term-ubuntu:extractDeepLinksFullRelease
+> Task :term-ubuntu:processFullReleaseMainManifest
+> Task :term-ubuntu:processFullReleaseManifest
+> Task :term-ubuntu:processFullReleaseJavaRes NO-SOURCE
+
+> Task :garden-debian:lintReportFullDebug
+Wrote HTML report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/reports/lint-results-fullDebug.html
+Wrote SARIF report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/reports/lint-results-fullDebug.sarif
+
+> Task :garden-debian:lintFullDebug
+> Task :term-ubuntu:mergeFullReleaseStartupProfile UP-TO-DATE
+> Task :term-ubuntu:generateFullReleaseAssets UP-TO-DATE
+> Task :term-ubuntu:mergeFullReleaseResources
+> Task :term-ubuntu:mergeFullReleaseJavaResource
+> Task :term-ubuntu:mergeFullReleaseAssets
+> Task :term-ubuntu:extractFullReleaseVersionControlInfo
+> Task :term-ubuntu:generateFullReleaseLintVitalReportModel
+> Task :term-ubuntu:collectFullReleaseDependencies
+> Task :term-ubuntu:sdkFullReleaseDependencyData
+> Task :term-ubuntu:writeFullReleaseAppMetadata
+> Task :term-ubuntu:writeFullReleaseSigningConfigVersions
+> Task :term-ubuntu:mergeFdroidReleaseJniLibFolders
+> Task :garden-debian:lintAnalyzeFdroidDebug
+> Task :term-ubuntu:mergeFdroidReleaseNativeLibs
+> Task :term-ubuntu:generateFdroidReleaseBuildConfig
+> Task :term-ubuntu:generateFdroidReleaseResources
+> Task :term-ubuntu:lintAnalyzeFdroidDebug
+> Task :term-ubuntu:checkFdroidReleaseDuplicateClasses
+> Task :term-ubuntu:stripFdroidReleaseDebugSymbols
+> Task :term-ubuntu:compileFdroidReleaseAidl
+> Task :term-ubuntu:packageFdroidReleaseResources
+> Task :term-ubuntu:processFullReleaseManifestForPackage
+> Task :term-ubuntu:processFdroidReleaseNavigationResources
+> Task :term-ubuntu:mergeFdroidReleaseArtProfile
+> Task :term-ubuntu:javaPreCompileFdroidRelease
+> Task :garden-debian:lintAnalyzeFdroidDebugUnitTest
+> Task :term-ubuntu:checkFdroidReleaseAarMetadata
+> Task :term-ubuntu:parseFdroidReleaseLocalResources
+> Task :term-ubuntu:mapFdroidReleaseSourceSetPaths
+> Task :term-ubuntu:extractFdroidReleaseNativeSymbolTables
+> Task :term-ubuntu:generateFdroidReleaseRFile
+> Task :term-ubuntu:compileFdroidReleaseNavigationResources
+> Task :term-ubuntu:mergeFdroidReleaseNativeDebugMetadata
+
+> Task :term-ubuntu:lintReportFdroidDebug
+Wrote HTML report to file:///home/lordegypt/AndroidThothTerm/wt-closure/term-ubuntu/build/reports/lint-results-fdroidDebug.html
+Wrote SARIF report to file:///home/lordegypt/AndroidThothTerm/wt-closure/term-ubuntu/build/reports/lint-results-fdroidDebug.sarif
+
+> Task :garden-debian:lintAnalyzeFdroidDebugAndroidTest
+> Task :emulatorview:lintVitalAnalyzeRelease
+> Task :term-ubuntu:processFullReleaseResources
+> Task :term-ubuntu:compressFullReleaseAssets
+
+> Task :term-ubuntu:compileFdroidReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :term-ubuntu:lintFdroidDebug
+
+> Task :garden-debian:lintReportFdroidDebug
+Wrote HTML report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/reports/lint-results-fdroidDebug.html
+Wrote SARIF report to file:///home/lordegypt/AndroidThothTerm/wt-closure/garden-debian/build/reports/lint-results-fdroidDebug.sarif
+
+> Task :garden-debian:lintFdroidDebug
+> Task :term-ubuntu:mergeFullReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :libtermexec:lintVitalAnalyzeRelease
+> Task :term-ubuntu:expandFullReleaseArtProfileWildcards
+> Task :term-ubuntu:optimizeFullReleaseResources
+> Task :term-ubuntu:createFdroidReleaseCompatibleScreenManifests
+> Task :term-ubuntu:extractDeepLinksFdroidRelease
+> Task :term-ubuntu:processFdroidReleaseMainManifest
+> Task :term-ubuntu:processFdroidReleaseManifest
+> Task :term-ubuntu:processFdroidReleaseJavaRes NO-SOURCE
+> Task :term-ubuntu:processFdroidReleaseManifestForPackage
+> Task :term-ubuntu:mergeFdroidReleaseStartupProfile UP-TO-DATE
+> Task :term-ubuntu:generateFdroidReleaseAssets UP-TO-DATE
+> Task :term-ubuntu:mergeFdroidReleaseResources
+> Task :term-ubuntu:mergeFdroidReleaseAssets
+> Task :term-ubuntu:extractFdroidReleaseVersionControlInfo
+> Task :term-ubuntu:generateFdroidReleaseLintVitalReportModel
+> Task :garden-common:lintVitalAnalyzeRelease
+> Task :term-ubuntu:compressFdroidReleaseAssets
+> Task :term-ubuntu:collectFdroidReleaseDependencies
+> Task :term-ubuntu:sdkFdroidReleaseDependencyData
+> Task :term-ubuntu:writeFdroidReleaseAppMetadata
+> Task :term-ubuntu:writeFdroidReleaseSigningConfigVersions
+> Task :garden-arch:mergeFullDebugNativeDebugMetadata NO-SOURCE
+> Task :garden-arch:generateFullDebugAssets UP-TO-DATE
+> Task :term-ubuntu:mergeFdroidReleaseJavaResource
+> Task :garden-arch:lintVitalAnalyzeFullRelease
+> Task :term-ubuntu:processFdroidReleaseResources
+> Task :term-ubuntu:lintVitalAnalyzeFullRelease
+> Task :garden-arch:mergeFullDebugAssets
+> Task :garden-arch:lintVitalReportFullRelease
+> Task :term-ubuntu:lintVitalAnalyzeFdroidRelease
+> Task :garden-arch:lintVitalFullRelease
+> Task :garden-arch:minifyFullReleaseWithR8
+> Task :term-ubuntu:mergeFdroidReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :garden-arch:lintVitalAnalyzeFdroidRelease
+> Task :term-ubuntu:expandFdroidReleaseArtProfileWildcards
+> Task :garden-debian:lintVitalAnalyzeFullRelease
+> Task :garden-debian:lintVitalAnalyzeFdroidRelease
+> Task :garden-arch:generateFullDebugGlobalSynthetics
+> Task :garden-arch:lintVitalReportFdroidRelease
+> Task :garden-arch:lintVitalFdroidRelease
+> Task :garden-debian:lintVitalReportFullRelease
+> Task :garden-debian:lintVitalFullRelease
+> Task :garden-debian:lintVitalReportFdroidRelease
+> Task :term-ubuntu:lintVitalReportFullRelease
+> Task :garden-debian:lintVitalFdroidRelease
+> Task :term-ubuntu:lintVitalFullRelease
+> Task :term-ubuntu:lintVitalReportFdroidRelease
+> Task :term-ubuntu:lintVitalFdroidRelease
+> Task :garden-arch:checkFullDebugDuplicateClasses
+> Task :garden-arch:desugarFullDebugFileDependencies
+> Task :term-ubuntu:optimizeFdroidReleaseResources
+> Task :libtermexec:bundleLibRuntimeToDirDebug
+> Task :emulatorview:bundleLibRuntimeToDirDebug
+> Task :garden-arch:compressFullDebugAssets
+> Task :garden-common:bundleLibRuntimeToDirDebug
+> Task :garden-arch:dexBuilderFullDebug
+> Task :emulatorview:mergeDebugJniLibFolders
+> Task :emulatorview:mergeDebugNativeLibs NO-SOURCE
+> Task :emulatorview:copyDebugJniLibsProjectOnly
+> Task :garden-arch:mergeFullDebugJniLibFolders
+> Task :garden-common:mergeDebugJniLibFolders
+> Task :garden-common:mergeDebugNativeLibs NO-SOURCE
+> Task :garden-common:copyDebugJniLibsProjectOnly
+> Task :libtermexec:configureCMakeDebug[arm64-v8a]
+> Task :garden-arch:mergeFullDebugJavaResource
+> Task :garden-arch:mergeProjectDexFullDebug
+> Task :libtermexec:buildCMakeDebug[arm64-v8a]
+> Task :libtermexec:configureCMakeDebug[armeabi-v7a]
+> Task :libtermexec:buildCMakeDebug[armeabi-v7a]
+> Task :libtermexec:configureCMakeDebug[x86]
+> Task :libtermexec:buildCMakeDebug[x86]
+> Task :libtermexec:configureCMakeDebug[x86_64]
+> Task :libtermexec:buildCMakeDebug[x86_64]
+> Task :libtermexec:mergeDebugJniLibFolders
+> Task :garden-arch:validateSigningFullDebug
+> Task :libtermexec:mergeDebugNativeLibs
+> Task :garden-arch:writeFullDebugAppMetadata
+> Task :garden-arch:writeFullDebugSigningConfigVersions
+> Task :garden-arch:mergeFdroidDebugNativeDebugMetadata NO-SOURCE
+> Task :garden-arch:generateFdroidDebugAssets UP-TO-DATE
+> Task :libtermexec:copyDebugJniLibsProjectOnly
+> Task :garden-arch:mergeFdroidDebugAssets
+> Task :garden-arch:mergeFullDebugNativeLibs
+> Task :garden-arch:compressFdroidDebugAssets
+> Task :garden-arch:generateFdroidDebugGlobalSynthetics
+> Task :garden-arch:desugarFdroidDebugFileDependencies
+> Task :garden-arch:checkFdroidDebugDuplicateClasses
+> Task :garden-arch:stripFullDebugDebugSymbols
+> Task :garden-arch:mergeFdroidDebugJavaResource
+> Task :garden-arch:dexBuilderFdroidDebug
+> Task :garden-arch:mergeFdroidDebugJniLibFolders
+> Task :garden-arch:validateSigningFdroidDebug
+> Task :garden-arch:writeFdroidDebugAppMetadata
+> Task :garden-arch:writeFdroidDebugSigningConfigVersions
+> Task :garden-debian:mergeFullDebugNativeDebugMetadata NO-SOURCE
+> Task :garden-debian:generateFullDebugAssets UP-TO-DATE
+> Task :garden-arch:mergeLibDexFullDebug
+> Task :garden-arch:mergeFdroidDebugNativeLibs
+> Task :garden-arch:mergeLibDexFdroidDebug
+> Task :garden-arch:mergeProjectDexFdroidDebug
+> Task :garden-debian:mergeFullDebugAssets
+> Task :garden-arch:stripFdroidDebugDebugSymbols
+> Task :garden-debian:compressFullDebugAssets
+> Task :garden-arch:mergeExtDexFullDebug
+> Task :garden-debian:generateFullDebugGlobalSynthetics
+> Task :garden-debian:desugarFullDebugFileDependencies
+> Task :garden-debian:checkFullDebugDuplicateClasses
+> Task :garden-debian:mergeLibDexFullDebug
+> Task :garden-debian:mergeFullDebugJavaResource
+> Task :garden-debian:dexBuilderFullDebug
+> Task :garden-debian:mergeFullDebugJniLibFolders
+> Task :garden-debian:validateSigningFullDebug
+> Task :garden-debian:writeFullDebugAppMetadata
+> Task :garden-debian:mergeFullDebugNativeLibs
+> Task :garden-debian:writeFullDebugSigningConfigVersions
+> Task :garden-debian:mergeFdroidDebugNativeDebugMetadata NO-SOURCE
+> Task :garden-debian:generateFdroidDebugAssets UP-TO-DATE
+> Task :garden-debian:mergeFdroidDebugAssets
+> Task :garden-debian:stripFullDebugDebugSymbols
+> Task :garden-debian:compressFdroidDebugAssets
+> Task :garden-debian:mergeProjectDexFullDebug
+> Task :garden-debian:generateFdroidDebugGlobalSynthetics
+> Task :garden-debian:desugarFdroidDebugFileDependencies
+> Task :garden-debian:checkFdroidDebugDuplicateClasses
+> Task :garden-debian:mergeLibDexFdroidDebug
+> Task :garden-debian:mergeFdroidDebugJavaResource
+> Task :garden-debian:dexBuilderFdroidDebug
+> Task :garden-debian:mergeFdroidDebugJniLibFolders
+> Task :garden-debian:validateSigningFdroidDebug
+> Task :garden-debian:writeFdroidDebugAppMetadata
+> Task :garden-debian:mergeFdroidDebugNativeLibs
+> Task :garden-debian:writeFdroidDebugSigningConfigVersions
+> Task :term-ubuntu:mergeFullDebugNativeDebugMetadata NO-SOURCE
+> Task :term-ubuntu:generateFullDebugAssets UP-TO-DATE
+> Task :garden-debian:stripFdroidDebugDebugSymbols
+> Task :garden-debian:mergeProjectDexFdroidDebug
+> Task :term-ubuntu:mergeFullDebugAssets
+> Task :garden-arch:mergeExtDexFdroidDebug
+> Task :term-ubuntu:generateFullDebugGlobalSynthetics
+> Task :term-ubuntu:checkFullDebugDuplicateClasses
+> Task :term-ubuntu:desugarFullDebugFileDependencies
+> Task :term-ubuntu:mergeLibDexFullDebug
+> Task :term-ubuntu:mergeFullDebugJavaResource
+> Task :term-ubuntu:dexBuilderFullDebug
+> Task :term-ubuntu:configureCMakeDebug[arm64-v8a]
+> Task :garden-arch:packageFdroidDebug
+> Task :garden-arch:createFdroidDebugApkListingFileRedirect
+> Task :garden-arch:assembleFdroidDebug
+> Task :garden-debian:mergeExtDexFullDebug
+> Task :term-ubuntu:compressFullDebugAssets
+> Task :term-ubuntu:mergeProjectDexFullDebug
+> Task :term-ubuntu:buildCMakeDebug[arm64-v8a]
+> Task :term-ubuntu:mergeFullDebugJniLibFolders
+> Task :term-ubuntu:validateSigningFullDebug
+> Task :term-ubuntu:writeFullDebugAppMetadata
+> Task :term-ubuntu:writeFullDebugSigningConfigVersions
+> Task :term-ubuntu:mergeFdroidDebugNativeDebugMetadata NO-SOURCE
+> Task :term-ubuntu:generateFdroidDebugAssets UP-TO-DATE
+> Task :term-ubuntu:mergeFullDebugNativeLibs
+> Task :term-ubuntu:mergeFdroidDebugAssets
+> Task :term-ubuntu:compressFdroidDebugAssets
+> Task :term-ubuntu:stripFullDebugDebugSymbols
+> Task :term-ubuntu:generateFdroidDebugGlobalSynthetics
+> Task :term-ubuntu:desugarFdroidDebugFileDependencies
+> Task :term-ubuntu:checkFdroidDebugDuplicateClasses
+> Task :term-ubuntu:mergeLibDexFdroidDebug
+> Task :garden-debian:mergeExtDexFdroidDebug
+> Task :term-ubuntu:mergeFdroidDebugJavaResource
+> Task :term-ubuntu:mergeExtDexFullDebug
+> Task :term-ubuntu:dexBuilderFdroidDebug
+> Task :term-ubuntu:mergeFdroidDebugJniLibFolders
+> Task :term-ubuntu:validateSigningFdroidDebug
+> Task :term-ubuntu:writeFdroidDebugAppMetadata
+> Task :term-ubuntu:writeFdroidDebugSigningConfigVersions
+> Task :garden-arch:generateFullDebugAndroidTestResources
+> Task :term-ubuntu:mergeFdroidDebugNativeLibs
+> Task :garden-arch:packageFullDebugAndroidTestResources
+> Task :garden-arch:processFullDebugAndroidTestNavigationResources
+> Task :garden-arch:parseFullDebugAndroidTestLocalResources
+> Task :term-ubuntu:mergeProjectDexFdroidDebug
+> Task :term-ubuntu:stripFdroidDebugDebugSymbols
+> Task :garden-debian:packageFullDebug
+> Task :garden-debian:createFullDebugApkListingFileRedirect
+> Task :garden-debian:assembleFullDebug
+> Task :garden-arch:generateFullDebugAndroidTestRFile
+> Task :garden-arch:javaPreCompileFullDebugAndroidTest
+> Task :garden-arch:compileFullReleaseArtProfile
+> Task :garden-arch:packageFullDebug
+> Task :garden-debian:packageFdroidDebug
+> Task :garden-arch:createFullDebugApkListingFileRedirect
+> Task :garden-arch:assembleFullDebug
+> Task :garden-debian:createFdroidDebugApkListingFileRedirect
+> Task :garden-debian:assembleFdroidDebug
+> Task :garden-arch:compileFullDebugAndroidTestJavaWithJavac
+> Task :garden-arch:generateFullDebugAndroidTestAssets UP-TO-DATE
+> Task :garden-arch:mergeFullDebugAndroidTestAssets
+> Task :garden-arch:compressFullDebugAndroidTestAssets
+> Task :garden-arch:generateFullDebugAndroidTestGlobalSynthetics
+> Task :garden-arch:desugarFullDebugAndroidTestFileDependencies
+> Task :garden-arch:processFullDebugAndroidTestJavaRes NO-SOURCE
+> Task :garden-arch:checkFullDebugAndroidTestDuplicateClasses
+> Task :garden-arch:checkFullDebugAndroidTestAarMetadata
+> Task :garden-arch:mapFullDebugAndroidTestSourceSetPaths
+> Task :garden-arch:mergeLibDexFullDebugAndroidTest
+> Task :garden-arch:compileFullDebugAndroidTestNavigationResources
+> Task :garden-arch:mergeFullDebugAndroidTestJavaResource
+> Task :term-ubuntu:packageFullDebug
+> Task :term-ubuntu:createFullDebugApkListingFileRedirect
+> Task :term-ubuntu:assembleFullDebug
+> Task :garden-arch:mergeFullDebugAndroidTestResources
+> Task :garden-arch:mergeFullDebugAndroidTestManifest
+> Task :garden-arch:processFullDebugAndroidTestManifest
+> Task :garden-arch:mergeFullDebugAndroidTestJniLibFolders
+> Task :garden-arch:mergeFullDebugAndroidTestNativeLibs NO-SOURCE
+> Task :garden-arch:stripFullDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :garden-arch:validateSigningFullDebugAndroidTest
+> Task :garden-arch:writeFullDebugAndroidTestSigningConfigVersions
+> Task :garden-debian:generateFullDebugAndroidTestResources
+> Task :garden-debian:packageFullDebugAndroidTestResources
+> Task :garden-debian:processFullDebugAndroidTestNavigationResources
+> Task :garden-debian:generateFullDebugAndroidTestAssets UP-TO-DATE
+> Task :garden-debian:parseFullDebugAndroidTestLocalResources
+> Task :garden-debian:javaPreCompileFullDebugAndroidTest
+> Task :garden-debian:mergeFullDebugAndroidTestAssets
+> Task :garden-debian:generateFullDebugAndroidTestRFile
+> Task :garden-debian:compressFullDebugAndroidTestAssets
+> Task :garden-arch:processFullDebugAndroidTestResources
+> Task :garden-arch:mergeExtDexFullDebugAndroidTest
+> Task :term-ubuntu:mergeExtDexFdroidDebug
+> Task :garden-debian:compileFullDebugAndroidTestJavaWithJavac
+> Task :garden-arch:dexBuilderFullDebugAndroidTest
+> Task :garden-arch:mergeProjectDexFullDebugAndroidTest
+> Task :garden-debian:generateFullDebugAndroidTestGlobalSynthetics
+> Task :garden-arch:packageFullRelease
+> Task :garden-arch:createFullReleaseApkListingFileRedirect
+> Task :garden-arch:assembleFullRelease
+> Task :garden-debian:checkFullDebugAndroidTestDuplicateClasses
+> Task :garden-debian:desugarFullDebugAndroidTestFileDependencies
+> Task :garden-debian:processFullDebugAndroidTestJavaRes NO-SOURCE
+> Task :term-ubuntu:packageFdroidDebug
+> Task :garden-debian:mergeLibDexFullDebugAndroidTest
+> Task :term-ubuntu:createFdroidDebugApkListingFileRedirect
+> Task :term-ubuntu:assembleFdroidDebug
+> Task :garden-debian:checkFullDebugAndroidTestAarMetadata
+> Task :garden-debian:mapFullDebugAndroidTestSourceSetPaths
+> Task :garden-debian:mergeFullDebugAndroidTestJavaResource
+> Task :garden-debian:compileFullDebugAndroidTestNavigationResources
+> Task :garden-debian:mergeFullDebugAndroidTestResources
+> Task :garden-debian:mergeFullDebugAndroidTestManifest
+> Task :garden-debian:processFullDebugAndroidTestManifest
+> Task :garden-debian:mergeFullDebugAndroidTestJniLibFolders
+> Task :garden-debian:mergeFullDebugAndroidTestNativeLibs NO-SOURCE
+> Task :garden-debian:stripFullDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :garden-debian:validateSigningFullDebugAndroidTest
+> Task :garden-debian:writeFullDebugAndroidTestSigningConfigVersions
+> Task :term-ubuntu:compileFullDebugAndroidTestAidl NO-SOURCE
+> Task :term-ubuntu:mergeFullDebugAndroidTestManifest
+> Task :term-ubuntu:processFullDebugAndroidTestManifest
+> Task :term-ubuntu:generateFullDebugAndroidTestBuildConfig
+> Task :term-ubuntu:generateFullDebugAndroidTestResources
+> Task :term-ubuntu:packageFullDebugAndroidTestResources
+> Task :term-ubuntu:processFullDebugAndroidTestNavigationResources
+> Task :term-ubuntu:generateFullDebugAndroidTestAssets UP-TO-DATE
+> Task :term-ubuntu:parseFullDebugAndroidTestLocalResources
+> Task :term-ubuntu:javaPreCompileFullDebugAndroidTest
+> Task :term-ubuntu:mergeFullDebugAndroidTestAssets
+> Task :term-ubuntu:generateFullDebugAndroidTestRFile
+> Task :term-ubuntu:compressFullDebugAndroidTestAssets
+> Task :garden-debian:processFullDebugAndroidTestResources
+> Task :garden-debian:mergeExtDexFullDebugAndroidTest
+> Task :term-ubuntu:compileFullDebugAndroidTestJavaWithJavac
+> Task :garden-debian:dexBuilderFullDebugAndroidTest
+> Task :garden-debian:mergeProjectDexFullDebugAndroidTest
+> Task :term-ubuntu:generateFullDebugAndroidTestGlobalSynthetics
+> Task :term-ubuntu:checkFullDebugAndroidTestDuplicateClasses
+> Task :term-ubuntu:desugarFullDebugAndroidTestFileDependencies
+> Task :term-ubuntu:processFullDebugAndroidTestJavaRes NO-SOURCE
+> Task :term-ubuntu:checkFullDebugAndroidTestAarMetadata
+> Task :garden-arch:packageFullDebugAndroidTest
+> Task :garden-arch:createFullDebugAndroidTestApkListingFileRedirect
+> Task :garden-arch:assembleFullDebugAndroidTest
+> Task :term-ubuntu:mapFullDebugAndroidTestSourceSetPaths
+> Task :term-ubuntu:compileFullDebugAndroidTestNavigationResources
+> Task :term-ubuntu:mergeLibDexFullDebugAndroidTest
+> Task :term-ubuntu:mergeFullDebugAndroidTestJavaResource
+> Task :term-ubuntu:mergeFullDebugAndroidTestJniLibFolders
+> Task :term-ubuntu:mergeFullDebugAndroidTestNativeLibs NO-SOURCE
+> Task :term-ubuntu:mergeFullDebugAndroidTestResources
+> Task :term-ubuntu:stripFullDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :term-ubuntu:validateSigningFullDebugAndroidTest
+> Task :term-ubuntu:writeFullDebugAndroidTestSigningConfigVersions
+> Task :garden-debian:packageFullDebugAndroidTest
+> Task :garden-debian:createFullDebugAndroidTestApkListingFileRedirect
+> Task :garden-debian:assembleFullDebugAndroidTest
+> Task :term-ubuntu:processFullDebugAndroidTestResources
+> Task :term-ubuntu:mergeExtDexFullDebugAndroidTest
+> Task :term-ubuntu:dexBuilderFullDebugAndroidTest
+> Task :term-ubuntu:mergeProjectDexFullDebugAndroidTest
+> Task :term-ubuntu:packageFullDebugAndroidTest
+> Task :term-ubuntu:createFullDebugAndroidTestApkListingFileRedirect
+> Task :term-ubuntu:assembleFullDebugAndroidTest
+> Task :garden-arch:minifyFdroidReleaseWithR8
+> Task :garden-arch:compileFdroidReleaseArtProfile
+> Task :garden-arch:packageFdroidRelease
+> Task :garden-arch:createFdroidReleaseApkListingFileRedirect
+> Task :garden-arch:assembleFdroidRelease
+> Task :garden-debian:minifyFullReleaseWithR8
+> Task :garden-debian:compileFullReleaseArtProfile
+> Task :garden-debian:packageFullRelease
+> Task :garden-debian:createFullReleaseApkListingFileRedirect
+> Task :garden-debian:assembleFullRelease
+> Task :garden-debian:minifyFdroidReleaseWithR8
+> Task :garden-debian:compileFdroidReleaseArtProfile
+> Task :garden-debian:packageFdroidRelease
+> Task :garden-debian:createFdroidReleaseApkListingFileRedirect
+> Task :garden-debian:assembleFdroidRelease
+> Task :term-ubuntu:minifyFullReleaseWithR8
+> Task :term-ubuntu:compileFullReleaseArtProfile
+> Task :term-ubuntu:packageFullRelease
+> Task :term-ubuntu:createFullReleaseApkListingFileRedirect
+> Task :term-ubuntu:assembleFullRelease
+> Task :term-ubuntu:minifyFdroidReleaseWithR8
+> Task :term-ubuntu:compileFdroidReleaseArtProfile
+> Task :term-ubuntu:packageFdroidRelease
+> Task :term-ubuntu:createFdroidReleaseApkListingFileRedirect
+> Task :term-ubuntu:assembleFdroidRelease
+
+[Incubating] Problems report is available at: file:///home/lordegypt/AndroidThothTerm/wt-closure/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 8m 30s
+890 actionable tasks: 850 executed, 40 up-to-date
+gradle exit=0

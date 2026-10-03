@@ -1,0 +1,7 @@
+garden-arch/build/intermediates/lint_intermediate_text_report/fdroidDebug/lintReportFdroidDebug/lint-results-fdroidDebug.txt: 0 errors, 25 warnings
+garden-arch/build/intermediates/lint_intermediate_text_report/fullDebug/lintReportFullDebug/lint-results-fullDebug.txt: 0 errors, 25 warnings
+garden-common/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt: 0 errors, 86 warnings
+garden-debian/build/intermediates/lint_intermediate_text_report/fdroidDebug/lintReportFdroidDebug/lint-results-fdroidDebug.txt: 0 errors, 25 warnings
+garden-debian/build/intermediates/lint_intermediate_text_report/fullDebug/lintReportFullDebug/lint-results-fullDebug.txt: 0 errors, 25 warnings
+term-ubuntu/build/intermediates/lint_intermediate_text_report/fdroidDebug/lintReportFdroidDebug/lint-results-fdroidDebug.txt: 0 errors, 137 warnings
+term-ubuntu/build/intermediates/lint_intermediate_text_report/fullDebug/lintReportFullDebug/lint-results-fullDebug.txt: 0 errors, 137 warnings

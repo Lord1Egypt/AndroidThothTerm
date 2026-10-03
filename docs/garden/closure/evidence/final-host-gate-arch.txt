@@ -1,0 +1,53 @@
+# host-gate.sh arch as lordegypt (uid 1000), commit 3ed4b96+worktree, 2026-10-03T05:06:24Z
+INFO archive /home/lordegypt/AndroidThothTerm/archives/thothterm-arch-aarch64-rootfs-03a4c669ed6f.tar.gz
+INFO independent manifest: 33639 paths (Python tarfile)
+INFO host gate: shared extractor policy with JvmFileOps (NOT the Android FileOps; the device gate proves AndroidFileOps)
+PASS case danglingSymlinkThenFile
+PASS case danglingAbsoluteSymlinkThenFile
+PASS case danglingSymlinkThenHardlink
+PASS case symlinkToOutsideFileThenFile
+PASS case symlinkToOutsideDirThenChildren
+PASS case symlinkToOutsideDirThenDirectoryEntry
+PASS case nestedRelativeSymlinkEscape
+PASS case hardlinkTargetThroughSymlink
+PASS case hardlinkToSymlinkDoesNotFollow
+PASS case hardlinkTraversalRejected
+PASS case traversalAndAbsoluteNamesRejected
+PASS case paxTraversalRejected
+PASS case literalBackslashNamesPreserved
+PASS case utf8NamesPreserved
+PASS case malformedUtf8Rejected
+PASS case rootEntryAccepted
+PASS case fileOverDirectoryRejected
+PASS case setgidDirectoryMasked
+PASS case specialBitsMasked
+PASS case legitimateLinksSupported
+PASS case specialFilesSkipped
+PASS contract typeDoesNotFollow
+PASS contract createNewRefusesDanglingSymlink
+PASS contract createNewRefusesExistingFile
+PASS contract createNewAppliesMaskedModeOnClose
+PASS contract chmodRefusesSymlinkAndLeavesTarget
+PASS contract chmodWorksOnUnreadableFile
+PASS contract chmodOfUnreadableFileStillMasksSetuid
+PASS contract chmodRefusesSymlinkToUnreadableTarget
+PASS contract chmodWorksOnDirectory
+PASS contract chmodWorksOnUnreadableDirectoryKeepingSticky
+PASS contract chmodRefusesSymlinkToDirectory
+PASS contract chmodRefusesFifoWithoutOpeningIt
+PASS contract chmodSwapRacesNeverReachTheTarget
+PASS contract mkdirRefusesDanglingSymlink
+PASS contract unlinkRemovesLinkNotTarget
+PASS contract unlinkOfDanglingSymlinkRemovesTheLink
+PASS contract unlinkOfSymlinkToDirectoryRemovesTheLink
+PASS contract unlinkRefusesADirectory
+PASS contract rmdirRefusesSymlinkToDirectory
+PASS contract openNoFollowRefusesSymlink
+PASS contract symlinkRefusesExisting
+PASS contract renameMovesTheEntryItself
+INFO extract entries=33640 rejected=0 skipped=0 hardlinkFallbacks=0 compressedBytes=199826020 extractedBytes=651557385 ms=12420 sha256=03a4c669ed6f89d044a9e83dce54c554f04885fd1bb7d1793f5b95b7cc0f48d1
+PASS archive verified: sha256 matches, 0 rejected entries
+PASS extracted tree matches the independent manifest: 33639 paths (0 hardlinks materialized as copies)
+PASS content of 24090 regular files verified on the final objects and equal to the bytes the extractor wrote: 24089 re-read from disk, 1 owner-unreadable read through the descriptor pinned on that same inode (no reopen, no chmod) [usr/lib/dbus-daemon-launch-helper=110]; 1027 hard link groups (2848 names) share one inode each
+GATE PASS
+exit=0

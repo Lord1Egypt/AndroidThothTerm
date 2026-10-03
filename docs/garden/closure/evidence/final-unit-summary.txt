@@ -1,0 +1,5 @@
+garden-arch:test-results {'tests': 56, 'fail': 0, 'skip': 0}
+garden-common:test-results {'tests': 335, 'fail': 0, 'skip': 0}
+garden-debian:test-results {'tests': 40, 'fail': 0, 'skip': 0}
+term-ubuntu:test-results {'tests': 604, 'fail': 0, 'skip': 0}
+
