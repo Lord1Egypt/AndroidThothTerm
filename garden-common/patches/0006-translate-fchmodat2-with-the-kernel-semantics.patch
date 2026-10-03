@@ -16,15 +16,23 @@ absolute guest path the kernel then looked the name up on the host:
   - had the guest path existed on the host, the host file would have been
     the one changed.
 
-It is now handled at syscall entry with calls PRoot already translates, so
-the kernel never sees it and the result does not depend on whether the
-device kernel has it:
+It is now handled at syscall entry. A call with a path is expressed with
+calls PRoot already translates, so the kernel never sees it and the result
+does not depend on whether the device kernel has it:
 
   flags 0                       fchmodat(dirfd, translated path, mode)
   AT_SYMLINK_NOFOLLOW, symlink  -EOPNOTSUPP, exactly as Linux returns it
   AT_SYMLINK_NOFOLLOW, other    fchmodat(translated, not followed path)
-  AT_EMPTY_PATH with ""         fchmod(dirfd, mode)
+  AT_EMPTY_PATH with ""         unchanged: there is no path to translate
   any other flag                -EINVAL
+
+The empty-path form goes to the kernel as it is, so it acts on any
+descriptor exactly as natively. An earlier version of this patch rewrote it
+to fchmod(dirfd), which fails with EBADF on an O_PATH descriptor: on a phone
+(Linux 6.12) systemd-tmpfiles' pacman hook, which changes modes through
+O_PATH descriptors, failed with "fchmod() of /run/... failed: Bad file
+descriptor". A kernel older than 6.6 answers ENOSYS for it, as natively, and
+callers fall back to /proc/self/fd.
 
 Nothing is faked: a symlink is never chmodded and never followed, a
 regular file gets exactly the requested mode, and every error the kernel
@@ -38,8 +46,10 @@ fchmodat (EPERM emulation for the fake root, mode restoration).
 
 Verified on x86_64 Linux 6.18 with glibc 2.39: lchmod/fchmodat/raw
 fchmodat2 results under PRoot are identical to the native kernel's for a
-symlink, a regular file, a relative path, AT_EMPTY_PATH and an invalid
-flag; a libalpm-style libarchive extraction no longer warns.
+symlink, a regular file, a relative path, AT_EMPTY_PATH on an ordinary and
+on an O_PATH descriptor (file, directory, symlink, with and without
+AT_SYMLINK_NOFOLLOW) and an invalid flag; a libalpm-style libarchive
+extraction no longer warns.
 
 Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0005
 
@@ -81,7 +91,7 @@ diff -ruN a/src/syscall/enter.c b/src/syscall/enter.c
  #include "syscall/pipe_shadow.h"
  
  /* ABI-stable rtnetlink constants we synthesise for the loopback reply.
-@@ -2528,6 +2529,79 @@
+@@ -2528,6 +2529,80 @@
  		status = translate_path2(tracee, dirfd, path, SYSARG_2, REGULAR);
  		break;
  
@@ -97,14 +107,22 @@ diff -ruN a/src/syscall/enter.c b/src/syscall/enter.c
 +		 * reported "Can't set permissions" on every symlink and a
 +		 * no-follow chmod of a regular file silently did nothing.
 +		 *
-+		 * The kernel never sees it: it is expressed with syscalls
-+		 * PRoot already translates, with the kernel's semantics:
++		 * A call with a path never reaches the kernel as it is: it
++		 * is expressed with syscalls PRoot already translates, with
++		 * the kernel's semantics:
 +		 *   flags 0                      -> fchmodat(dirfd, path, mode)
 +		 *   AT_SYMLINK_NOFOLLOW, symlink -> -EOPNOTSUPP, as Linux
 +		 *   AT_SYMLINK_NOFOLLOW, other   -> fchmodat on the translated
 +		 *                                   path, which is not a link
-+		 *   AT_EMPTY_PATH and ""         -> fchmod(dirfd, mode)
++		 *   AT_EMPTY_PATH and ""         -> unchanged: no path to
++		 *                                   translate, so the kernel
++		 *                                   acts on the descriptor
 +		 *   any other flag               -> -EINVAL
++		 * fchmod() is not a substitute for the empty-path form: it
++		 * fails with EBADF on an O_PATH descriptor, which is how
++		 * systemd-tmpfiles changes modes (fchmod_opath). A kernel
++		 * older than 6.6 answers ENOSYS, as it does natively, and
++		 * callers fall back to /proc/self/fd.
 +		 * The symlink case is decided on the translated host path,
 +		 * after extensions (link2symlink) resolved it, so a faked
 +		 * hard link is a regular file here as everywhere else.  */
@@ -123,14 +141,7 @@ diff -ruN a/src/syscall/enter.c b/src/syscall/enter.c
 +			break;
 +
 +		if (path[0] == '\0') {
-+			if ((chmod_flags & AT_EMPTY_PATH) == 0) {
-+				status = -ENOENT;
-+				break;
-+			}
-+			/* fchmod(int fd, mode_t mode) */
-+			set_sysnum(tracee, PR_fchmod);
-+			poke_reg(tracee, SYSARG_2, peek_reg(tracee, CURRENT, SYSARG_3));
-+			status = 0;
++			status = (chmod_flags & AT_EMPTY_PATH) == 0 ? -ENOENT : 0;
 +			break;
 +		}
 +

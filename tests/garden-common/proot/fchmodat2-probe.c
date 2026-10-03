@@ -38,6 +38,18 @@ int main(int argc, char **argv) {
     int fd = open(F, O_RDONLY);
     errno = 0; r = syscall(452, fd, "", 0600, AT_EMPTY_PATH);
     printf("raw fchmodat2(fd, \"\", 0600, EMPTY_PATH) = %d errno=%s\n", r, r ? strerrorname_np(errno) : "-"); mode(F);
+    /* systemd-tmpfiles changes modes through O_PATH descriptors this way. */
+    int pfd = open(F, O_PATH);
+    errno = 0; r = syscall(452, pfd, "", 0640, AT_EMPTY_PATH);
+    printf("raw fchmodat2(O_PATH fd, \"\", EMPTY_PATH) = %d errno=%s\n", r, r ? strerrorname_np(errno) : "-"); mode(F);
+    int dfd = open(base, O_PATH | O_DIRECTORY);
+    errno = 0; r = syscall(452, dfd, "", 0755, AT_EMPTY_PATH);
+    printf("raw fchmodat2(O_PATH dir, \"\", EMPTY_PATH)= %d errno=%s\n", r, r ? strerrorname_np(errno) : "-");
+    int lfd = open(L, O_PATH | O_NOFOLLOW);
+    errno = 0; r = syscall(452, lfd, "", 0777, AT_EMPTY_PATH);
+    printf("raw fchmodat2(O_PATH link, \"\", EMPTY)   = %d errno=%s\n", r, r ? strerrorname_np(errno) : "-");
+    errno = 0; r = syscall(452, pfd, "", 0640, AT_EMPTY_PATH | AT_SYMLINK_NOFOLLOW);
+    printf("raw fchmodat2(O_PATH fd, EMPTY|NOFOLLOW) = %d errno=%s\n", r, r ? strerrorname_np(errno) : "-");
     if (chdir(base)) return 2;
     errno = 0; r = syscall(452, AT_FDCWD, "link", 0777, AT_SYMLINK_NOFOLLOW);
     printf("raw fchmodat2(relative link, NOFOLLOW)   = %d errno=%s\n", r, r ? strerrorname_np(errno) : "-");
