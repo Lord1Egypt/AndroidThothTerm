@@ -676,7 +676,9 @@ public class LanServerTest {
             assertEquals(LanServer.CLOSE_EXITED, ws.closeCode());
         }
         eventually("terminal removal", () -> mode.status().terminals == 0);
-        assertTrue("the PTY is hung up and released", ptys.get(0).hungUp);
+        // RemoteTerminals.onExited removes the terminal and tells the browser
+        // first, then hangs the PTY up, on the shell's thread.
+        eventually("the PTY is hung up and released", () -> ptys.get(0).hungUp);
     }
 
     @Test
