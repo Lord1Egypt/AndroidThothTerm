@@ -622,7 +622,7 @@ public final class RootfsManager {
 
     /** Extracts and verifies the pinned archive into a fresh staging tree. */
     private void stageVerifiedArchive(SetupTimeline timeline) throws Exception {
-        ThothLog.i(LogCategory.ROOTFS, "Extraction started image=" + image.imageId()
+        ThothLog.i(LogCategory.ROOTFS, "Preparing the system image image=" + image.imageId()
                 + " version=" + image.ubuntuVersion());
 
         ThothLog.d(LogCategory.ROOTFS, "Staging cleanup started");
@@ -648,6 +648,8 @@ public final class RootfsManager {
         // Both flavours extract the same bytes: "full" streams them out of the
         // APK, "fdroid" out of the archive it downloaded and verified first.
         InputStream source = openImageStream(timeline);
+        // Logged only now: for a build that downloads, the line above did that first.
+        ThothLog.i(LogCategory.ROOTFS, "Extraction started image=" + image.imageId());
         percent = 0;
         publish(appContext.getString(R.string.ubuntu_extracting));
         RootfsArchive.Result result;
