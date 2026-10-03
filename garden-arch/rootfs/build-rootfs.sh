@@ -270,7 +270,7 @@ grep -q "^DownloadUser = alpm" $T/etc/pacman.conf
 # and for every repository, requires signatures and never relaxes them
 # (DatabaseOptional, the Arch default for databases, is not a package level).
 C="pacman-conf --config $T/etc/pacman.conf"
-$C SigLevel | tr " " "\n" | grep -qx Required
+$C SigLevel | tr " " "\n" | grep -Eqx "Required|PackageRequired"
 { $C SigLevel; for r in $($C --repo-list); do $C --repo "$r" SigLevel; done; } \
     | tr " " "\n" > /tmp/siglevels.shipped
 if grep -Eqx "Never|Optional|TrustAll|PackageNever|PackageOptional|PackageTrustAll" /tmp/siglevels.shipped; then

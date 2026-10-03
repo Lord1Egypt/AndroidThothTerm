@@ -1,0 +1,18 @@
+PASS pair with the PIN shown on the phone (HTTP 200)
+PASS session valid after pairing
+PASS a made-up token is refused
+PASS pairing from a foreign Origin is refused (HTTP 403)
+PASS the terminal WebSocket opens: {"type":"ready","term":"Wtuqdw9wzisTv3_wJ76ECQ","created":true}
+PASS the shell answers over LAN
+PASS upload begin (HTTP 200) target=/home/thoth
+PASS file body received (HTTP 200 {"name":"qa-lan-upload.bin"})
+PASS upload finished (HTTP 200 {"name":null})
+SHA256 qa-lan-upload.bin b73f25c55d8d6dd1eb2a17cc35e593562c528d251daf2b1c2c4f8667856d36c8
+PASS upload begin (HTTP 200)
+PASS cancel accepted (HTTP 204)
+PASS the half-sent PUT is ended by the server, not left open
+PASS upload begin (HTTP 200)
+PASS sign-out accepted (HTTP 204)
+PASS the half-sent PUT is ended by the server, not left open
+PASS the token no longer works
+PASS a new upload with the old token is refused (HTTP 401)

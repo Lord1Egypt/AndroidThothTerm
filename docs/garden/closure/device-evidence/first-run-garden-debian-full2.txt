@@ -1,0 +1,10 @@
+10-03 08:35:38.298 I/ThothTerm(14097): ROOTFS: Setup stage ARCHIVE_EXTRACTED t=10551ms entries=7050 rejected=0 skipped=0 hardlinkFallbacks=1 compressedBytes=62445701 extractedBytes=171193428 ms=9079
+10-03 08:35:38.298 W/ThothTerm(14097): ROOTFS: Hardlink fallback used count=1 (Android SELinux forbids untrusted-app hardlinks)
+10-03 08:35:38.298 I/ThothTerm(14097): ROOTFS: Setup stage ARCHIVE_VERIFIED t=10552ms sha256=f6520ff1c6eeb28ead2d175e6733da4c970459a291b1bd60f992f1655c5d0677
+10-03 08:35:38.396 I/ThothTerm(14097): ROOTFS: Setup stage SETUP_ROOTFS_COMPLETE t=10649ms
+10-03 08:35:38.397 I/ThothTerm(14097): ROOTFS: Setup stage ROOTFS_PROMOTED t=10651ms
+10-03 08:35:38.488 I/ThothTerm(14097): ROOTFS: Setup stage STATE_WRITTEN t=10742ms
+10-03 08:35:38.491 I/ThothTerm(14097): ROOTFS: Setup stage TERMINAL_READY t=10745ms state=TERMINAL_READY
+10-03 08:35:38.492 I/ThothTerm(14097): ROOTFS: Setup stage TERMINAL_HANDOFF t=10745ms
+10-03 08:35:38.496 I/ThothTerm(14097): ROOTFS: Setup stage OPTIONAL_SETUP_STARTED t=10748ms reason=after setup
+10-03 08:35:38.552 I/ThothTerm(14097): ROOTFS: Setup stage OPTIONAL_SETUP_FINISHED t=10804ms ms=33 sudo=INSTALLED state=HEALTHY

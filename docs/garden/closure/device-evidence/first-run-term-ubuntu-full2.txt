@@ -1,0 +1,8 @@
+10-03 08:29:13.301 I/ThothTerm( 9718): ROOTFS: Setup stage ARCHIVE_VERIFIED t=11804ms sha256=5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd
+10-03 08:29:13.458 I/ThothTerm( 9718): ROOTFS: Setup stage TERMINAL_READY t=11961ms state=TERMINAL_READY
+10-03 08:29:13.458 I/ThothTerm( 9718): ROOTFS: Setup stage TERMINAL_HANDOFF t=11961ms
+10-03 08:29:13.461 I/ThothTerm( 9718): ROOTFS: Setup stage OPTIONAL_SETUP_STARTED t=11963ms reason=after setup
+10-03 08:29:13.514 I/ThothTerm( 9718): ROOTFS: Provisioning command start
+10-03 08:29:17.035 I/ThothTerm( 9718): ROOTFS: Provisioning command start
+10-03 08:29:17.442 I/ThothTerm( 9718): ROOTFS: bundled sudo installed setuid=true report=install ok installed 1.9.17p2-1ubuntu3 /etc/sudoers: parsed OK /etc/sudoers.d/README: parsed OK /etc/sudoers.d/thoth: parsed OK
+10-03 08:29:17.477 I/ThothTerm( 9718): ROOTFS: Setup stage OPTIONAL_SETUP_FINISHED t=15980ms ms=4003 sudo=INSTALLED state=HEALTHY

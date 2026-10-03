@@ -105,7 +105,7 @@ public class ArchEditionTest {
         String refuseWeak = "grep -Eqx \"Never|Optional|TrustAll|PackageNever|PackageOptional"
                 + "|PackageTrustAll\" /tmp/siglevels.shipped";
         assertTrue("the shipped signature levels are checked", builder.contains(refuseWeak));
-        assertTrue(builder.contains("$C SigLevel | tr \" \" \"\\n\" | grep -qx Required"));
+        assertTrue(builder.contains("$C SigLevel | tr \" \" \"\\n\" | grep -Eqx \"Required|PackageRequired\""));
         String code = builder.replaceAll("(?m)^\\s*#.*$", "").replace(refuseWeak, "");
         assertFalse(code.contains("SigLevel = Never"));
         assertFalse(code.contains("TrustAll"));

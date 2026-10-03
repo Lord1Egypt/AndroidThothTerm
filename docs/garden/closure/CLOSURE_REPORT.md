@@ -225,3 +225,32 @@ Exit 0 (no FAIL, no UNVERIFIED) is the condition for tagging
 `arch-v0.1.0`, `ubuntu-v0.3.1`, `trixie-v0.2.1` from the tested commit and then
 updating the F-Droid metadata. The kernel-4.14 item stays open until the
 reviewer (or another 4.14 device) runs the CI build.
+
+## Addendum — device session, 2026-10-03 (SM-A165F, Android 16, kernel 6.12.38, QA ids only)
+
+Evidence: `device-evidence/`. Protected apps were never installed over; all
+installs `--no-incremental` under `.qa.*` ids.
+
+PASS on the phone: extractor device gate 3/3 editions (46 PASS each, AndroidFileOps
+swap race, setuid helper); first runs Full Ubuntu/Trixie/Rolling and F-Droid
+Ubuntu/Trixie (TERMINAL_READY 11–25 s, optional setup after, no ANR);
+reviewer flow with provisioning made to hang (terminal in 2 s, usable,
+OPTIONAL_SETUP_FAILED, menu retry → sudo works); HOME lifecycle 4 cases
+(same sentinel sha256 and inode through an interrupted + continued reinstall);
+LAN Ubuntu 7681 and Rolling 7683 (pair, foreign origin refused, terminal,
+upload sha match, cancel/sign-out end the PUT, no leftovers, LAN off closes);
+apt on Ubuntu/Trixie; pacman -Syu ×2, -Dk, -Qk on Rolling; fork probe 7/7.
+
+Defects found on the device and fixed: sudoers README 0640 under fake root
+(ceb5c85); 0006 broke fchmodat2 on O_PATH descriptors → systemd-tmpfiles hook
+errors (737d308, re-verified on the phone); misleading "Extraction started"
+before download (9c4fee3); flaky LAN test (59d2f8b); SigLevel gate/build check
+compared against unexpanded `Required` (this commit).
+
+OPEN — Rolling pacman gate (`device-evidence/arch-pacman-gate.txt`, 83 PASS / 6 FAIL,
+run before the SigLevel fix): P6 printed a line (not yet read); case 1
+`pacman -Qkk tzdata` UID mismatch on `/usr/share/zoneinfo/CET` after recovery;
+case 2 vim-runtime retry `invalid or corrupted package` (+2 consequent FAILs).
+These need root-causing before any Golden. Verdict stays RELEASE BLOCKED.
+Rolling F-Droid needs its rootfs release asset published (404 today; error and
+retry path verified). Kernel 4.14 still unverified.

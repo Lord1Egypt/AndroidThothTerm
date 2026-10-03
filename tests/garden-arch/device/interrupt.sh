@@ -164,7 +164,7 @@ syu_clean 3
 
 levels() { pacman-conf SigLevel; for r in $(pacman-conf --repo-list); do pacman-conf --repo "$r" SigLevel; done; }
 levels | tr ' ' '\n' > /tmp/int-levels
-pacman-conf SigLevel | tr ' ' '\n' | grep -qx Required \
+pacman-conf SigLevel | tr ' ' '\n' | grep -Eqx 'Required|PackageRequired' \
   && ! grep -Eqx 'Never|Optional|TrustAll|PackageNever|PackageOptional|PackageTrustAll' /tmp/int-levels
 ok $? "signature checking unchanged: $(pacman-conf SigLevel | tr '\n' ' ')"
 pacman -Syu --noconfirm > /tmp/int9.log 2>&1 && grep -q 'nothing to do' /tmp/int9.log; ok $? "final pacman -Syu: nothing to do"
