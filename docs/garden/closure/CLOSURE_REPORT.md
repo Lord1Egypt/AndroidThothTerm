@@ -254,3 +254,19 @@ case 2 vim-runtime retry `invalid or corrupted package` (+2 consequent FAILs).
 These need root-causing before any Golden. Verdict stays RELEASE BLOCKED.
 Rolling F-Droid needs its rootfs release asset published (404 today; error and
 retry path verified). Kernel 4.14 still unverified.
+
+## Addendum 2 — gate reruns (same phone, QA ids)
+
+- Trixie apt/dpkg gate: 26 PASS / 0 FAIL.
+- Rolling pacman gate: **88 PASS / 1 FAIL** (was 83/6). P6 was a test bug (umask 0 under
+  run-as gave mode 666; extraction itself printed nothing). The vim-runtime case was a
+  test bug too: libalpm words an incomplete local db entry as "invalid or corrupted
+  package" and the branch looked for an error where pacman prints a warning.
+- **Open (real): case 1, `pacman -Qkk tzdata` UID/GID mismatch.** Root cause established on
+  the phone: every mismatching file (1093 in tzdata; also coreutils 46, pacman 14) is a
+  link2symlink "hard link" (`CET -> .l2s.CET0001`, real owner = the app uid); PRoot's
+  fake_id0 does not report the faked root ownership for such links, so libalpm's
+  mtree check sees a different uid. Contents and modes are intact (-Qk 0 missing, -Dk
+  clean); only the ownership comparison of -Qkk differs. Not caused by the closure
+  changes (PRoot ownership handling is untouched); fix belongs in the PRoot patch set
+  (fake_id0 + link2symlink) and is NOT done. The gate was not weakened; it stays FAIL.

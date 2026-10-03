@@ -1,0 +1,136 @@
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/mkroot.sh: 1 file pushed, 0 skipped. 0.5 MB/s (1350 bytes in 0.003s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/run.sh: 1 file pushed, 0 skipped. 19.2 MB/s (1188 bytes in 0.000s)
+2 files pushed, 0 skipped. 0.0 MB/s (2538 bytes in 0.084s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/../../../garden-arch/build/garden/assets/runtime/arm64-v8a/libtalloc.so.2: 1 file pushed, 0 skipped. 15.5 MB/s (46064 bytes in 0.003s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/../../../garden-arch/build/garden/assets/runtime/arm64-v8a/libandroid-shmem.so: 1 file pushed, 0 skipped. 11.9 MB/s (18432 bytes in 0.001s)
+2 files pushed, 0 skipped. 1.2 MB/s (64496 bytes in 0.053s)
+/tmp/ga-resolv.conf: 1 file pushed, 0 skipped. 0.2 MB/s (48 bytes in 0.000s)
+/tmp/ga-env: 1 file pushed, 0 skipped. 1.6 MB/s (179 bytes in 0.000s)
+/tmp/ga-final.dirmodes: 1 file pushed, 0 skipped. 0.9 MB/s (83 bytes in 0.000s)
+/tmp/ga-final.tar.gz: 1 file pushed, 0 skipped. 21.3 MB/s (221865649 bytes in 9.944s)
+/tmp/ga-final.hardlinks: 1 file pushed, 0 skipped. 171.6 MB/s (128307 bytes in 0.001s)
+hard links in final: 1821
+hard links materialized as copies: 1821
+directory modes restored: 5
+rootfs ready: 694 MiB
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/provision.sh: 1 file pushed, 0 skipped. 0.7 MB/s (2749 bytes in 0.004s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/zero.sh: 1 file pushed, 0 skipped. 58.0 MB/s (8813 bytes in 0.000s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/restart.sh: 1 file pushed, 0 skipped. 0.4 MB/s (640 bytes in 0.001s)
+hard links materialized as copies: 1821
+directory modes restored: 5
+rootfs ready: 694 MiB
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/provision.sh: 1 file pushed, 0 skipped. 27.3 MB/s (2749 bytes in 0.000s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/zero.sh: 1 file pushed, 0 skipped. 84.7 MB/s (8813 bytes in 0.000s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/interrupt.sh: 1 file pushed, 0 skipped. 42.2 MB/s (10681 bytes in 0.000s)
+/tmp/ga-stale.dirmodes: 1 file pushed, 0 skipped. 0.4 MB/s (77 bytes in 0.000s)
+/tmp/ga-stale.tar.gz: 1 file pushed, 0 skipped. 19.5 MB/s (258677129 bytes in 12.646s)
+/tmp/ga-stale.hardlinks: 1 file pushed, 0 skipped. 64.9 MB/s (129240 bytes in 0.002s)
+hard links in stale: 1833
+hard links materialized as copies: 1833
+directory modes restored: 4
+rootfs ready: 773 MiB
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/provision.sh: 1 file pushed, 0 skipped. 6.7 MB/s (2749 bytes in 0.000s)
+/home/lordegypt/AndroidThothTerm/wt-closure/tests/garden-arch/device/stale.sh: 1 file pushed, 0 skipped. 3.6 MB/s (4628 bytes in 0.001s)
+PASS first-run keyring: provisioned: Arch Linux ARM, pacman 7.1.0.r9.g54d9411-2, keyring in 8 s
+PASS A pacman --version (Pacman v7.1.0)
+PASS B pacman-key --populate archlinuxarm, no trust errors
+PASS C current repository package which-2.25-1-aarch64.pkg.tar.xz downloaded and signature-verified (trusted)
+PASS P6 symlink extraction with absolute names: no permission warning (patch 0006)
+PASS D pacman -Syu (3 upgraded; 0 symlink chmod warnings, their owners pass pacman -Qkk)
+PASS E second pacman -Syu: nothing to do
+PASS F0 tree not installed before the test
+PASS F install tree and run it
+PASS G remove tree
+PASS H reinstall tree
+PASS I remove tree (baseline has none)
+PASS J pacman -Syu after the transactions
+PASS K pacman -Dk clean, pacman -Qk: 138 packages, 0 with missing files, no db.lck
+PASS K sync databases present after -Syu
+INFO /proc/1/root not visible (hidepid); SYSTEMD_IN_CHROOT=1
+INFO without SYSTEMD_IN_CHROOT: systemd-detect-virt --chroot exit 1 Failed to check for chroot() environment: Function not implemented
+PASS systemd-detect-virt --chroot: yes (app environment)
+PASS systemctl daemon-reload is skipped as in a chroot, exit 0
+PASS os-release: Arch Linux ARM (ID=archarm)
+PASS uname -r reports PRoot's emulated release (6.1.0-thothterm), not an Arch kernel; aarch64
+PASS sudo -n id -un as thoth: root
+PASS thoth uid/gid/home
+PASS thoth shell /bin/bash
+PASS DNS
+PASS HTTPS/TLS (curl: 200 0)
+PASS gzip round trip
+PASS xz round trip
+PASS zstd round trip
+PASS bzip2 round trip
+PASS tar round trip
+PASS hard link
+PASS symlink
+PASS /proc/self/exe names the hard link run, by path and by PATH (patch 0003)
+INFO /proc/self/exe after a relative ./rl2: /tmp/z/./rl2 (PRoot keeps the ./; same file, same basename)
+PASS /tmp writable, 1777
+PASS UTF-8 locale (LANG=C.UTF-8)
+PASS no locale warnings
+PASS ldd pacman: all libraries found
+PASS ldd bash: all libraries found
+PASS ldd sudo: all libraries found
+PASS ldd curl: all libraries found
+PASS ldd gpg: all libraries found
+PASS ldd tar: all libraries found
+PASS ldd zstd: all libraries found
+PASS ldd xz: all libraries found
+PASS ldd ls: all libraries found
+PASS coreutils
+INFO systemctl (expected unavailable under PRoot): offline
+PASS L after restart: install jq and use it
+PASS L remove jq
+PASS L database consistent, no lock
+PASS L sudo after restart
+PASS 1 cached tzdata 2026e-1 signature verified (ALARM key, trusted)
+PASS 1 interrupted reinstall of tzdata 2026e-1: lock left behind (detected)
+PASS 1 the next transaction refuses: unable to lock database
+PASS 1: no pacman process remains
+PASS 1 tzdata metadata recreated from the verified same-version package
+PASS 1 tzdata reinstalled at the same version 2026e-1
+FAIL 1 pacman -Qkk tzdata: files and checksums match the package warning: tzdata: /usr/share/zoneinfo/CET (UID mismatch)
+warning: tzdata: /usr/share/zoneinfo/CET (GID mismatch)
+PASS 1 pacman -Dk and pacman -Qk clean, no lock
+PASS 1 full pacman -Syu completes cleanly
+PASS 2 cached vim-runtime 9.2.1046-1 signature verified (ALARM key, trusted)
+PASS 2 interrupted install of vim-runtime: lock left behind (detected)
+PASS 2: no pacman process remains
+INFO 2 retry found vim-runtime's incomplete local metadata
+PASS 2 vim-runtime metadata recreated from the verified same-version package
+PASS 2 vim-runtime reinstalled after the metadata repair
+PASS 2 vim-runtime at 9.2.1046-1
+PASS 2 pacman -Qkk vim-runtime: files and checksums match the package
+PASS 2 pacman -Dk and pacman -Qk clean, no lock
+PASS 2 vim-runtime removed
+PASS 3 cached icu 78.3-1 signature verified (ALARM key, trusted) before any restore
+INFO 3 after the kill pacman still starts 
+PASS 3: no pacman process remains
+PASS 3 icu files restored from the verified package with GNU tar
+PASS 3 pacman starts again
+INFO 3 icu metadata intact; the missing-desc window was not hit this run
+PASS 3 icu reinstalled by pacman at the same version 78.3-1
+PASS 3 pacman -Qkk icu: files and checksums match the package
+PASS 3 pacman -Dk and pacman -Qk clean, no lock
+PASS 3 full pacman -Syu completes cleanly
+PASS signature checking unchanged: PackageRequired PackageTrustedOnly DatabaseOptional DatabaseTrustedOnly 
+PASS final pacman -Syu: nothing to do
+PASS final pacman -Dk and pacman -Qk clean, no lock
+PASS stale-image keyring provisioning: provisioned: Arch Linux ARM, pacman 7.1.0.r9.g54d9411-2, keyring in 6 s
+INFO stale state: pacman 7.1.0.r9.g54d9411-2, archlinux-keyring 20260727-1, openssl 3.6.3-1, systemd 261.2-1; sync db from 2026-08-05 00:31:35
+PASS no systemd chroot-detection failure in package hooks
+PASS stale -> current by one pacman -Syu (56 packages)
+PASS second -Syu: nothing to do
+PASS pacman -Dk
+PASS stale upgrade warnings classified (0 symlink chmod warnings, owners pass pacman -Qkk)
+PASS pacman -Qk: no missing files
+PASS ldd pacman
+PASS ldd bash
+PASS ldd curl
+PASS ldd gpg
+INFO the official stale upstream image has no sudo package; the candidate image tests sudo separately
+INFO now: pacman 7.1.0.r9.g54d9411-2, archlinux-keyring 20260909-1, openssl 3.6.5-1, systemd 262-1
+
+PASS: 88  FAIL: 1
+gate exit=1
