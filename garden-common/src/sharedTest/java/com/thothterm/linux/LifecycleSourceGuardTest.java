@@ -51,6 +51,9 @@ public class LifecycleSourceGuardTest {
                     source.contains("RootfsLifecycle.assess("));
             assertFalse(path + " must not gate readiness on the pin",
                     source.contains("state.matches(image)"));
+            // Guest processes run while the manager works: a mode change by
+            // path can be redirected through a symlink swapped in meanwhile.
+            assertFalse(path + " changes a mode by path", source.contains("Os.chmod("));
         }
     }
 
@@ -83,12 +86,18 @@ public class LifecycleSourceGuardTest {
                         prepare.contains(call));
             }
             assertFalse(path, source.contains("prepareAdminToolsOffline"));
-            // The one guest command setup itself runs: on Arch, an offline
-            // pacman keyring (pacman-key --init/--populate from the image's
-            // own keyring package) is part of the install record, as in
-            // finishNewSystem. It needs no network.
-            assertFalse(path, prepare.replace("if (isPacman()) ensurePacmanKeyringNow();", "")
-                    .contains("ensurePacmanKeyringNow("));
+            // No guest command on the core path at all: Arch's pacman keyring
+            // (pacman-key, GnuPG) is optional setup too.
+            assertFalse(path + ": runPrepare creates the pacman keyring",
+                    prepare.contains("ensurePacmanKeyringNow("));
+            if (source.contains("private void finishNewSystem(")) {
+                String finish = body(source, "private void finishNewSystem(");
+                for (String call : new String[]{"runProvisioning(", "pacmanKeyringScript(",
+                        "ensurePacmanKeyringNow(", "ensureRealSudo("}) {
+                    assertFalse(path + ": finishNewSystem runs a guest command: " + call,
+                            finish.contains(call));
+                }
+            }
             int ready = prepare.indexOf("SetupTimeline.Stage.TERMINAL_READY");
             int complete = prepare.indexOf("notifyComplete();");
             int handoff = prepare.indexOf("SetupTimeline.Stage.TERMINAL_HANDOFF");
@@ -104,6 +113,11 @@ public class LifecycleSourceGuardTest {
             }
             assertTrue(path + ": optional setup reports its outcome",
                     run.contains("optionalSetup.finished(ok, why)"));
+            String provision = body(source, "private String runProvisioning(");
+            assertTrue(path + ": provisioning refuses the main thread",
+                    provision.contains("android.os.Looper.getMainLooper().isCurrentThread()"));
+            assertTrue(path + ": a provisioning command reads /dev/null, not an open pipe",
+                    provision.contains("Redirect.from(new File(\"/dev/null\"))"));
         }
     }
 

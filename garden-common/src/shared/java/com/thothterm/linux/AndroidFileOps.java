@@ -251,6 +251,40 @@ public final class AndroidFileOps implements FileOps {
     }
 
     /**
+     * The one mode outside the extraction contract: the real setuid bit on
+     * the guest's sudo binary, which PRoot's fake root needs. If the regular
+     * file at {@code file} is not setuid yet it gets {@code mode}, which must
+     * carry it. The same single-descriptor sequence as {@link #chmodNoFollow}:
+     * a symlink, swapped in at any moment, is refused and its target never
+     * changes.
+     *
+     * @return whether the file is setuid afterwards
+     */
+    static boolean ensureSetuidNoFollow(File file, int mode) throws IOException {
+        if ((mode & OsConstants.S_ISUID) == 0) throw new IllegalArgumentException("not setuid");
+        FileDescriptor fd;
+        try {
+            fd = Os.open(file.getAbsolutePath(), O_PATH | OsConstants.O_NOFOLLOW | CLOEXEC, 0);
+        } catch (ErrnoException e) {
+            throw io("chmod", file, e);
+        }
+        try {
+            int kind = Os.fstat(fd).st_mode;
+            if (!OsConstants.S_ISREG(kind)) throw new IOException("Not a regular file: " + file);
+            if ((kind & OsConstants.S_ISUID) == 0) Os.fchmod(fd, mode & 07777);
+            return (Os.fstat(fd).st_mode & OsConstants.S_ISUID) != 0;
+        } catch (ErrnoException e) {
+            throw io("fchmod", file, e);
+        } finally {
+            try {
+                Os.close(fd);
+            } catch (ErrnoException ignored) {
+                // Nothing useful to do.
+            }
+        }
+    }
+
+    /**
      * The public SDK has no {@code Os.unlink}; {@code Os.remove} is
      * {@code remove(3)}, which in bionic is {@code unlink(2)} and falls back
      * to {@code rmdir(2)} only when unlink fails with EISDIR. unlink(2) never

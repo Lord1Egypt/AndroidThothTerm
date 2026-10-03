@@ -77,7 +77,8 @@ if [ $# -ge 2 ]; then
     EXTRA="-e gateArchive extractor-gate/rootfs.tgz -e gateSha256 $2 -e gateManifest extractor-gate/expected.manifest"
 fi
 # shellcheck disable=SC2086
-adb shell am instrument -w $EXTRA -e class com.thothterm.linux.ExtractorDeviceGateTest \
+adb shell am instrument -w $EXTRA \
+    -e class com.thothterm.linux.ExtractorDeviceGateTest,com.thothterm.linux.AndroidFileOpsSetuidTest \
     "$PKG.test/androidx.test.runner.AndroidJUnitRunner" | tee "$OUT/extractor-device-gate.txt"
 adb shell "run-as $PKG sh -c 'cat files/extractor-gate/cases.txt files/extractor-gate/real.txt 2>/dev/null; rm -f files/extractor-gate/rootfs.tgz'"
 echo "results: $OUT/extractor-device-gate.txt"

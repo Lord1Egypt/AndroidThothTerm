@@ -10,11 +10,14 @@ sudo pacman -Rns tree
 ```
 
 The rootfs ships without pacman's sync databases, package cache, lock, logs,
-or a populated `/etc/pacman.d/gnupg` directory. On first installation the app
-creates a keyring for that installation with `pacman-key --init` and
-`pacman-key --populate archlinuxarm`. Before setup completes it requires the
-Arch Linux ARM Build System key to be fully valid and verifies the signature
-of a genuine repository package shipped as an offline check. Normal startup
+or a populated `/etc/pacman.d/gnupg` directory. After the terminal opens, the
+app's optional setup creates a keyring for that installation, in the
+background, with `pacman-key --init` and `pacman-key --populate archlinuxarm`.
+It then requires the Arch Linux ARM Build System key to be fully valid and
+verifies the signature of a genuine repository package shipped as an offline
+check; anything else is reported as an optional-setup failure and retried
+(menu, or the next window). The terminal never waits for it. Until it has
+succeeded pacman installs nothing, because signatures stay required. Normal startup
 does not need a public keyserver. The rootfs never contains the builder's
 private key. Package signature checking remains required.
 
@@ -93,9 +96,10 @@ ever appear again, runs `pacman -Qkk` on every package owning a named link.
 
 ## Release gate
 
-The package gate is `tests/garden-arch/device/gate.sh`, run with the current
-rootfs archive and an older official Arch Linux ARM userland. It runs in
-disposable app-owned copies, verifies a full `pacman -Syu`, a second no-op
+The package gate is `tests/garden-arch/device/gate.sh`, run with an installed
+isolated QA build (`com.thothterm.arch.qa.<name>`; a production or protected
+package is refused), the current rootfs archive and an older official Arch
+Linux ARM userland. It runs in disposable copies owned by that QA app, verifies a full `pacman -Syu`, a second no-op
 `pacman -Syu`, install/remove/reinstall, DNS, TLS, dynamic libraries, signing,
 restart, stale-image upgrade, and interrupted-transaction recovery. Its rootfs
 copies are unpacked with tar, so it says nothing about the app's own

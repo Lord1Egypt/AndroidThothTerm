@@ -35,9 +35,6 @@ package com.thothterm.linux;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.storage.StorageManager;
-import android.system.ErrnoException;
-import android.system.Os;
-import android.system.OsConstants;
 
 import androidx.preference.PreferenceManager;
 
@@ -1159,15 +1156,10 @@ public final class RootfsManager {
             return false;
         }
         try {
-            if ((Os.lstat(sudo.getAbsolutePath()).st_mode & OsConstants.S_ISUID) != 0) return true;
-            Os.chmod(sudo.getAbsolutePath(), SUDO_SETUID_MODE);
-        } catch (ErrnoException e) {
-            ThothLog.w(LogCategory.ROOTFS,
-                    "Cannot chmod the sudo binary: " + e.getMessage());
-        }
-        try {
-            return (Os.lstat(sudo.getAbsolutePath()).st_mode & OsConstants.S_ISUID) != 0;
-        } catch (ErrnoException e) {
+            // Guest processes run meanwhile: one descriptor, never the path twice.
+            return AndroidFileOps.ensureSetuidNoFollow(sudo, SUDO_SETUID_MODE);
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.ROOTFS, "Cannot chmod the sudo binary: " + e.getMessage());
             return false;
         }
     }
@@ -1179,8 +1171,15 @@ public final class RootfsManager {
                 Arrays.asList("/bin/sh", "-c", script));
         Map<String, String> env = runtime.buildProvisioningEnvironment();
 
+        if (android.os.Looper.getMainLooper().isCurrentThread()) {
+            // A guest command can take minutes: on the UI thread that is an ANR.
+            throw new IllegalStateException("Provisioning must never run on the main thread");
+        }
         ProcessBuilder builder = new ProcessBuilder(argv);
         builder.redirectErrorStream(true);
+        // Nothing answers a prompt: a command that reads stdin gets EOF at
+        // once instead of waiting out the timeout on an open pipe.
+        builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
         builder.environment().clear();
         builder.environment().putAll(env);
 
@@ -1189,7 +1188,10 @@ public final class RootfsManager {
         final StringBuilder output = new StringBuilder();
         Thread reader = new Thread(() -> {
             try {
-                output.append(new String(readAll(process.getInputStream()), "UTF-8"));
+                String text = new String(readAll(process.getInputStream()), "UTF-8");
+                synchronized (output) {
+                    output.append(text);
+                }
             } catch (IOException ignored) {
             }
         }, "ThothTerm-sudo-provision");
@@ -1204,22 +1206,35 @@ public final class RootfsManager {
             throw new IOException("Provisioning interrupted");
         }
         if (!finished) {
+            // PRoot dies by SIGKILL; PTRACE_O_EXITKILL takes its tracees with it.
             process.destroyForcibly();
-            throw new IOException("Provisioning timed out");
         }
         try {
             reader.join(5000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+        String report;
+        synchronized (output) {
+            report = output.toString();
+        }
+        if (!finished) {
+            throw new IOException("Provisioning timed out after " + PROVISION_TIMEOUT_SECONDS
+                    + " s; last output: " + tail(report));
+        }
         int code = process.exitValue();
-        String report = output.toString();
         ThothLog.d(LogCategory.ROOTFS, "Provisioning exit=" + code);
         if (code != 0) {
             throw new IOException("Provisioning command failed (" + code + "): "
                     + report.replace('\n', ' ').trim());
         }
         return report;
+    }
+
+    /** The end of a command's output, on one line, for the log. */
+    private static String tail(String report) {
+        String line = report.replace('\n', ' ').trim();
+        return line.length() <= 400 ? line : "..." + line.substring(line.length() - 400);
     }
 
     // ---- state, metadata, notification ----------------------------------------

@@ -19,9 +19,6 @@ package com.thothterm.linux;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.storage.StorageManager;
-import android.system.ErrnoException;
-import android.system.Os;
-import android.system.OsConstants;
 
 import androidx.preference.PreferenceManager;
 
@@ -472,7 +469,6 @@ public final class RootfsManager {
                     publish(appContext.getString(R.string.garden_finalizing, image.distroName()));
                     copyRuntimeLibraries();
                     setupRootfs(rootfsDir, false);
-                    if (isPacman()) ensurePacmanKeyringNow();
                     writeState();
                     ThothLog.i(LogCategory.ROOTFS, timeline.mark(
                             SetupTimeline.Stage.STATE_WRITTEN, "repair-in-place"));
@@ -612,19 +608,15 @@ public final class RootfsManager {
 
     /**
      * After a new system is in place: managed configuration (again, now that
-     * the preserved /home is there), the keyring, the completion record, and
-     * the reset marker is cleared.
+     * the preserved /home is there), the completion record, and the reset
+     * marker is cleared. No guest command runs here: a pacman keyring is
+     * created by the optional setup after the terminal opens
+     * ({@link #runOptionalSetup}); until it exists and verifies, pacman
+     * refuses every package, because signatures stay required.
      */
     private void finishNewSystem(SetupTimeline timeline) throws IOException {
         publish(appContext.getString(R.string.garden_finalizing, image.distroName()));
         setupRootfs(rootfsDir, false);
-        // PRoot needs the rootfs at its final path, so the keyring is made
-        // after the rename; setup is not complete, and no state is written,
-        // until it exists and verifies.
-        if (isPacman()) {
-            runProvisioning(rootfsDir, pacmanKeyringScript());
-            ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.KEYRING_PROVISIONED, ""));
-        }
         writeState();
         ThothLog.i(LogCategory.ROOTFS, timeline.mark(SetupTimeline.Stage.STATE_WRITTEN, ""));
         if (fileOps.type(layout.resetMarker) != FileOps.Type.NONE) fileOps.unlink(layout.resetMarker);
@@ -778,7 +770,7 @@ public final class RootfsManager {
         return isPacman() && !fileOps.isRegularFile(new File(rootfsDir, "etc/pacman.d/gnupg/trustdb.gpg"));
     }
 
-    /** Recreates a missing keyring now (setup and repair paths, off the UI thread). */
+    /** Creates a missing keyring now: optional setup only, on its background thread. */
     private void ensurePacmanKeyringNow() throws IOException {
         if (!keyringMissing()) return;
         runProvisioning(rootfsDir, pacmanKeyringScript());
@@ -1034,6 +1026,8 @@ public final class RootfsManager {
             if (keyringMissing()) {
                 try {
                     ensurePacmanKeyringNow();
+                    ThothLog.i(LogCategory.ROOTFS, optionalMark(timeline,
+                            SetupTimeline.Stage.KEYRING_PROVISIONED, ""));
                 } catch (Throwable t) {
                     ThothLog.e(LogCategory.ROOTFS, "pacman keyring creation failed type="
                             + t.getClass().getSimpleName() + " message=" + t.getMessage(), t);
@@ -1217,15 +1211,10 @@ public final class RootfsManager {
             return false;
         }
         try {
-            if ((Os.lstat(sudo.getAbsolutePath()).st_mode & OsConstants.S_ISUID) != 0) return true;
-            Os.chmod(sudo.getAbsolutePath(), SUDO_SETUID_MODE);
-        } catch (ErrnoException e) {
-            ThothLog.w(LogCategory.ROOTFS,
-                    "Cannot chmod the sudo binary: " + e.getMessage());
-        }
-        try {
-            return (Os.lstat(sudo.getAbsolutePath()).st_mode & OsConstants.S_ISUID) != 0;
-        } catch (ErrnoException e) {
+            // Guest processes run meanwhile: one descriptor, never the path twice.
+            return AndroidFileOps.ensureSetuidNoFollow(sudo, SUDO_SETUID_MODE);
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.ROOTFS, "Cannot chmod the sudo binary: " + e.getMessage());
             return false;
         }
     }
@@ -1237,8 +1226,15 @@ public final class RootfsManager {
                 Arrays.asList("/bin/sh", "-c", script));
         Map<String, String> env = runtime.buildProvisioningEnvironment();
 
+        if (android.os.Looper.getMainLooper().isCurrentThread()) {
+            // A guest command can take minutes: on the UI thread that is an ANR.
+            throw new IllegalStateException("Provisioning must never run on the main thread");
+        }
         ProcessBuilder builder = new ProcessBuilder(argv);
         builder.redirectErrorStream(true);
+        // Nothing answers a prompt: a command that reads stdin gets EOF at
+        // once instead of waiting out the timeout on an open pipe.
+        builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
         builder.environment().clear();
         builder.environment().putAll(env);
 
@@ -1247,7 +1243,10 @@ public final class RootfsManager {
         final StringBuilder output = new StringBuilder();
         Thread reader = new Thread(() -> {
             try {
-                output.append(new String(readAll(process.getInputStream()), "UTF-8"));
+                String text = new String(readAll(process.getInputStream()), "UTF-8");
+                synchronized (output) {
+                    output.append(text);
+                }
             } catch (IOException ignored) {
             }
         }, "ThothTerm-sudo-provision");
@@ -1262,22 +1261,35 @@ public final class RootfsManager {
             throw new IOException("Provisioning interrupted");
         }
         if (!finished) {
+            // PRoot dies by SIGKILL; PTRACE_O_EXITKILL takes its tracees with it.
             process.destroyForcibly();
-            throw new IOException("Provisioning timed out");
         }
         try {
             reader.join(5000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+        String report;
+        synchronized (output) {
+            report = output.toString();
+        }
+        if (!finished) {
+            throw new IOException("Provisioning timed out after " + PROVISION_TIMEOUT_SECONDS
+                    + " s; last output: " + tail(report));
+        }
         int code = process.exitValue();
-        String report = output.toString();
         ThothLog.d(LogCategory.ROOTFS, "Provisioning exit=" + code);
         if (code != 0) {
             throw new IOException("Provisioning command failed (" + code + "): "
                     + report.replace('\n', ' ').trim());
         }
         return report;
+    }
+
+    /** The end of a command's output, on one line, for the log. */
+    private static String tail(String report) {
+        String line = report.replace('\n', ' ').trim();
+        return line.length() <= 400 ? line : "..." + line.substring(line.length() - 400);
     }
 
     // ---- state, metadata, notification ----------------------------------------
