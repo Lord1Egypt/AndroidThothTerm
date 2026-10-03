@@ -1,0 +1,49 @@
+# tests/garden-common/proot/host-check.sh on Linux 6.18.40.1-microsoft-standard-WSL2 x86_64, ldd (Ubuntu GLIBC 2.39-0ubuntu8.9) 2.39, uid 1000, 2026-10-03T04:50:08Z
+# headers: miniconda libarchive 3.8.2 (CPATH/LIBRARY_PATH only; no system package changed); guest runtime: system libarchive.so.13 (3.7.2)
+--- native
+lchmod(/work/link)                      = -1 errno=EOPNOTSUPP
+fchmodat(/work/file, 0640, NOFOLLOW)     = 0 errno=-
+   lstat file mode=640
+fchmodat(/work/link, 0600, 0) follows   = 0 errno=-
+   lstat file mode=600
+raw fchmodat2(/work/link, NOFOLLOW)      = -1 errno=EOPNOTSUPP
+raw fchmodat2(/work/file, 0644, 0)       = 0 errno=-
+   lstat file mode=644
+raw fchmodat2(/work/file, bad flag)      = -1 errno=EINVAL
+raw fchmodat2(fd, "", 0600, EMPTY_PATH) = 0 errno=-
+   lstat file mode=600
+raw fchmodat2(relative link, NOFOLLOW)   = -1 errno=EOPNOTSUPP
+--- PRoot 0001-0005
+lchmod(/work/link)                      = -1 errno=ENOENT
+fchmodat(/work/file, 0640, NOFOLLOW)     = -1 errno=ENOENT
+   lstat file mode=644
+fchmodat(/work/link, 0600, 0) follows   = 0 errno=-
+   lstat file mode=600
+raw fchmodat2(/work/link, NOFOLLOW)      = -1 errno=ENOENT
+raw fchmodat2(/work/file, 0644, 0)       = -1 errno=ENOENT
+   lstat file mode=600
+raw fchmodat2(/work/file, bad flag)      = -1 errno=EINVAL
+raw fchmodat2(fd, "", 0600, EMPTY_PATH) = 0 errno=-
+   lstat file mode=600
+raw fchmodat2(relative link, NOFOLLOW)   = -1 errno=EOPNOTSUPP
+--- PRoot with 0006
+lchmod(/work/link)                      = -1 errno=EOPNOTSUPP
+fchmodat(/work/file, 0640, NOFOLLOW)     = 0 errno=-
+   lstat file mode=640
+fchmodat(/work/link, 0600, 0) follows   = 0 errno=-
+   lstat file mode=600
+raw fchmodat2(/work/link, NOFOLLOW)      = -1 errno=EOPNOTSUPP
+raw fchmodat2(/work/file, 0644, 0)       = 0 errno=-
+   lstat file mode=644
+raw fchmodat2(/work/file, bad flag)      = -1 errno=EINVAL
+raw fchmodat2(fd, "", 0600, EMPTY_PATH) = 0 errno=-
+   lstat file mode=600
+raw fchmodat2(relative link, NOFOLLOW)   = -1 errno=EOPNOTSUPP
+PASS the bug reproduces: PRoot without 0006 differs from the kernel
+PASS with 0006 every probe result equals the native kernel's
+--- libalpm-style extraction without 0006
+warning: warning given when extracting /x/libdemo.so (Can't set permissions to 0777)
+--- libalpm-style extraction with 0006
+PASS without 0006: pacman's warning reproduces
+PASS with 0006: no warning
+exit=0
