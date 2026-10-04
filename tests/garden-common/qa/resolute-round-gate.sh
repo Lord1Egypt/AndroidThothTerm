@@ -54,18 +54,28 @@ PY
     adb shell input tap $xy
 }
 type_marker() { # type_marker NAME: a command that writes /tmp/NAME in the guest
+    top | grep -q "$PKG/" || { echo "REFUSED to type '$1': $(top)"; return 1; }
     adb shell "input text 'echo%s$1%s>%s/tmp/$1'"; adb shell input keyevent KEYCODE_ENTER; sleep 3
     app "cat $R/tmp/$1" | grep -q "$1"
 }
 open_terminal() {
     adb logcat -c
     adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
-    i=0; while [ $i -lt 90 ]; do top | grep -q "$PKG/.*TermActivity" && return 0; sleep 1; i=$((i + 1)); done
+    i=0; while [ $i -lt 90 ]; do top | grep -q "$PKG/.*TermActivity" && break; sleep 1; i=$((i + 1)); done
+    [ $i -lt 90 ] || return 1
+    # RESUMED is not "ready": after a cold start the PTY session is created a moment later. Typing is only
+    # meaningful once the app logged "Session created" and the guest shell (su -> bash) exists.
+    while [ $i -lt 90 ]; do
+        log | grep -q 'SESSION: Session created' && procs | grep -q ' bash$' && return 0
+        sleep 1; i=$((i + 1))
+    done
     return 1
 }
 adb shell dumpsys deviceidle whitelist +"$PKG" >/dev/null
 
+# GATE_ONLY=terminal-answer re-runs just the in-place update and the normal typed-command check (section 2).
 # 1. The legacy surface is gone (no payload is sent: the components must not exist).
+if [ "${GATE_ONLY:-}" != terminal-answer ]; then
 adb shell cmd package query-activities --brief -a android.intent.action.SEND -t text/plain | tr -d '\r' > "$E/send-targets.txt"
 ! grep -q "^$PKG/" "$E/send-targets.txt"; ok $? "no share (ACTION_SEND) target in $PKG"
 for c in com.thothterm.TermHere jackpal.androidterm.RemoteInterface jackpal.androidterm.RunScript \
@@ -77,6 +87,7 @@ out=$(adb shell am start-foreground-service -n "$PKG/jackpal.androidterm.TermSer
 printf '%s\n' "$out" | grep -qi "not exported\|Requires permission\|SecurityException\|Error"; ok $? "TermService cannot be started from outside ($(printf '%s' "$out" | tail -1 | cut -c1-80))"
 adb shell dumpsys package "$PKG" | tr -d '\r' > "$E/dumpsys-package.txt"
 ! grep -q "permission.RUN_SCRIPT" "$E/dumpsys-package.txt"; ok $? "no RUN_SCRIPT permission declared"
+fi
 
 # 2. HOME survives an in-place update; the terminal opens first.
 app "mkdir -p $R/home/thoth && head -c 4096 /dev/urandom > $R/home/thoth/qa-round-sentinel && sha256sum $R/home/thoth/qa-round-sentinel && stat -c %i $R/home/thoth/qa-round-sentinel" > "$E/sentinel-before.txt"
@@ -85,6 +96,13 @@ open_terminal; ok $? "the terminal opens after an in-place update"
 app "sha256sum $R/home/thoth/qa-round-sentinel && stat -c %i $R/home/thoth/qa-round-sentinel" > "$E/sentinel-after.txt"
 cmp -s "$E/sentinel-before.txt" "$E/sentinel-after.txt"; ok $? "HOME sentinel: same SHA-256 and inode after the update"
 type_marker qa-round-first; ok $? "the terminal answers (a typed command wrote its file)"
+if [ "${GATE_ONLY:-}" = terminal-answer ]; then
+    no_anr; ok $? "no ANR"
+    app "rm -f $R/tmp/qa-round-*" >/dev/null 2>&1
+    adb shell rm -f /data/local/tmp/qa-app.sh /data/local/tmp/qa-ui.xml
+    adb shell dumpsys deviceidle whitelist -"$PKG" >/dev/null
+    echo "SUMMARY: $PASS PASS, $FAIL FAIL"; [ "$FAIL" = 0 ]; exit
+fi
 
 # 3. Optional setup hangs, times out, is killed, and a retry succeeds.
 app "cp $R/usr/bin/apt-get files/qa-apt-get.orig && cp $R/var/lib/dpkg/status files/qa-dpkg-status.orig && printf '#!/bin/sh\nexec sleep 1000\n' > $R/usr/bin/apt-get && chmod 755 $R/usr/bin/apt-get"
