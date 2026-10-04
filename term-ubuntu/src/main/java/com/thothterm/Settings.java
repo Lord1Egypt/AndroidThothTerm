@@ -22,7 +22,6 @@ import android.content.res.Resources;
 import android.text.TextUtils;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
 
 import java.lang.annotation.Retention;
@@ -79,13 +78,6 @@ public class Settings {
         source_sys_shrc = parseBoolean(preferences,
                 r.getString(R.string.key_source_sys_shrc_preference),
                 r.getBoolean(R.bool.pref_source_sys_shrc_default));
-    }
-
-    @NonNull
-    public static String prepareInitialCommand(Context context, String extraCommand) {
-        // Ubuntu already starts in /home/thoth and is configured through
-        // profile files. Only an explicitly requested external command is sent.
-        return TextUtils.isEmpty(extraCommand) ? "" : extraCommand;
     }
 
     public void parsePreference(Context context, SharedPreferences preferences, String key) {

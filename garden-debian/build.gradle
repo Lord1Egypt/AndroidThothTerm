@@ -25,8 +25,8 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 201
-        versionName '0.2.1'
+        versionCode 202
+        versionName '0.2.2'
 
         // Device tests (the pinch gesture and garden-common's shared tests);
         // run with `am instrument` against the installed app, never

@@ -71,7 +71,11 @@ commit.
    preferences verified intact afterwards.
 8. `THIRD_PARTY_NOTICES.md` matches the actual bundled artifacts, hashes
    included.
-9. Changelog written to `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`.
+9. Changelog written to `<module>/fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`
+   (`term-ubuntu`, `garden-debian`, `garden-arch`, `garden-blackarch`). Each app
+   keeps all its store metadata, `images/icon.png` included, in its own module:
+   F-Droid scans a repository-root `fastlane/` for *every* app built from this
+   repository, so there must be none (`StoreMetadataTest`).
 10. Both flavours build clean, and every arm64 ELF reports 16 KB alignment
     (`llvm-readelf -l`, `check_elf_alignment.sh`, `zipalign -c -P 16 -v 4`).
 11. Record the release APK's size and SHA-256.

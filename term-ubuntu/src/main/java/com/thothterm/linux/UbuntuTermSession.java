@@ -32,13 +32,13 @@ import jackpal.androidterm.util.TermSettings;
  */
 public class UbuntuTermSession extends ShellTermSession {
 
-    public UbuntuTermSession(TermSettings settings, String initialCommand) throws IOException {
-        super(settings, prepareSession(initialCommand));
+    public UbuntuTermSession(TermSettings settings) throws IOException {
+        super(prepareSession(settings));
     }
 
-    private static String prepareSession(String initialCommand) throws IOException {
+    private static TermSettings prepareSession(TermSettings settings) throws IOException {
         prepareRuntime();
-        return initialCommand;
+        return settings;
     }
 
     /**

@@ -88,10 +88,16 @@ public class UnixSocketServer {
 
                     Credentials credentials = connection.getPeerCredentials();
                     int uid = credentials.getUid();
-                    // accept requests only from same user id or root
+                    // accept requests only from same user id or root; refuse
+                    // any other peer without stopping the server for everyone
                     if (uid != android.os.Process.myUid() &&
-                            uid != 0)
-                        return;
+                            uid != 0) {
+                        try {
+                            connection.close();
+                        } catch (IOException ignore) {
+                        }
+                        continue;
+                    }
 
                     Random random = new Random();
                     WorkerThread worker = new WorkerThread(connection, handler);

@@ -1296,7 +1296,7 @@ public final class RootfsManager {
             finished = process.waitFor(PROVISION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            process.destroyForcibly();
+            killHard(process);
             throw new IOException("Provisioning interrupted");
         }
         if (!finished) {
@@ -1337,6 +1337,7 @@ public final class RootfsManager {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+        if (!process.isAlive()) return;
         try {
             java.lang.reflect.Field pid = process.getClass().getDeclaredField("pid");
             pid.setAccessible(true);

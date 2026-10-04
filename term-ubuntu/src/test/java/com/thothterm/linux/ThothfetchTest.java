@@ -44,7 +44,7 @@ public class ThothfetchTest {
     private static final int NARROW_THRESHOLD = 44;
 
     private static final String[] WIDE_INFO = {
-            "ThothTerm Ubuntu",
+            "ThothTerm Resolute",
             "Ubuntu 26.04.1 LTS",
             "Architecture  aarch64",
             "Shell         Bash",
@@ -188,7 +188,7 @@ public class ThothfetchTest {
         }
         assertFalse("narrow layout must drop the wide-only details",
                 lines.stream().anyMatch(l -> l.contains("Architecture")));
-        assertTrue(lines.contains("ThothTerm Ubuntu"));
+        assertTrue(lines.contains("ThothTerm Resolute"));
         assertTrue(lines.contains("User  thoth"));
         assertTrue(lines.contains("Home  /home/thoth"));
     }

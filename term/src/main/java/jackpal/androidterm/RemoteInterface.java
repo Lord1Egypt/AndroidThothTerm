@@ -21,7 +21,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.TextUtils;
 
 import com.thothterm.Application;
 import com.thothterm.RemoteActionActivity;
@@ -68,25 +67,31 @@ public class RemoteInterface extends RemoteActionActivity {
         openNewWindow(null);
     }
 
+    /*
+     * The shared path comes from any installed app. It becomes the new
+     * shell's working directory and is never typed into the terminal: shell
+     * quoting does not neutralise terminal control characters
+     * (docs/security/THORNS.md).
+     */
     private void processSendAction(@NonNull Intent intent) {
         Uri uri = ExtraStreamCompat.get(intent);
-        if (uri != null) {
-            String scheme = uri.getScheme();
-            if (TextUtils.isEmpty(scheme)) {
-                openNewWindow(null);
-                return;
-            }
-            switch (scheme) {
-                case "file": {
-                    String path = uri.getPath();
-                    File file = new File(path);
-                    String dirPath = file.isDirectory() ? path : file.getParent();
-                    openNewWindow("cd " + quoteForBash(dirPath));
-                    return;
-                }
-            }
+        File dir = null;
+        if (uri != null && "file".equals(uri.getScheme())) {
+            dir = shareDirectory(uri.getPath());
         }
-        openNewWindow(null);
+        openNewWindowIn(dir);
+    }
+
+    /**
+     * The existing directory a shared file path names -- the path itself or
+     * its parent -- or null when it names none.
+     */
+    static File shareDirectory(String path) {
+        if (path == null) return null;
+        File file = new File(path);
+        if (!file.isAbsolute()) return null;
+        File dir = file.isDirectory() ? file : file.getParentFile();
+        return dir != null && dir.isDirectory() ? dir : null;
     }
 
     protected void switchWindowActivity(int index) {
@@ -102,10 +107,19 @@ public class RemoteInterface extends RemoteActionActivity {
     }
 
     protected String openNewWindow(String iInitialCommand) {
+        return openNewWindow(iInitialCommand, null);
+    }
+
+    private void openNewWindowIn(File workingDirectory) {
+        openNewWindow(null, workingDirectory != null ? workingDirectory.getPath() : null);
+    }
+
+    private String openNewWindow(String iInitialCommand, String workingDirectory) {
         TermService service = getTermService();
 
         try {
-            TermSession session = TermActivity.createTermSession(this, iInitialCommand);
+            TermSession session = TermActivity.createTermSession(this, iInitialCommand,
+                    workingDirectory);
 
             service.addSession(session);
 

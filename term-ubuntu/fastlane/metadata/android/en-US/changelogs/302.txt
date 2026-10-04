@@ -1,0 +1,7 @@
+ThothTerm Ubuntu is now ThothTerm Resolute: same app, package and data, renamed because Ubuntu is Canonical's trademark. It still runs Ubuntu 26.04 LTS.
+
+Security: an exported legacy integration accepted untrusted input from other apps. It is removed; only the launcher is exposed.
+
+Setup now names both downloads: the base system, then sudo and package lists from archive.ubuntu.com and security.ubuntu.com.
+
+A timed-out background setup step is now really stopped.

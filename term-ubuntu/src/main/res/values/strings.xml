@@ -20,11 +20,11 @@
     tools:keep="@string/edit_text,@string/select_text,@string/paste">
     <string name="application_site" translatable="false">https://github.com/Lord1Egypt/AndroidThothTerm</string>
 
-    <string name="application_terminal">ThothTerm Ubuntu</string>
+    <string name="application_terminal">ThothTerm Resolute</string>
     <string name="application_positioning">Ubuntu 26.04 LTS ARM64 on Android</string>
 
     <!-- Ubuntu edition setup -->
-    <string name="ubuntu_welcome">Welcome to ThothTerm Ubuntu</string>
+    <string name="ubuntu_welcome">Welcome to ThothTerm Resolute</string>
     <string name="ubuntu_preparing">Preparing your Linux environment\u2026</string>
     <string name="ubuntu_prepare_once">This happens only once.</string>
     <string name="ubuntu_extracting_percent">Extracting Ubuntu\u2026 %1$d%%</string>
@@ -48,7 +48,7 @@
     <string name="ubuntu_reset_confirm_yes">Reinstall, keep /home</string>
     <string name="ubuntu_reset_confirm_no">Do nothing</string>
     <string name="ubuntu_consent_title">Ubuntu needs to be downloaded</string>
-    <string name="ubuntu_consent_body">ThothTerm Ubuntu runs a real Ubuntu %1$s userland. This build does not include it, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n\u2022 This downloads executable software onto your device after installation.\n\u2022 That software is published by Canonical, not by ThothTerm.\n\u2022 It is not part of this app\u2019s package and was not built or verified by F\u2011Droid.\n\u2022 ThothTerm checks the download against a SHA\u2011256 checksum that is fixed in this app\u2019s source, and refuses it if it does not match.\n\nNothing is downloaded unless you choose Download Ubuntu.</string>
+    <string name="ubuntu_consent_body">ThothTerm Resolute runs a real Ubuntu %1$s userland. This build does not include it, so it has to be downloaded before the terminal can start.\n\nWhat will be downloaded:\n\u2022 Now: the Ubuntu %1$s base system, about %2$d MB, from %3$s.\n\u2022 Right after, in the background: Ubuntu\u2019s package lists and the sudo package, about 30 MB (it varies as the archive changes), from Ubuntu\u2019s package archive, archive.ubuntu.com and security.ubuntu.com. The terminal opens without waiting for this step; if it fails, the terminal still works and the menu offers to retry it.\n\nWhat you are agreeing to:\n\u2022 This downloads executable software onto your device after installation.\n\u2022 That software is published by Canonical, not by ThothTerm.\n\u2022 It is not part of this app\u2019s package and was not built or verified by F\u2011Droid.\n\u2022 ThothTerm checks the base system against a SHA\u2011256 checksum that is fixed in this app\u2019s source, and refuses it if it does not match. apt checks the packages against Ubuntu\u2019s archive signing keys.\n\nNothing is downloaded unless you choose Download Ubuntu. Later, the app contacts the package archive only when sudo is missing (a setup that failed, or you removed it) to install it again; any other download is apt run by you.</string>
     <string name="ubuntu_consent_accept">Download Ubuntu</string>
     <string name="ubuntu_consent_decline">Not now</string>
     <string name="ubuntu_consent_declined">Ubuntu was not downloaded. You can start the download whenever you want.</string>
@@ -114,8 +114,6 @@
     <string name="enable_wifilock">Keep Wi-Fi on</string>
     <string name="disable_wifilock">Allow Wi-Fi to sleep</string>
 
-    <string name="app_collection_progress">collecting information from other applications …</string>
-
     <!-- Navigation drawer -->
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -152,7 +150,7 @@
         The application request only necessary permissions and this texts provides detailed information on data usage.
     </string>
     <string name="notification_channel_sessions_description">Shown while an Ubuntu terminal session is running</string>
-    <string name="service_notify_text">ThothTerm Ubuntu is running</string>
+    <string name="service_notify_text">ThothTerm Resolute is running</string>
     <string name="service_timeout_text">System terminates long-running terminal sessions</string>
 
     <string name="process_exit_message">Terminal session finished</string>
@@ -263,12 +261,6 @@
 
     <string name="confirm_window_close_message">Close this window?</string>
 
-    <string name="perm_grp_term">Terminal Emulator permissions</string>
-    <string name="permdesc_grp_term">Used to access Terminal Emulator features.</string>
-
-    <string name="perm_run_script">Run arbitrary commands in Terminal Emulator</string>
-    <string name="permdesc_run_script">Allows application to open new windows in Terminal Emulator for Android and run commands in those windows with all of Terminal Emulator for Android\'s permissions, including access to the Internet and your SD Card.</string>
-
     <string name="alt_sends_esc">Alt key sends ESC</string>
     <string name="alt_sends_esc_summary_on">Alt key sends ESC.</string>
     <string name="alt_sends_esc_summary_off">Alt key does not send ESC.</string>
@@ -313,35 +305,8 @@
     <string name="diagnostics_auto_scroll">Auto-scroll</string>
 
     <string name="about">About</string>
-    <string name="about_title">About ThothTerm Ubuntu</string>
+    <string name="about_title">About ThothTerm Resolute</string>
+    <string name="about_notice">ThothTerm Resolute is an independent application and is not affiliated with or endorsed by Canonical. Ubuntu is a registered trademark of Canonical Ltd.</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_site">Project site</string>
-    <string name="activity_term_here_title">Term here</string>
-    <!-- BEGIN SHORTCUT RELATED STRINGS -->
-    <!-- AndroidManifest.xml -->
-    <string name="activity_shortcut_create">Term shortcut</string>
-    <!-- FileSelection activity -->
-    <string name="fsnavigator_title">File selector</string>
-    <string name="fsnavigator_no_external_storage">External storage not available</string>
-    <string name="fsnavigator_optional_enter_path">Or enter path here.</string>
-    <string name="fsnavigator_change_theme">Change theme</string>
-    <!-- AddShortcut activity -->
-    <string name="addshortcut_command_hint">command</string>
-    <string name="addshortcut_example_hint">--example=\"a\"</string>
-    <string name="addshortcut_button_find_command">Find command</string>
-    <string name="addshortcut_navigator_title">SELECT SHORTCUT TARGET</string>
-    <string name="addshortcut_command_window_instructions">Command window requires full path, no arguments. For other commands use Arguments window (ex: cd /sdcard).</string>
-    <string name="addshortcut_arguments_label">Arguments</string>
-    <string name="addshortcut_shortcut_label">Shortcut label</string>
-    <string name="addshortcut_button_text_icon">Text icon</string>
-    <string name="addshortcut_make_text_icon">MAKE TEXT ICON</string>
-    <string name="addshortcut_title">Term shortcut</string>
-    <!-- ColorValue.java -->
-    <string name="colorvalue_letter_alpha">α</string>
-    <string name="colorvalue_letter_red">R</string>
-    <string name="colorvalue_letter_green">G</string>
-    <string name="colorvalue_letter_blue">B</string>
-    <string name="colorvalue_label_lock_button_column">LOCK</string>
-    <string name="colorvalue_icon_text_entry_hint">Enter icon text</string>
-    <!-- END SHORTCUT RELATED STRINGS -->
 </resources>

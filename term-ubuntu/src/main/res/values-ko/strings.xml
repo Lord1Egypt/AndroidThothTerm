@@ -116,8 +116,6 @@
 
     <string name="confirm_window_close_message">이 창을 닫으시겠습니까?</string>
 
-    <string name="perm_run_script">터미널 에뮬레이터에서 명령어 실행</string>
-    <string name="permdesc_run_script">어플리케이션이 터미널 에뮬레이터에서 새로운 창을 열 수 있게 허용하고, 터미널 에뮬레이터의 모든 권한을 이용하여 명령을 실행할 수 있습니다. 예를 들어, SD카드나 인터넷에 액세스할 수 있습니다.</string>
 
 
     <string name="alt_sends_esc">Alt 키로 ESC 키를 입력</string>

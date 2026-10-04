@@ -1,5 +1,5 @@
-Third-party software in ThothTerm Ubuntu's LAN Mode web terminal
-=================================================================
+Third-party software in ThothTerm Resolute's LAN Mode web terminal
+===================================================================
 
 xterm.js 6.0.0 -- https://github.com/xtermjs/xterm.js (MIT)
 -----------------------------------------------------------------

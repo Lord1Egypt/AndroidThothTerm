@@ -112,8 +112,6 @@
 
     <string name="confirm_window_close_message">关闭窗口吗？</string>
 
-    <string name="perm_run_script">在终端模拟器中运行命令</string>
-    <string name="permdesc_run_script">允许程序开启新窗口并运行包括与网络、存储卡相关命令在内的所有命令</string>
 
 
     <string name="alt_sends_esc">Alt 键发送 ESC</string>

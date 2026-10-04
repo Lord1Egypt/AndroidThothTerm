@@ -1,0 +1,25 @@
+{
+  "package": "com.thothterm.ubuntu",
+  "note": "Garden Thorns: only the launcher is exported (docs/security/THORNS.md). The androidx profile installer receiver requires android.permission.DUMP, which only the shell and the system hold.",
+  "exported": [
+    {
+      "type": "activity",
+      "name": "com.thothterm.linux.UbuntuSetupActivity",
+      "permission": null,
+      "actions": [
+        "android.intent.action.MAIN"
+      ]
+    },
+    {
+      "type": "receiver",
+      "name": "androidx.profileinstaller.ProfileInstallReceiver",
+      "permission": "android.permission.DUMP",
+      "actions": [
+        "androidx.profileinstaller.action.BENCHMARK_OPERATION",
+        "androidx.profileinstaller.action.INSTALL_PROFILE",
+        "androidx.profileinstaller.action.SAVE_PROFILE",
+        "androidx.profileinstaller.action.SKIP_FILE"
+      ]
+    }
+  ]
+}

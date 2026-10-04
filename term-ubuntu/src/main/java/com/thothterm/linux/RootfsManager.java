@@ -449,7 +449,7 @@ public final class RootfsManager {
                 ThothLog.e(LogCategory.RUNTIME, "ARM64 compatibility check failed supportedAbis="
                         + DeviceArchitecture.describe(supportedAbis)
                         + " osArch=" + osArch);
-                throw new IOException("ThothTerm Ubuntu requires an arm64 device");
+                throw new IOException("ThothTerm Resolute requires an arm64 device");
             }
             ThothLog.i(LogCategory.RUNTIME, "ARM64 compatibility verified");
 
@@ -1210,12 +1210,11 @@ public final class RootfsManager {
             finished = process.waitFor(PROVISION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            process.destroyForcibly();
+            killHard(process);
             throw new IOException("Provisioning interrupted");
         }
         if (!finished) {
-            // PRoot dies by SIGKILL; PTRACE_O_EXITKILL takes its tracees with it.
-            process.destroyForcibly();
+            killHard(process);
         }
         try {
             reader.join(5000);
@@ -1237,6 +1236,29 @@ public final class RootfsManager {
                     + report.replace('\n', ' ').trim());
         }
         return report;
+    }
+
+    /**
+     * PRoot dies by SIGKILL and PTRACE_O_EXITKILL takes its tracees with it. On
+     * Android destroyForcibly() only sends SIGTERM, which PRoot survives while
+     * its traced command hangs (measured: the hung guest outlived the timeout),
+     * so the kill is sent explicitly once the polite one did not work.
+     */
+    private static void killHard(Process process) {
+        process.destroyForcibly();
+        try {
+            if (process.waitFor(2, TimeUnit.SECONDS)) return;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        if (!process.isAlive()) return;
+        try {
+            java.lang.reflect.Field pid = process.getClass().getDeclaredField("pid");
+            pid.setAccessible(true);
+            android.system.Os.kill(pid.getInt(process), android.system.OsConstants.SIGKILL);
+        } catch (ReflectiveOperationException | android.system.ErrnoException e) {
+            ThothLog.w(LogCategory.ROOTFS, "Cannot SIGKILL the hung provisioning command: " + e);
+        }
     }
 
     /** The end of a command's output, on one line, for the log. */

@@ -34,8 +34,6 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import jackpal.androidterm.util.TermSettings;
 
@@ -48,21 +46,18 @@ import jackpal.androidterm.util.TermSettings;
 public class ShellTermSession extends GenericTermSession {
     private static final int PROCESS_EXITED = 1;
 
-    private final String mInitialCommand;
     private final int mProcId;
     private final Thread mWatcherThread;
     /** Set once waitExit() has reaped the shell. */
     private volatile boolean mExited;
 
 
-    public ShellTermSession(TermSettings settings, String initialCommand) throws IOException {
+    public ShellTermSession(TermSettings settings) throws IOException {
         // exitOnEOF: the window closes when nothing holds its terminal any more
         // -- the shell exited and PRoot hung up the rest of its session --
         // even while PRoot keeps running for a nohup'd job.
         super(ParcelFileDescriptor.open(new File("/dev/ptmx"), ParcelFileDescriptor.MODE_READ_WRITE),
                 settings, true);
-
-        mInitialCommand = initialCommand;
 
         mProcId = createShellProcess(settings);
         ThothLog.i(LogCategory.SHELL, "Shell process started pid=" + mProcId);
@@ -81,20 +76,6 @@ public class ShellTermSession extends GenericTermSession {
         super.initializeEmulator(columns, rows);
 
         mWatcherThread.start();
-        sendInitialCommand();
-    }
-
-    private void sendInitialCommand() {
-        if (mInitialCommand.length() == 0) return;
-
-        // wait display of shell prompt (speculative)
-        // before to enter initial commands
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                write(mInitialCommand + '\r');
-            }
-        }, 500);
     }
 
     protected int createShellProcess(TermSettings settings) throws IOException {

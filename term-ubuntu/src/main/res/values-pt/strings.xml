@@ -112,6 +112,4 @@
 
     <string name="confirm_window_close_message">Fechar janela?</string>
 
-    <string name="perm_run_script">Executar comandos aleatórios no emulador de terminal</string>
-    <string name="permdesc_run_script">Permite que a aplicação abra janelas no emulador de terminal e executar comandos nessas janelas com todas as permissões, incluido o acesso à Internet e aos cartão SD.</string>
 </resources>

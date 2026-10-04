@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="enable_wifilock">Прихващане на безжичната мрежа</string>
     <string name="disable_wifilock">Освобождаване на безжичната мрежа</string>
 
-    <string name="app_collection_progress">събиране на сведения от други приложения …</string>
 
     <!-- Navigation drawer -->
     <string name="navigation_drawer_open">Отваряне на чекмеджето за управлерение</string>
@@ -159,11 +158,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <string name="confirm_window_close_message">Да се затвори ли този прозорец?</string>
 
-    <string name="perm_grp_term">Позволения на терминалната програма</string>
-    <string name="permdesc_grp_term">Използват се за достъп до възможности на терминалната програма.</string>
 
-    <string name="perm_run_script">Изпълнение на произволна команда в терминалната програма</string>
-    <string name="permdesc_run_script">Разрешаване на приложението на отворя нови прозорци в терминалната програма за Android и в тази прозорци, да изпълнява команди с всички права позволени на терминалната програма за Android, включващи достъп до мрежата и вашата карта памет (SD)</string>
 
 
     <string name="alt_sends_esc">Клавиш Alt изпраща Esc</string>
@@ -182,32 +177,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="script_access_error">Не е достъпен избраният скрипт</string>
     <string name="script_source_content_error">Липсва дейност, която да подаде съдържание, т.е. за действието \"Get Content\"</string>
 
-    <string name="activity_term_here_title">Терминал тук</string>
-    <!-- BEGIN SHORTCUT RELATED STRINGS -->
-    <!-- AndroidManifest.xml -->
-    <string name="activity_shortcut_create">Връзка към терминал</string>
-    <!-- FileSelection activity -->
-    <string name="fsnavigator_title">Избор на файлове</string>
-    <string name="fsnavigator_no_external_storage">Външното хранилище не е достъпно</string>
-    <string name="fsnavigator_optional_enter_path">Или въведете път тук</string>
-    <string name="fsnavigator_change_theme">Смяна на темата</string>
-    <!-- AddShortcut activity -->
-    <string name="addshortcut_command_hint">команда</string>
-    <string name="addshortcut_example_hint">--пример=\"a\"</string>
-    <string name="addshortcut_button_find_command">Търсене на команда</string>
-    <string name="addshortcut_navigator_title">Избор на цел за връзката</string>
-    <string name="addshortcut_command_window_instructions">Командния прозорец изисква пълен път, без параметри. За другите команди да се използва прозореца за параметри, напр. cd /sdcard.</string>
-    <string name="addshortcut_arguments_label">Параметри</string>
-    <string name="addshortcut_shortcut_label">Име на връзката</string>
-    <string name="addshortcut_button_text_icon">Икона с текст</string>
-    <string name="addshortcut_make_text_icon">Създаване на текстова икона</string>
-    <string name="addshortcut_title">Връзка към терминал</string>
-    <!-- ColorValue.java -->
-    <string name="colorvalue_letter_alpha">α</string>
-    <string name="colorvalue_letter_red">Ч</string>
-    <string name="colorvalue_letter_green">З</string>
-    <string name="colorvalue_letter_blue">С</string>
-    <string name="colorvalue_label_lock_button_column">Заключване</string>
-    <string name="colorvalue_icon_text_entry_hint">Въведете текст за иконата</string>
-    <!-- END SHORTCUT RELATED STRINGS -->
 </resources>

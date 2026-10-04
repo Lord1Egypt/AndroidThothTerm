@@ -1,0 +1,83 @@
+{
+  "package": "com.thothterm",
+  "note": "The regular terminal keeps its documented legacy integrations for compatibility. The share target opens a window whose working directory is the shared directory; nothing it receives is typed into the terminal. RunShortcut accepts only commands encrypted and authenticated with this install's keys; RunScript needs the RUN_SCRIPT permission; the bound TermService shows a terminal for the caller's own process. See docs/security/THORNS.md.",
+  "exported": [
+    {
+      "type": "activity",
+      "name": ".TermActivity",
+      "permission": null,
+      "actions": [
+        "android.intent.action.MAIN"
+      ]
+    },
+    {
+      "type": "activity",
+      "name": ".shortcuts.AddShortcut",
+      "permission": null,
+      "actions": [
+        "android.intent.action.CREATE_SHORTCUT",
+        "android.intent.action.MAIN"
+      ]
+    },
+    {
+      "type": "activity",
+      "name": ".shortcuts.FileSelection",
+      "permission": null,
+      "actions": [
+        "android.intent.action.GET_CONTENT",
+        "android.intent.action.PICK"
+      ]
+    },
+    {
+      "type": "activity",
+      "name": "jackpal.androidterm.RemoteInterface",
+      "permission": null,
+      "actions": [
+        "${applicationId}.OPEN_NEW_WINDOW"
+      ]
+    },
+    {
+      "type": "activity",
+      "name": "jackpal.androidterm.RunScript",
+      "permission": "${applicationId}.permission.RUN_SCRIPT",
+      "actions": [
+        "${applicationId}.RUN_SCRIPT"
+      ]
+    },
+    {
+      "type": "activity",
+      "name": "jackpal.androidterm.RunShortcut",
+      "permission": null,
+      "actions": [
+        "${applicationId}.RUN_SHORTCUT"
+      ]
+    },
+    {
+      "type": "activity-alias",
+      "name": ".TermHere",
+      "permission": null,
+      "actions": [
+        "android.intent.action.SEND"
+      ]
+    },
+    {
+      "type": "receiver",
+      "name": "androidx.profileinstaller.ProfileInstallReceiver",
+      "permission": "android.permission.DUMP",
+      "actions": [
+        "androidx.profileinstaller.action.BENCHMARK_OPERATION",
+        "androidx.profileinstaller.action.INSTALL_PROFILE",
+        "androidx.profileinstaller.action.SAVE_PROFILE",
+        "androidx.profileinstaller.action.SKIP_FILE"
+      ]
+    },
+    {
+      "type": "service",
+      "name": "jackpal.androidterm.TermService",
+      "permission": null,
+      "actions": [
+        "jackpal.androidterm.action.START_TERM.v1"
+      ]
+    }
+  ]
+}

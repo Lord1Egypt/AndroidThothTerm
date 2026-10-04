@@ -49,17 +49,25 @@ public class ShellTermSession extends GenericTermSession {
     private static final int PROCESS_EXITED = 1;
 
     private final String mInitialCommand;
+    private final String mWorkingDirectory;
     private final int mProcId;
     private final Thread mWatcherThread;
     /** Set once waitExit() has reaped the shell. */
     private volatile boolean mExited;
 
 
-    public ShellTermSession(TermSettings settings, String initialCommand) throws IOException {
+    /**
+     * @param workingDirectory where the shell starts, or null for the home
+     *                         directory. It is the process's cwd, never text
+     *                         typed into the terminal (docs/security/THORNS.md).
+     */
+    public ShellTermSession(TermSettings settings, String initialCommand,
+                            String workingDirectory) throws IOException {
         super(ParcelFileDescriptor.open(new File("/dev/ptmx"), ParcelFileDescriptor.MODE_READ_WRITE),
                 settings, false);
 
         mInitialCommand = initialCommand;
+        mWorkingDirectory = workingDirectory != null ? workingDirectory : settings.getHomePath();
 
         mProcId = createShellProcess(settings);
         ThothLog.i(LogCategory.SHELL, "Shell process started pid=" + mProcId);
@@ -133,8 +141,7 @@ public class ShellTermSession extends GenericTermSession {
         for (Map.Entry<String, String> entry : map.entrySet())
             env[k++] = entry.getKey() + "=" + entry.getValue();
 
-        return Process.createSubprocess(mTermFd, arg0, args, env,
-                settings.getHomePath());
+        return Process.createSubprocess(mTermFd, arg0, args, env, mWorkingDirectory);
     }
 
     private ArrayList<String> parse(String cmd) {

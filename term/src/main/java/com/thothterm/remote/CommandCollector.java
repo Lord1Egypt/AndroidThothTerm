@@ -37,6 +37,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
+import java.util.regex.Pattern;
 
 
 /**
@@ -48,6 +49,9 @@ import java.util.concurrent.Semaphore;
  * and other command attributes.
  */
 public class CommandCollector {
+    /** A command name that is safe as a bare word in an alias line. */
+    private static final Pattern COMMAND_NAME = Pattern.compile("[A-Za-z0-9_][A-Za-z0-9_.+-]*");
+
     private static final HashMap<String, CommandInfo> list = new HashMap<>();
     private int pending = 0;
     private OnCommandsConnectedListener callback;
@@ -129,6 +133,7 @@ public class CommandCollector {
             if (app_cmds == null) continue;
 
             for (String cmd : app_cmds) {
+                if (!isCommandName(cmd)) continue;
                 CommandInfo info = list.get(cmd);
                 if (info != null) continue;
                 list.put(cmd, new CommandInfo(app));
@@ -139,6 +144,10 @@ public class CommandCollector {
             out.println("alias " + cmd + "='t1pcmd " + cmd + "'");
         }
         out.flush();
+    }
+
+    static boolean isCommandName(String cmd) {
+        return cmd != null && COMMAND_NAME.matcher(cmd).matches();
     }
 
     public static void collect(Context context, OnCommandsConnectedListener listener) {
