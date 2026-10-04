@@ -189,10 +189,13 @@ cat > "$BUILD_DIR/include/replace.h" <<'REPLACE_H'
 REPLACE_H
 
 # -------------------------------------------------------------------- build
+# Reproducible output: talloc's __location__ (and any other __FILE__) names the
+# file relative to the repository, never the checkout's absolute path.
+PREFIX_MAP="-ffile-prefix-map=$REPO_ROOT=."
 log "building libtalloc.so.2"
 "$CC" -c "$TALLOC_SRC/talloc.c" -o "$BUILD_DIR/talloc.o" \
     -I"$BUILD_DIR/include" -I"$TALLOC_SRC" \
-    -O2 -fPIC -Wall \
+    -O2 -fPIC -Wall $PREFIX_MAP \
     -DHAVE_VA_COPY -DHAVE_STDBOOL_H -DHAVE_STDINT_H \
     -DHAVE_CONSTRUCTOR_ATTRIBUTE \
     -DTALLOC_BUILD_VERSION_MAJOR=$TALLOC_VERSION_MAJOR \
@@ -206,7 +209,7 @@ cp "$BUILD_DIR/lib/libtalloc.so.2" "$BUILD_DIR/lib/libtalloc.so"
 
 log "building libandroid-shmem.so"
 "$CC" -c "$SHMEM_SRC/shmem.c" -o "$BUILD_DIR/shmem.o" \
-    -O2 -fPIC -std=c11 -Wall \
+    -O2 -fPIC -std=c11 -Wall $PREFIX_MAP \
     -D_PATH_TMP="\"$RUNTIME_DIR/tmp/\""
 "$CC" -shared -o "$BUILD_DIR/lib/libandroid-shmem.so" "$BUILD_DIR/shmem.o" \
     -llog -landroid \
@@ -214,14 +217,18 @@ log "building libandroid-shmem.so"
     -Wl,-soname,libandroid-shmem.so -Wl,-z,noexecstack $PAGE_ALIGN_LDFLAGS
 
 log "building proot and loader"
+# GIT=false: PRoot's makefile would embed `git describe` of whatever repository
+# the build copy sits in -- this one's tag, plus "-dirty" when a build service
+# has edited the checkout. Without it PRoot reports its declared version.
 (
     cd "$BUILD_DIR/proot/src"
     CC="$CC" LD="$CC" OBJCOPY="$OBJCOPY" OBJDUMP="$OBJDUMP" STRIP="$STRIP" \
     READELF="$READELF" \
-    CPPFLAGS="-I$TALLOC_SRC -I$BUILD_DIR/include" \
+    CPPFLAGS="-I$TALLOC_SRC -I$BUILD_DIR/include $PREFIX_MAP" \
     LDFLAGS="-L$BUILD_DIR/lib -Wl,-z,noexecstack $PAGE_ALIGN_LDFLAGS" \
     LOADER_LDFLAGS="$PAGE_ALIGN_LDFLAGS" \
     PROOT_WITH_LIBANDROID_SHMEM=1 \
+    GIT=false \
     PROOT_UNBUNDLE_LOADER="$RUNTIME_DIR/loader" \
     "$MAKE" -s
 )

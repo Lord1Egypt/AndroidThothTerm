@@ -31,6 +31,12 @@ else ()
     set(MAX_PAGE_SIZE "")
 endif ()
 
+# Reproducible output: the linker hashes the unstripped file, whose debug info
+# holds the checkout and NDK paths, into the GNU build-id; AGP then strips the
+# debug info but keeps that id. Without an id the shipped file depends on the
+# source and toolchain version only.
+add_link_options(-Wl,--build-id=none)
+
 add_executable(
         libexec-t1plus.so
         appcmd.c
