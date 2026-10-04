@@ -50,5 +50,5 @@ F-Droid maintainers' decision.
 |---|---|---|
 | Resolute 0.3.2 | !49556 | open, ready, pipeline green |
 | Trixie 0.2.2 | !50342 | open, ready, pipeline green |
-| Rolling 0.1.1 | !51045 | open, **draft**: waits for the owner's upstream release signing key (`Binaries`, `AllowedAPKSigningKeys`; `docs/RELEASE_SIGNING.md`) |
+| Rolling 0.1.1 | !51045 | open, ready, pipeline green; upstream signing (`Binaries`, `AllowedAPKSigningKeys` 3f85da4f…f679; `docs/RELEASE_SIGNING.md`) |
 | Security 0.1.0 | !51185 | open, ready, pipeline green; Reproducible Builds not enabled yet (signing choice is permanent: decide before merge) |
