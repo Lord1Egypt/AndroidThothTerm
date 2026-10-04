@@ -86,6 +86,7 @@ public class Application extends android.app.Application {
         ThothLog.i(LogCategory.APP, "Application start version=" + VER
                 + " rootfs=" + ROOTFS_SOURCE + " debuggable=" + DEBUGGABLE);
         LanController.init(this);
+        com.thothterm.dock.ThothDock.init(this);
 
         // enable Material3 dynamic colors
         DynamicColors.applyToActivitiesIfAvailable(this);

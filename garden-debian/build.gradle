@@ -101,6 +101,9 @@ android {
             // executable bit inside ApplicationInfo.nativeLibraryDir.
             useLegacyPackaging = true
             keepDebugSymbols += ["**/libproot.so", "**/libproot_loader.so"]
+            // ThothDock QA integration: the Docker CLI ships byte-for-byte as
+            // published, and the daemon as built (already stripped).
+            keepDebugSymbols += ["**/libthothdock.so", "**/libdocker.so"]
         }
     }
 }
@@ -206,7 +209,42 @@ def stageRootfs = tasks.register('stageDebianRootfs') {
     }
 }
 
-tasks.named('preBuild') { dependsOn buildProot }
+// ThothDock QA integration (docs/garden/THOTHDOCK_QA.md): only with
+// -PthothtermThothDockSource=<ThothDock checkout> AND a QA application id.
+// Without the property, anything a previous QA build staged is removed, so a
+// production build can never package the daemon or the Docker CLI.
+def thothDockSource = rootProject.findProperty('thothtermThothDockSource')
+def stageThothDock = tasks.register('stageThothDock') {
+    description = 'Build ThothDock and stage the Docker CLI for a QA integration build.'
+    group = 'build'
+    def jniOut = new File(gardenDir, 'jniLibs')
+    def assetsOut = new File(gardenDir, 'assets')
+    def pins = rootProject.file('garden-common/thothdock/thothdock.properties')
+    inputs.property 'source', thothDockSource == null ? '' : thothDockSource.toString()
+    inputs.property 'applicationId', android.defaultConfig.applicationId
+    inputs.file pins
+    inputs.file rootProject.file('garden-common/tools/stage-thothdock.sh')
+    outputs.upToDateWhen { false }
+    doLast {
+        def staged = [new File(jniOut, 'arm64-v8a/libthothdock.so'), new File(jniOut, 'arm64-v8a/libdocker.so'),
+                      new File(assetsOut, 'thothdock/components.properties')]
+        if (thothDockSource == null) {
+            staged.each { it.delete() }
+            return
+        }
+        if (rootProject.ext.thothtermQaSuffix() == '') {
+            throw new GradleException("ThothDock is bundled only into QA builds: pass -PthothtermQaApplicationIdSuffix=.qa.<name>")
+        }
+        def cmd = ['sh', rootProject.file('garden-common/tools/stage-thothdock.sh').path, pins.path,
+                   file(thothDockSource.toString()).path, jniOut.path, assetsOut.path,
+                   new File(gardenDir, 'thothdock-work').path]
+        def proc = new ProcessBuilder(cmd).redirectErrorStream(true).start()
+        proc.inputStream.eachLine { logger.lifecycle(it) }
+        if (proc.waitFor() != 0) throw new GradleException('stage-thothdock.sh failed')
+    }
+}
+
+tasks.named('preBuild') { dependsOn buildProot, stageThothDock }
 // Only the full flavour embeds the rootfs; fdroid builds never touch it.
 tasks.configureEach { task ->
     if (task.name ==~ /^pre[Ff]ull.*Build$/) task.dependsOn stageRootfs
