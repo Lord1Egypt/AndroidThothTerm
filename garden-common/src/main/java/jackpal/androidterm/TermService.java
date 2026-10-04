@@ -37,6 +37,7 @@ import com.thothterm.Application;
 import com.thothterm.R;
 import com.thothterm.TermActivity;
 import com.thothterm.lan.LanController;
+import com.thothterm.dock.ThothDock;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 import com.thothterm.services.SessionsService;
@@ -52,6 +53,7 @@ public class TermService extends SessionsService {
 
     private final IBinder mTSBinder = new TSBinder();
     private final LanController.Listener lanListener = this::refreshNotification;
+    private final ThothDock.Listener dockListener = status -> refreshNotification();
 
     private static Notification buildNotification(Context context, NotificationSettings callback) {
         NotificationChannelCompat.create(context);
@@ -97,6 +99,12 @@ public class TermService extends SessionsService {
 
         LanController.get().addListener(lanListener);
         LanController.get().hostStarted();
+        // Optional QA capability: never waited for, never a reason to fail.
+        ThothDock dock = ThothDock.getIfInitialized();
+        if (dock != null) {
+            dock.addListener(dockListener);
+            dock.ensureRunning();
+        }
 
         ThothLog.i(LogCategory.APP, "Terminal service started");
     }
@@ -119,6 +127,7 @@ public class TermService extends SessionsService {
         }
 
         clearSessions();
+        stopThothDock();
         StopForeground.stop(this);
         super.onTimeout(startId, fgsType);
         stopSelf();
@@ -150,7 +159,15 @@ public class TermService extends SessionsService {
         LanController.get().removeListener(lanListener);
         LanController.get().hostStopped();
         clearSessions();
+        stopThothDock();
         removeRunningNotification();
+    }
+
+    private void stopThothDock() {
+        ThothDock dock = ThothDock.getIfInitialized();
+        if (dock == null) return;
+        dock.removeListener(dockListener);
+        dock.stop();
     }
 
     /**
@@ -184,6 +201,7 @@ public class TermService extends SessionsService {
         LanController.get().removeListener(lanListener);
         LanController.get().hostStopped();
         clearSessions();
+        stopThothDock();
         removeRunningNotification();
         super.onDestroy();
 
@@ -202,6 +220,13 @@ public class TermService extends SessionsService {
                 (context, builder) -> {
                     CharSequence msg = context.getText(R.string.service_notify_text);
                     builder.setContentText(msg).setTicker(msg);
+                    ThothDock dock = ThothDock.getIfInitialized();
+                    if (dock != null && dock.isBundled()) {
+                        // State only; the terminal is usable whatever it says.
+                        msg = msg + "\n" + dock.statusLine();
+                        builder.setSubText(dock.statusLine())
+                                .setStyle(new NotificationCompat.BigTextStyle().bigText(msg));
+                    }
                     if (lanActive) {
                         // State only: never the address, the PIN or any credential.
                         CharSequence lan = context.getText(R.string.lan_notify_active);

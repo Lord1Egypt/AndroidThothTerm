@@ -52,10 +52,23 @@ public final class GardenRuntime {
     private final String prootTmpDir;
     private final String resolverFile;
     private final String terminalType;
+    /** Extra {@code --bind} arguments (QA ThothDock integration); empty in every other build. */
+    private final List<String> extraBinds;
+    /** Extra guest environment (DOCKER_HOST); empty in every other build. */
+    private final Map<String, String> extraEnv;
 
     public GardenRuntime(String prootPath, String loaderPath, String rootfsDir,
                          String runtimeLibDir, String prootTmpDir, String resolverFile,
                          String terminalType) {
+        this(prootPath, loaderPath, rootfsDir, runtimeLibDir, prootTmpDir, resolverFile,
+                terminalType, Collections.<String>emptyList(), Collections.<String, String>emptyMap());
+    }
+
+    public GardenRuntime(String prootPath, String loaderPath, String rootfsDir,
+                         String runtimeLibDir, String prootTmpDir, String resolverFile,
+                         String terminalType, List<String> extraBinds, Map<String, String> extraEnv) {
+        this.extraBinds = extraBinds;
+        this.extraEnv = extraEnv;
         this.prootPath = prootPath;
         this.loaderPath = loaderPath;
         this.rootfsDir = rootfsDir;
@@ -66,6 +79,10 @@ public final class GardenRuntime {
     }
 
     public static GardenRuntime from(RootfsManager manager, String terminalType) {
+        com.thothterm.dock.ThothDock dock = com.thothterm.dock.ThothDock.getIfInitialized();
+        List<String> binds = dock == null ? Collections.<String>emptyList() : dock.guestBinds();
+        Map<String, String> env = dock == null
+                ? Collections.<String, String>emptyMap() : dock.guestEnvironment();
         return new GardenRuntime(
                 manager.prootPath(),
                 manager.loaderPath(),
@@ -73,7 +90,7 @@ public final class GardenRuntime {
                 manager.runtimeLibDir().getAbsolutePath(),
                 manager.prootTmpDir().getAbsolutePath(),
                 AndroidNetworkResolver.get().resolverFile().getAbsolutePath(),
-                terminalType);
+                terminalType, binds, env);
     }
 
     public List<String> buildArgv() {
@@ -131,6 +148,7 @@ public final class GardenRuntime {
         if (bindResolver) {
             argv.add("--bind=" + resolverFile + ":/etc/resolv.conf");
         }
+        argv.addAll(extraBinds);
         return argv;
     }
 
@@ -153,6 +171,7 @@ public final class GardenRuntime {
         // takes it from here: systemctl then skips talking to a PID 1 that
         // does not exist, as in any chroot, instead of failing.
         env.put("SYSTEMD_IN_CHROOT", "1");
+        env.putAll(extraEnv);
         env.put("PROOT_TMP_DIR", prootTmpDir);
         env.put("PROOT_LOADER", loaderPath);
         env.put("LD_LIBRARY_PATH", runtimeLibDir);
