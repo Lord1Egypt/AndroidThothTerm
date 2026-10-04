@@ -60,8 +60,8 @@ const result = await esbuild.build({
 
 const read = (p) => readFileSync(p, 'utf8');
 const licenses = [
-  'Third-party software in ThothTerm Ubuntu\'s LAN Mode web terminal',
-  '=================================================================',
+  'Third-party software in ThothTerm Resolute\'s LAN Mode web terminal',
+  '===================================================================',
   '',
   `xterm.js ${pinned['@xterm/xterm']} -- https://github.com/xtermjs/xterm.js (MIT)`,
   '-----------------------------------------------------------------',

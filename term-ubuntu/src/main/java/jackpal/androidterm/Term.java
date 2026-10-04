@@ -981,7 +981,8 @@ public class Term extends AppCompatActivity
         AlertDialog.Builder b = new AlertDialog.Builder(this);
         b.setTitle(R.string.about_title);
         b.setMessage(getString(R.string.application_positioning)
-                + "\n\n" + getString(R.string.about_version, Application.VER));
+                + "\n\n" + getString(R.string.about_version, Application.VER)
+                + "\n\n" + getString(R.string.about_notice));
         b.setPositiveButton(R.string.about_site,
                 (dialog, id) -> WrapOpenURL.launch(Term.this, R.string.help_url));
         b.setNegativeButton(android.R.string.cancel, null);

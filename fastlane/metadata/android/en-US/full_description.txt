@@ -1,4 +1,4 @@
-ThothTerm Ubuntu runs a genuine Ubuntu 26.04 LTS (ARM64) userland on your phone
+ThothTerm Resolute runs a genuine Ubuntu 26.04 LTS (ARM64) userland on your phone
 and gives you a proper terminal into it. No root, no VM, no remote server.
 
 It is a terminal first. The Ubuntu side is real Ubuntu: apt works, dpkg works,
@@ -8,7 +8,7 @@ updates.
 
 Features
 
-* Ubuntu 26.04 LTS ARM64, embedded and set up on first launch
+* Ubuntu 26.04 LTS ARM64, downloaded with your consent and set up on first launch
 * Real sudo and a working apt/dpkg package manager
 * Persistent home directory and root filesystem across app upgrades
 * Multiple terminal sessions with a window list
@@ -34,11 +34,21 @@ trust.
 
 First run
 
-The F-Droid build does not include the Ubuntu userland, so the first launch
-offers to download it (about 33 MB) from Canonical's cdimage.ubuntu.com. The
-app explains this before doing anything and downloads nothing unless you
-agree. The archive is checked against a SHA-256 built into the app and is
-refused if it does not match.
+This build does not include the Ubuntu userland. The first launch explains
+what will be downloaded and downloads nothing unless you agree. Then:
+
+1. The Ubuntu 26.04 base system (about 33 MB) is downloaded from Canonical's
+   cdimage.ubuntu.com and checked against a SHA-256 built into the app; it is
+   refused if it does not match.
+2. Right after, in the background, the app installs Ubuntu's own sudo with
+   apt from Ubuntu's package archive (archive.ubuntu.com and
+   security.ubuntu.com): the package lists and sudo, about 30 MB, verified by
+   apt against Ubuntu's archive signing keys. The terminal opens without
+   waiting for this; if it fails, the terminal still works and the menu
+   offers to retry it.
+
+Later, the app contacts the package archive only when sudo is missing (a
+setup that failed, or you removed it). Any other download is apt run by you.
 
 Requirements
 
@@ -47,6 +57,9 @@ Requirements
 
 This is an early release. It concentrates on being a solid, honest terminal and
 a correct Ubuntu environment; more features are planned for later updates.
+
+ThothTerm Resolute is an independent application and is not affiliated with
+or endorsed by Canonical. Ubuntu is a registered trademark of Canonical Ltd.
 
 ThothTerm is free software under the Apache License 2.0. It is a fork of
 TermOne Plus, which derives from Terminal Emulator for Android and the Android

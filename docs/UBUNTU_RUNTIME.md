@@ -64,8 +64,9 @@ windows, Extra Keys, Arabic/RTL rendering, theming, and Diagnostics all remain.
 - Licence: the image contains many components under their own licences; it is
   redistributed unmodified with its upstream `/usr/share/doc` notices intact.
   Canonical does not endorse this application; Ubuntu is a trademark of
-  Canonical Ltd. The product is branded "ThothTerm Ubuntu" only to describe the
-  runtime it embeds.
+  Canonical Ltd. Since 0.3.2 the product is named ThothTerm Resolute, because
+  Canonical's policy does not allow the mark in a software title
+  (docs/branding/ubuntu/TRADEMARK.md).
 
 The embedded image is **byte-identical to upstream** (no repack). Build and
 runtime both verify the pinned SHA-256 and fail closed on mismatch.

@@ -449,7 +449,7 @@ public final class RootfsManager {
                 ThothLog.e(LogCategory.RUNTIME, "ARM64 compatibility check failed supportedAbis="
                         + DeviceArchitecture.describe(supportedAbis)
                         + " osArch=" + osArch);
-                throw new IOException("ThothTerm Ubuntu requires an arm64 device");
+                throw new IOException("ThothTerm Resolute requires an arm64 device");
             }
             ThothLog.i(LogCategory.RUNTIME, "ARM64 compatibility verified");
 
