@@ -59,15 +59,17 @@ public class ShareTargetTest {
         assertNull(RemoteInterface.shareDirectory(new File(tmp.getRoot(), "missing/file").getPath()));
     }
 
-    /** Terminal control characters in a name are just part of a directory name. */
+    /** Every control character in a name is just part of a directory name. */
     @Test
     public void controlCharactersStayInThePath() throws IOException {
-        String name = "d\r\n\u0003\u0015\u001b[2J\u007f";
-        File dir = tmp.newFolder(name);
-        assertEquals(dir, RemoteInterface.shareDirectory(dir.getPath()));
-        File file = new File(dir, name);
-        assertTrue(file.createNewFile());
-        assertEquals(dir, RemoteInterface.shareDirectory(file.getPath()));
+        for (char c = 1; c <= 0x7f; c = c == 0x1f ? 0x7f : (char) (c + 1)) {
+            String name = "d" + c + "e";
+            File dir = tmp.newFolder(name);
+            assertEquals(dir, RemoteInterface.shareDirectory(dir.getPath()));
+            File file = new File(dir, name);
+            assertTrue(file.createNewFile());
+            assertEquals(dir, RemoteInterface.shareDirectory(file.getPath()));
+        }
     }
 
     @Test

@@ -31,9 +31,12 @@ public class CommandCollectorTest {
 
     @Test
     public void anythingTheShellWouldParseIsRefused() {
-        for (String name : new String[]{null, "", "a b", "a'b", "a\"b", "a;b", "a\nb", "a\rb",
-                "$(x)", "`x`", "-x", "a|b", "a&b", "a\u001bb", "a\u0015b", "a/b", "é"}) {
+        for (String name : new String[]{null, "", "a b", "a'b", "a\"b", "a;b",
+                "$(x)", "`x`", "-x", "a|b", "a&b", "a/b", "é"}) {
             assertFalse(String.valueOf(name), CommandCollector.isCommandName(name));
+        }
+        for (char c = 0; c <= 0x7f; c = c == 0x1f ? 0x7f : (char) (c + 1)) {
+            assertFalse("control " + (int) c, CommandCollector.isCommandName("a" + c + "b"));
         }
     }
 }
