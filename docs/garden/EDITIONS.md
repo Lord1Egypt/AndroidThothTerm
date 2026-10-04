@@ -39,7 +39,7 @@ independently of that setup. Details: `docs/garden/security/DESIGN.md`; rules:
 | Resolute | 0.3.2 / 302 | `ubuntu-v0.3.2` | `760d54e` | released |
 | Trixie | 0.2.2 / 202 | `trixie-v0.2.2` | `760d54e` | released |
 | Rolling | 0.1.1 / 101 | `arch-v0.1.1` | `760d54e` | released |
-| Security | 0.1.0 / 100 | `security-v0.1.0` | see the release | release candidate |
+| Security | 0.1.0 / 100 | `security-v0.1.0` | `4cbf7a8` | released |
 
 ## F-Droid (fdroiddata merge requests)
 
@@ -51,4 +51,4 @@ F-Droid maintainers' decision.
 | Resolute 0.3.2 | !49556 | open, ready, pipeline green |
 | Trixie 0.2.2 | !50342 | open, ready, pipeline green |
 | Rolling 0.1.1 | !51045 | open, **draft**: waits for the owner's upstream release signing key (`Binaries`, `AllowedAPKSigningKeys`; `docs/RELEASE_SIGNING.md`) |
-| Security 0.1.0 | filed with the release | see the MR |
+| Security 0.1.0 | !51185 | open, ready, pipeline green; Reproducible Builds not enabled yet (signing choice is permanent: decide before merge) |

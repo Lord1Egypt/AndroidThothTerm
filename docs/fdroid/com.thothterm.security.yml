@@ -1,0 +1,92 @@
+Categories:
+  - Development
+  - System
+License: Apache-2.0
+AuthorName: Lord1Egypt
+SourceCode: https://github.com/Lord1Egypt/AndroidThothTerm
+IssueTracker: https://github.com/Lord1Egypt/AndroidThothTerm/issues
+Changelog: https://github.com/Lord1Egypt/AndroidThothTerm/releases
+
+AutoName: ThothTerm Security
+
+RepoType: git
+Repo: https://github.com/Lord1Egypt/AndroidThothTerm.git
+
+Builds:
+  - versionName: 0.1.0
+    versionCode: 100
+    commit: 4cbf7a81d7a52b85adf953509953059c66486502
+    subdir: garden-security
+    submodules: true
+    gradle:
+      - fdroid
+    ndk: 23.2.8568313
+
+MaintainerNotes: |-
+  ThothTerm Security is an independent app that runs an Arch Linux ARM AArch64
+  environment under PRoot. It is not affiliated with or endorsed by the
+  BlackArch, Arch Linux or Arch Linux ARM projects. The product name is neutral
+  on purpose: "BlackArch" appears only as the factual name of an optional
+  repository feature, never as the app's name, logo or identity.
+
+  arm64-v8a only. minSdk 26, targetSdk 36. A separate app from Resolute,
+  Trixie and Rolling, built on the same shared code (garden-common/).
+
+  The fdroid flavour packages no distribution binaries and no security tool. The
+  full flavour's rootfs staging task runs only for preFull*Build, so this build
+  makes no network requests of its own. On first run the app downloads the Arch
+  Linux ARM userland only after an explicit opt-in, from the project's GitHub
+  release arch-rootfs-aarch64-03a4c669ed6f (the same archive ThothTerm Rolling
+  uses), and refuses it unless its size and SHA-256 match
+  garden-security/src/main/assets/garden/distro.properties (199826020 bytes,
+  sha256 03a4c669ed6f89d044a9e83dce54c554f04885fd1bb7d1793f5b95b7cc0f48d1).
+  That archive holds only unmodified, signature-checked Arch Linux ARM packages,
+  ships no pacman keyring, sync databases or third-party material, and is
+  reproducible byte for byte; it was rebuilt twice for this app with identical
+  output (docs/garden/security/ROOTFS_PROVENANCE.md). The corresponding source of
+  every package is attached to the same release.
+
+  Optional, separate, consent-gated runtime step: the menu entry "Enable
+  BlackArch repository" opens a second consent screen. Only if the user agrees,
+  the app downloads one small keyring package (blackarch-keyring 20251011-2,
+  18445 bytes) and its detached signature from blackarch.org over HTTPS and
+  accepts them only if their size and SHA-256 equal values pinned in the app's
+  source. It then compares the keyring's trust lists with the pinned ones
+  (exactly four trusted fingerprints, one revoked) before importing anything,
+  proves the result from the installation's own pacman keyring, checks the
+  package signature against the pinned signer, installs the package with pacman
+  (LocalFileSigLevel = Required) and adds one marked repository section to
+  pacman.conf. Signature checking stays required for every repository; no
+  SigLevel is lowered, no script from the network is run, no package is
+  installed for the user, and the terminal never waits for any of it. The
+  keyring package declares no licence (custom:unknown), which is why it is not
+  redistributed: it is not in this APK, the rootfs or the source tree. The
+  repository keeps only its latest keyring, so a new upstream release makes the
+  download fail closed until the pins are updated in a new release.
+
+  The PRoot runtime is compiled during the build by
+  garden-common/tools/build-proot.sh from the submodules third_party/proot
+  (termux/proot v5.1.107.92) and third_party/libandroid-shmem (termux/
+  libandroid-shmem v0.7) plus talloc 2.4.3's vendored talloc.c/talloc.h; the
+  script verifies both submodule commits, downloads nothing and checks 16 KB
+  alignment, so submodules: true is required. PRoot is GPL-2.0 and talloc
+  LGPL-3.0; the corresponding source is those submodules, the patches in
+  garden-common/patches and the build script, all in the tagged commit.
+
+  LAN Mode is a local-network HTTP/WebSocket server, off by default, behind a
+  one-time PIN; it binds only a private LAN address and serves only packaged
+  assets. Its xterm.js bundle is built unminified from npm packages pinned by
+  sha512 (garden-common/lan-web/build.mjs, `npm ci --ignore-scripts && node
+  build.mjs --check` reproduces it); Gradle does not run Node.
+
+  The app exports only its launcher activity (plus androidx's profile
+  installer, which requires android.permission.DUMP); tests check this on every
+  built APK. Release builds are minified; garden-common/consumer-rules.pro holds
+  two keep rules only (the JNI classes com/thothterm/TermIO$Native and
+  com/thothterm/Process$Native).
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^security-v[0-9.]+$
+UpdateCheckData: garden-security/build.gradle|versionCode\s+(\d+)|.|versionName\s+'([^']+)'
+CurrentVersion: 0.1.0
+CurrentVersionCode: 100
