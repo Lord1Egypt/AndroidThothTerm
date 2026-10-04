@@ -141,6 +141,7 @@ public final class RootfsManager {
     private final OptionalSetup optionalSetup = new OptionalSetup();
     /** Serializes guest package work; deliberately not {@code this}. */
     private final Object adminLock = new Object();
+    private final OptionalSetup extraRepoSetup = new OptionalSetup();
 
     private RootfsManager(Context context) {
         this.appContext = context.getApplicationContext();
@@ -285,6 +286,115 @@ public final class RootfsManager {
     public void retryOptionalSetup() {
         if (!isReady()) return;
         scheduleAdminTools("retry", null);
+    }
+
+    // ---- optional third-party repository ---------------------------------------
+
+    /** Where the optional repository's setup stands; separate from the sudo setup. */
+    public OptionalSetup extraRepoSetup() {
+        return extraRepoSetup;
+    }
+
+    /** True when this edition offers an optional repository and the guest can use it. */
+    public boolean extraRepoOffered() {
+        return image != null && image.hasExtraRepo() && isPacman() && isReady();
+    }
+
+    /** True once the guest's pacman.conf carries the optional repository's section. */
+    public boolean extraRepoEnabled() {
+        if (image == null || !image.hasExtraRepo()) return false;
+        try {
+            File conf = new File(rootfsDir, "etc/pacman.conf");
+            return guestIsFile(rootfsDir, conf) && ManagedFiles.read(fileOps, rootfsDir, conf)
+                    .contains("\n" + ExtraRepoScript.beginMarker(image));
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public String extraRepoLabel() {
+        return image == null ? "" : image.extraRepoLabel();
+    }
+
+    public String extraRepoSiteHost() {
+        return image == null ? "" : java.net.URI.create(image.extraRepoSite()).getHost();
+    }
+
+    /** The keyring package's size, rounded up to whole KB, for the consent text. */
+    public int extraRepoKeyringKb() {
+        return image == null ? 0 : (int) ((image.extraRepoKeyringSize() + 1023) / 1024);
+    }
+
+    public int extraRepoKeyCount() {
+        return image == null ? 0 : image.extraRepoTrusted().size();
+    }
+
+    /**
+     * Enables the optional repository after the user's explicit consent: one
+     * background run, single-flight (a call while one is queued or running is
+     * ignored), idempotent, retryable. It never blocks a terminal, never
+     * touches {@code /home} and never replaces the rootfs; a failure leaves the
+     * terminal exactly as usable as before.
+     *
+     * @return false when it was not queued
+     */
+    public boolean enableExtraRepo() {
+        if (!extraRepoOffered()) return false;
+        if (!extraRepoSetup.queue()) return false;
+        ThothLog.i(LogCategory.ROOTFS, "EXTRA_REPO_SETUP_QUEUED repo=" + image.extraRepo());
+        background.execute(this::runExtraRepoSetup);
+        return true;
+    }
+
+    private void runExtraRepoSetup() {
+        extraRepoSetup.started();
+        ThothLog.i(LogCategory.ROOTFS, "EXTRA_REPO_SETUP_STARTED repo=" + image.extraRepo());
+        long start = System.nanoTime();
+        boolean ok = false;
+        String why = null;
+        try {
+            synchronized (adminLock) {
+                if (keyringMissing()) ensurePacmanKeyringNow();
+                // Both files come from the repository's own site over HTTPS and
+                // must be exactly the pinned artifact; nothing is run from them
+                // on the host, and nothing is written to the guest before they pass.
+                byte[] pkg = RootfsDownloader.fetchPinned(image.extraRepoKeyringUrl(),
+                        image.extraRepoKeyringSize(), image.extraRepoKeyringSha256());
+                byte[] sig = RootfsDownloader.fetchPinned(image.extraRepoKeyringSigUrl(),
+                        image.extraRepoKeyringSigSize(), image.extraRepoKeyringSigSha256());
+                File staging = guestDir(rootfsDir, ExtraRepoScript.STAGING_DIR);
+                writeGuest(rootfsDir, new File(staging, ExtraRepoScript.PACKAGE_B64), base64(pkg), 0600);
+                writeGuest(rootfsDir, new File(staging, ExtraRepoScript.SIGNATURE_B64), base64(sig), 0600);
+                String report = runProvisioning(rootfsDir, ExtraRepoScript.enableScript(image));
+                ok = report.contains(ExtraRepoScript.VERIFIED_MARKER) && report.contains(ExtraRepoScript.SYNCED_MARKER);
+                if (!ok) why = "unexpected report";
+                // Only the script's own marker lines: the rest is pacman's output, far longer than one log entry.
+                StringBuilder markers = new StringBuilder();
+                for (String line : report.split("\n")) {
+                    if (line.startsWith(ExtraRepoScript.VERIFIED_MARKER) || line.equals(ExtraRepoScript.SYNCED_MARKER)) {
+                        markers.append(' ').append(line.trim());
+                    }
+                }
+                ThothLog.i(LogCategory.ROOTFS, "EXTRA_REPO_REPORT" + markers);
+            }
+        } catch (Throwable t) {
+            why = t.getClass().getSimpleName();
+            ThothLog.e(LogCategory.ROOTFS, "EXTRA_REPO_SETUP_ERROR type=" + t.getClass().getSimpleName()
+                    + " message=" + t.getMessage(), t);
+        } finally {
+            long ms = (System.nanoTime() - start) / 1_000_000L;
+            extraRepoSetup.finished(ok, why);
+            if (ok) {
+                ThothLog.i(LogCategory.ROOTFS, "EXTRA_REPO_SETUP_FINISHED repo=" + image.extraRepo() + " ms=" + ms);
+            } else {
+                ThothLog.w(LogCategory.ROOTFS, "EXTRA_REPO_SETUP_FAILED repo=" + image.extraRepo()
+                        + " ms=" + ms + " reason=" + why);
+            }
+        }
+    }
+
+    private static String base64(byte[] bytes) {
+        return android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT);
     }
 
     private List<File> runtimeFiles() {

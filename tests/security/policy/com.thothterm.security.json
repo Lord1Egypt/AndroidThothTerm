@@ -1,5 +1,5 @@
 {
-  "package": "com.thothterm.blackarch",
+  "package": "com.thothterm.security",
   "note": "Garden Thorns: only the launcher is exported (docs/security/THORNS.md). The androidx profile installer receiver requires android.permission.DUMP, which only the shell and the system hold.",
   "exported": [
     {

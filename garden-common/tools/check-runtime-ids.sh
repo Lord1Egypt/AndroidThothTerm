@@ -16,7 +16,7 @@
 # grep -a and sort only.
 set -eu
 
-PROTECTED="com.thothterm com.thothterm.devel com.thothterm.ubuntu com.thothterm.debian com.thothterm.arch"
+PROTECTED="com.thothterm com.thothterm.devel com.thothterm.ubuntu com.thothterm.debian com.thothterm.arch com.thothterm.security"
 
 fail() {
     echo "check-runtime-ids: $*" >&2

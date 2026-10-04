@@ -1,7 +1,8 @@
 # Garden Thorns
 
 The security architecture contract for every ThothTerm app: the four Garden
-editions (Ubuntu, Trixie, Rolling, BlackArch) and the regular Terminal.
+editions (Resolute, Trixie, Rolling, Security) and the regular Terminal. The
+Garden is the flower; the Thorns are the hardening that protects it.
 A change that breaks a rule here needs a written reason in this file, in the
 same commit, and a test that pins the new behaviour.
 
@@ -132,14 +133,37 @@ A fix is not done until a test fails on the vulnerable code and passes on the
 fixed code, and that test runs in the normal unit-test or release-check path.
 Tests are never weakened to make a release pass.
 
+### 10. Third-party trust material and names
+
+- **Do not redistribute a third-party trust or keyring bundle without
+  established redistribution rights.** A keyring package with no licence file
+  (`custom:unknown`) is not ours to ship in a rootfs, an APK, a release asset or
+  a source tree, however convenient. Neither is a copy of its key file.
+- **Prefer explicit, verified runtime acquisition** when redistribution rights
+  are unclear and fetching is technically and policy-wise appropriate: ask the
+  user first, fetch over HTTPS from the project's own site, accept exactly one
+  pinned artifact (size and SHA-256, plus its signature's), compare the trust
+  lists it carries with pinned ones *before* importing anything, prove the
+  result from the installation's own keyring, and fail closed. Never lower a
+  signature level, never run a script from the network.
+- **Compatibility with a project is not a right to its name or look.** A
+  product is not named after the project it interoperates with, and uses none of
+  its logos, wordmarks or endorsement language. Interoperability may be named
+  factually ("Enable BlackArch repository", pinned URLs, a non-affiliation
+  notice); that naming stays distinct from the product identity
+  (`docs/garden/DISTRO_BRANDING_CHECKLIST.md`, section 0).
+- When a package manager's repository keeps only the latest keyring, a pinned
+  release goes stale by design: the download then fails closed until a release
+  reviews and updates the pins.
+
 ## Current inventory
 
 | App | Package | Exported components |
 |---|---|---|
-| ThothTerm Ubuntu | `com.thothterm.ubuntu` | launcher `UbuntuSetupActivity`; androidx profile installer (DUMP) |
+| ThothTerm Resolute | `com.thothterm.ubuntu` | launcher `UbuntuSetupActivity`; androidx profile installer (DUMP) |
 | ThothTerm Trixie | `com.thothterm.debian` | launcher `GardenSetupActivity`; androidx profile installer (DUMP) |
 | ThothTerm Rolling | `com.thothterm.arch` | launcher `GardenSetupActivity`; androidx profile installer (DUMP) |
-| ThothTerm BlackArch | `com.thothterm.blackarch` | launcher `GardenSetupActivity`; androidx profile installer (DUMP) |
+| ThothTerm Security | `com.thothterm.security` | launcher `GardenSetupActivity`; androidx profile installer (DUMP) |
 | ThothTerm (regular) | `com.thothterm` | `TermActivity` (launcher), `RemoteInterface` (open a new empty window), `TermHere` (share target: opens a window *in* the shared directory), `RunScript` (`RUN_SCRIPT`, a dangerous permission the user grants), `RunShortcut` (only commands encrypted and authenticated with this install's own keys), `AddShortcut`, `FileSelection`, `TermService` (`ITerminal`: shows a terminal for the *caller's* own process); androidx profile installer (DUMP) |
 
 The exact JSON is in `tests/security/policy/`.
@@ -158,4 +182,5 @@ The exact JSON is in `tests/security/policy/`.
 
 | Date | Finding | Affected | Fixed |
 |---|---|---|---|
-| 2026-10 | An exported legacy integration accepted untrusted external input. Reported privately; credited in the advisory. | ThothTerm Ubuntu ≤ 0.3.1; regular Terminal ≤ 1.4.0. Not the Garden editions (Trixie, Rolling, BlackArch), which never exported it. | Ubuntu: the legacy external-integration surface was removed. Regular: the share target now uses a structural working directory; add-ons require a matching signature. |
+| 2026-10 | An exported legacy integration accepted untrusted external input. Reported privately; credited in the advisory. | ThothTerm Ubuntu ≤ 0.3.1; regular Terminal ≤ 1.4.0. Not the Garden editions (Trixie, Rolling, Security), which never exported it. | Ubuntu: the legacy external-integration surface was removed. Regular: the share target now uses a structural working directory; add-ons require a matching signature. |
+| 2026-10 | The unreleased security edition was developed under another project's name and bundled that project's keyring, whose licence is not established. Found before any release. | Nothing released. | Renamed ThothTerm Security (`security-v0.1.0`); no third-party keyring is shipped; the repository is an optional, consent-gated, pinned and verified runtime setup (rule 10). |

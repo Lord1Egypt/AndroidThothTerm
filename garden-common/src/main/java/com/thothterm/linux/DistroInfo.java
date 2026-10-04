@@ -44,6 +44,11 @@ public final class DistroInfo {
     /** Arch-family guests: pacman's local database and its own keyring. */
     public static final String PACMAN = "pacman";
 
+    /** A trust anchor list longer than this is a configuration mistake. */
+    private static final int MAX_TRUST_ANCHORS = 8;
+    /** The optional repository's keyring package and signature are small; more is a mistake. */
+    private static final long MAX_EXTRA_FILE = 1024 * 1024;
+
     private final Properties properties;
 
     private DistroInfo(Properties properties) {
@@ -88,6 +93,49 @@ public final class DistroInfo {
             require("pacmanKeyring", NAME.matcher(pacmanKeyring()).matches());
             require("packageSigningKey", FINGERPRINT.matcher(packageSigningKey()).matches());
         }
+        if (hasExtraRepo()) {
+            require("packageManager", packageManager().equals(PACMAN));
+            require("extraRepo", NAME.matcher(extraRepo()).matches());
+            require("extraRepoLabel", printable(extraRepoLabel()));
+            require("extraRepoSite", extraRepoSite().startsWith("https://"));
+            require("extraRepoServer", extraRepoServer().startsWith("https://"));
+            require("extraRepoKeyring", NAME.matcher(extraRepoKeyring()).matches());
+            for (String key : new String[] {"extraRepoKeyringUrl", "extraRepoKeyringSigUrl"}) {
+                require(key, get(key).startsWith("https://"));
+            }
+            require("extraRepoKeyringSha256", SHA256.matcher(extraRepoKeyringSha256()).matches());
+            require("extraRepoKeyringSigSha256", SHA256.matcher(extraRepoKeyringSigSha256()).matches());
+            require("extraRepoKeyringSize", extraRepoKeyringSize() > 0 && extraRepoKeyringSize() <= MAX_EXTRA_FILE);
+            require("extraRepoKeyringSigSize", extraRepoKeyringSigSize() > 0 && extraRepoKeyringSigSize() <= MAX_EXTRA_FILE);
+            require("extraRepoTrusted", validList(extraRepoTrusted()));
+            require("extraRepoRevoked", extraRepoRevoked().isEmpty() || validList(extraRepoRevoked()));
+            require("extraRepoSigner", extraRepoTrusted().contains(extraRepoSigner()));
+            for (String key : extraRepoRevoked()) require("extraRepoRevoked", !extraRepoTrusted().contains(key));
+            // One origin: the pinned files and the repository come from the same site.
+            String host = host(extraRepoSite());
+            for (String url : new String[] {extraRepoServer(), extraRepoKeyringUrl(), extraRepoKeyringSigUrl()}) {
+                require("extraRepo host", host.equals(host(url)));
+            }
+        }
+    }
+
+    private static String host(String url) {
+        try {
+            String h = new java.net.URI(url.replace("$", "")).getHost();
+            return h == null ? "" : h.toLowerCase(java.util.Locale.ROOT);
+        } catch (java.net.URISyntaxException e) {
+            return "";
+        }
+    }
+
+    /** At most {@link #MAX_TRUST_ANCHORS} distinct fingerprints. */
+    private static boolean validList(java.util.List<String> values) {
+        if (values.isEmpty() || values.size() > MAX_TRUST_ANCHORS) return false;
+        if (new java.util.HashSet<>(values).size() != values.size()) return false;
+        for (String value : values) {
+            if (!FINGERPRINT.matcher(value).matches()) return false;
+        }
+        return true;
     }
 
     /** Shown in the UI and written into the guest as one line of text. */
@@ -199,5 +247,90 @@ public final class DistroInfo {
     /** pacman only: fingerprint of the key the distribution signs its packages with. */
     public String packageSigningKey() {
         return get("packageSigningKey").toUpperCase(java.util.Locale.ROOT);
+    }
+
+    // ---- optional third-party repository --------------------------------------
+    // A pacman repository the user may enable after explicit consent. Nothing of
+    // it ships in the rootfs or the APK: the app downloads its keyring package
+    // from the repository's own site, over HTTPS, and accepts exactly the file
+    // pinned here (size and SHA-256, plus its detached signature's), then proves
+    // the keys it imports. All values are data for one app release.
+
+    /** True when this edition offers the optional repository. */
+    public boolean hasExtraRepo() {
+        return !get("extraRepo").isEmpty();
+    }
+
+    /** The pacman section name. */
+    public String extraRepo() {
+        return get("extraRepo");
+    }
+
+    /** Factual name shown on the opt-in entry and the consent screen. */
+    public String extraRepoLabel() {
+        return get("extraRepoLabel");
+    }
+
+    /** The repository project's own site, https. */
+    public String extraRepoSite() {
+        return get("extraRepoSite");
+    }
+
+    /** The pacman {@code Server} line, with {@code $repo} and {@code $arch}. */
+    public String extraRepoServer() {
+        return get("extraRepoServer");
+    }
+
+    /** The keyring name {@code pacman-key --populate} takes; the package is {@code <name>-keyring}. */
+    public String extraRepoKeyring() {
+        return get("extraRepoKeyring");
+    }
+
+    public String extraRepoKeyringUrl() {
+        return get("extraRepoKeyringUrl");
+    }
+
+    public String extraRepoKeyringSha256() {
+        return get("extraRepoKeyringSha256").toLowerCase(java.util.Locale.ROOT);
+    }
+
+    public long extraRepoKeyringSize() {
+        return getLong("extraRepoKeyringSize");
+    }
+
+    public String extraRepoKeyringSigUrl() {
+        return get("extraRepoKeyringSigUrl");
+    }
+
+    public String extraRepoKeyringSigSha256() {
+        return get("extraRepoKeyringSigSha256").toLowerCase(java.util.Locale.ROOT);
+    }
+
+    public long extraRepoKeyringSigSize() {
+        return getLong("extraRepoKeyringSigSize");
+    }
+
+    /** The only keys the repository's keyring may leave fully trusted, upper case. */
+    public java.util.List<String> extraRepoTrusted() {
+        return upperList("extraRepoTrusted");
+    }
+
+    /** Keys the keyring must leave revoked and untrusted, upper case. */
+    public java.util.List<String> extraRepoRevoked() {
+        return upperList("extraRepoRevoked");
+    }
+
+    /** The trusted key that must have signed the keyring package. */
+    public String extraRepoSigner() {
+        return get("extraRepoSigner").toUpperCase(java.util.Locale.ROOT);
+    }
+
+    private java.util.List<String> upperList(String key) {
+        String value = get(key);
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        if (!value.isEmpty()) {
+            for (String k : value.split("\\s+")) keys.add(k.toUpperCase(java.util.Locale.ROOT));
+        }
+        return java.util.Collections.unmodifiableList(keys);
     }
 }

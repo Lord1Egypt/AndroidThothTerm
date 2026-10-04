@@ -72,7 +72,7 @@ commit.
 8. `THIRD_PARTY_NOTICES.md` matches the actual bundled artifacts, hashes
    included.
 9. Changelog written to `<module>/fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`
-   (`term-ubuntu`, `garden-debian`, `garden-arch`, `garden-blackarch`). Each app
+   (`term-ubuntu`, `garden-debian`, `garden-arch`, `garden-security`). Each app
    keeps all its store metadata, `images/icon.png` included, in its own module:
    F-Droid scans a repository-root `fastlane/` for *every* app built from this
    repository, so there must be none (`StoreMetadataTest`).

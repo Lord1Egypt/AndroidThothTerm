@@ -156,7 +156,7 @@ final class RootfsDownloader {
      * Opens the URL over HTTPS, following redirects manually so that a downgrade
      * to plain HTTP is refused rather than silently accepted.
      */
-    private HttpURLConnection open(String url) throws IOException {
+    static HttpURLConnection open(String url) throws IOException {
         String current = url;
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
             if (!current.regionMatches(true, 0, "https://", 0, 8)) {
@@ -186,6 +186,50 @@ final class RootfsDownloader {
             return connection;
         }
         throw new IOException("Too many redirects fetching the rootfs archive");
+    }
+
+    /**
+     * Fetches one small pinned file into memory: HTTPS only, at most
+     * {@code size} bytes and exactly that many, and only if its SHA-256 is
+     * {@code sha256}. Nothing is returned for anything else.
+     */
+    static byte[] fetchPinned(String url, long size, String sha256) throws IOException {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException("SHA-256 is unavailable", e);
+        }
+        HttpURLConnection connection = open(url);
+        try {
+            long reported = connection.getContentLengthLong();
+            if (reported > 0 && reported != size) {
+                throw new IOException("pinned file is " + reported + " bytes, expected " + size);
+            }
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream((int) size);
+            InputStream in = connection.getInputStream();
+            try {
+                byte[] buffer = new byte[BUFFER];
+                int read;
+                while ((read = in.read(buffer)) > 0) {
+                    out.write(buffer, 0, read);
+                    digest.update(buffer, 0, read);
+                    if (out.size() > size) throw new IOException("pinned file is larger than expected");
+                }
+            } finally {
+                closeQuietly(in);
+            }
+            if (out.size() != size) {
+                throw new IOException("pinned file ended early at " + out.size() + " of " + size + " bytes");
+            }
+            if (!RootfsManager.toHex(digest.digest()).equalsIgnoreCase(sha256)) {
+                ThothLog.w(LogCategory.SECURITY, "Pinned file checksum mismatch");
+                throw new IOException("Downloaded file failed verification");
+            }
+            return out.toByteArray();
+        } finally {
+            connection.disconnect();
+        }
     }
 
     private static String sha256Of(File file) throws IOException {

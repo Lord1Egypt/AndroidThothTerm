@@ -39,6 +39,11 @@ expect refuse "QA file with a production socket name" "$QA" \
     "$(file sock "\177ELF\0/data/data/$QA/$RT/loader\0$A\0%%s-app_info-%%s\0")"
 expect refuse "QA file naming com.thothterm" "$QA" "$(file bare "\177ELF\0com.thothterm\0")"
 expect refuse "QA file naming another edition" "$QA" "$(file other "\177ELF\0/data/data/com.thothterm.ubuntu/x\0")"
+expect refuse "QA file naming Security" "$QA" "$(file security "\177ELF\0/data/data/com.thothterm.security/x\0")"
+B=com.thothterm.security
+expect accept "Security production runtime for Security" "$B" "$(file bprod "\177ELF\0/data/data/$B/$RT/loader\0")" "/data/data/$B/$RT/loader"
+expect refuse "Security QA runtime as production" "$B" "$(file bqa "\177ELF\0/data/data/$B.qa.lifecycle/$RT/loader\0")"
+expect refuse "Rolling runtime as Security" "$B" "$(file arch "\177ELF\0/data/data/$A/$RT/loader\0")"
 expect refuse "QA file with another QA id's path" "$QA" "$(file otherqa "\177ELF\0/data/data/$A.qa.other/$RT/tmp/\0")"
 expect accept "QA file with no ThothTerm strings" "$QA" "$(file plain "\177ELF\0talloc\0")"
 expect accept "a trailing dot ends an id" "$QA" "$(file dot "\177ELF\0$QA.\0")"

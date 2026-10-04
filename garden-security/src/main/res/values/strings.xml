@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (c) 2026 Mohamed Mounir.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+
+<!-- Overrides garden-common's neutral defaults with this edition's names.
+     garden-common's own translations never carry these, so no locale falls
+     back to the neutral text. "BlackArch" appears only as the factual name of
+     the optional third-party repository the user may enable; it is never the
+     product name (docs/garden/security/DESIGN.md, "Naming"). -->
+<resources>
+    <string name="application_terminal" translatable="false">ThothTerm Security</string>
+    <string name="application_positioning">An Arch Linux ARM AArch64 environment for security work, on Android</string>
+    <string name="about_title">About ThothTerm Security</string>
+    <string name="about_notice">ThothTerm Security runs an Arch Linux ARM AArch64 environment. It starts as a plain, minimal Arch Linux ARM system with no security tools installed. If you choose to, it can also enable the third-party BlackArch repository, after showing you what is downloaded; the app then offers the part of that catalog built for AArch64, which is smaller than the x86_64 catalog, and not every package installs. This app is independent and is not affiliated with or endorsed by the BlackArch, Arch Linux or Arch Linux ARM projects. Arch Linux is a trademark of Levente Polyák and Judd Vinet, on behalf of Arch Linux.
+
+The environment is a PRoot userland, not a booted system: pacman and ordinary programs work, while services that need systemd as PID 1 (systemctl) are not available. Use security tools only on systems you own or are authorised to test.</string>
+
+    <string name="garden_welcome">Welcome to ThothTerm Security</string>
+    <string name="garden_extracting_percent">Extracting Arch Linux ARM… %1$d%%</string>
+    <string name="garden_downloading">Downloading Arch Linux ARM…</string>
+    <string name="garden_consent_title">The environment needs to be downloaded</string>
+    <string name="garden_consent_body">ThothTerm Security runs an Arch Linux ARM %1$s environment. This build does not include it, so it has to be downloaded before the terminal can start.
+
+Download size: about %2$d MB
+From: %3$s
+
+What you are agreeing to:
+• This downloads executable software onto your device after installation.
+• It consists of unmodified packages from the Arch Linux ARM repositories, each checked against Arch Linux ARM’s signing key when the ThothTerm project assembled them into a root filesystem, and published unchanged since. Arch Linux ARM did not build or endorse this download.
+• It is not part of this app’s package and was not built or verified by F‑Droid.
+• ThothTerm checks the download’s size and SHA‑256 checksum against values fixed in this app’s source, and refuses it if they do not match. A failed or interrupted download changes nothing and can be retried.
+• No third-party security repository is included. Enabling one is a separate, optional step in the menu, with its own consent screen.
+• LAN Mode stays off unless you turn it on. When it is on, terminal traffic and uploaded files are not encrypted in transit: use it only on networks you trust.
+
+Nothing is downloaded unless you choose Download.</string>
+    <string name="garden_consent_accept">Download</string>
+    <string name="garden_consent_declined">The environment was not downloaded. You can start the download whenever you want.</string>
+
+    <string name="service_notify_text">ThothTerm Security is running</string>
+    <string name="lan_help_off">LAN Mode lets a computer on the same Wi-Fi network use this environment in a web browser. Each browser gets a terminal of its own; the windows on this phone are not shared.</string>
+</resources>

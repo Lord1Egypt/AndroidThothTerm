@@ -11,7 +11,7 @@
 GATE_QA_SUFFIX=.qa.extractorgate
 
 # Installed apps the gate must never install over, uninstall or clear.
-GATE_PROTECTED_PACKAGES="com.thothterm com.thothterm.devel com.thothterm.ubuntu com.thothterm.debian com.thothterm.arch"
+GATE_PROTECTED_PACKAGES="com.thothterm com.thothterm.devel com.thothterm.ubuntu com.thothterm.debian com.thothterm.arch com.thothterm.security"
 
 gate_die() {
     echo "ABORT: $*" >&2

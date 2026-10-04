@@ -5,7 +5,7 @@
 #
 #   tests/garden-common/extractor/device-gate.sh MODULE [ARCHIVE.tar.gz SHA256]
 #
-# MODULE is garden-arch, garden-debian or term-ubuntu. Needs the Android
+# MODULE is garden-arch, garden-debian, garden-security or term-ubuntu. Needs the Android
 # SDK/NDK (ANDROID_HOME, for aapt2 too) and exactly one device on adb (or
 # ANDROID_SERIAL).
 #
@@ -31,6 +31,7 @@ MODULE=$1; shift
 case "$MODULE" in
     garden-arch) BASE=com.thothterm.arch ;;
     garden-debian) BASE=com.thothterm.debian ;;
+    garden-security) BASE=com.thothterm.security ;;
     term-ubuntu) BASE=com.thothterm.ubuntu ;;
     *) echo "unknown module $MODULE"; exit 2 ;;
 esac

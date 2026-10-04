@@ -17,6 +17,7 @@ ext.thothtermProtectedApplicationIds = [
         'com.thothterm.ubuntu',
         'com.thothterm.debian',
         'com.thothterm.arch',
+        'com.thothterm.security',
 ]
 
 /**

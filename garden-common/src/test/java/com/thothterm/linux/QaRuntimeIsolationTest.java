@@ -55,6 +55,7 @@ public class QaRuntimeIsolationTest {
     private static final String[][] EDITIONS = {
             {"garden-arch", "com.thothterm.arch"},
             {"garden-debian", "com.thothterm.debian"},
+            {"garden-security", "com.thothterm.security"},
             {"term-ubuntu", "com.thothterm.ubuntu"},
     };
     private static final String[] BUILD_PROOT = {
@@ -62,7 +63,7 @@ public class QaRuntimeIsolationTest {
             "term-ubuntu/tools/build-proot.sh",
     };
     private static final Pattern PROTECTED_LITERAL = Pattern.compile(
-            "\"(com\\.thothterm(\\.(arch|debian|ubuntu|devel))?)\"");
+            "\"(com\\.thothterm(\\.(arch|security|debian|ubuntu|devel))?)\"");
     private static final Pattern STORAGE_PATH = Pattern.compile(
             "/data/(data|user/\\d+)/com\\.thothterm");
 
@@ -117,7 +118,7 @@ public class QaRuntimeIsolationTest {
             assertTrue(path, script.contains(
                     "sh \"$CHECK_IDS\" \"$APP_ID\" \"$BUILD_DIR/lib/libtalloc.so.2\""));
             assertFalse(path + " names a production package",
-                    Pattern.compile("com\\.thothterm\\.(arch|debian|ubuntu)").matcher(script).find());
+                    Pattern.compile("com\\.thothterm\\.(arch|security|debian|ubuntu)").matcher(script).find());
         }
         String gate = read("tests/garden-common/extractor/device-gate.sh");
         assertTrue(gate.contains("gate_check_runtime_ids \"$PKG\" \"$APK\""));
@@ -129,7 +130,8 @@ public class QaRuntimeIsolationTest {
         TreeSet<String> checker = ids(read("garden-common/tools/check-runtime-ids.sh"), "PROTECTED=\"([^\"]*)\"");
         TreeSet<String> gate = ids(read("tests/garden-common/extractor/apk-identity.sh"),
                 "GATE_PROTECTED_PACKAGES=\"([^\"]*)\"");
-        assertEquals(5, gradle.size());
+        assertEquals(6, gradle.size());
+        assertTrue("Security is protected like every production id", gradle.contains("com.thothterm.security"));
         assertEquals(gradle, checker);
         assertEquals(gradle, gate);
     }
@@ -138,7 +140,7 @@ public class QaRuntimeIsolationTest {
     public void theJavaRuntimeNamesNoProductionPackageOrPath() throws Exception {
         List<File> roots = new ArrayList<>();
         for (String root : new String[]{"garden-common/src/main", "garden-common/src/shared",
-                "garden-arch/src/main", "garden-debian/src/main", "term-ubuntu/src/main"}) {
+                "garden-arch/src/main", "garden-debian/src/main", "garden-security/src/main", "term-ubuntu/src/main"}) {
             roots.add(new File(repo(), root));
         }
         List<String> found = new ArrayList<>();

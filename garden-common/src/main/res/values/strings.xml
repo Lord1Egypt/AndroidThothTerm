@@ -36,6 +36,15 @@
     <string name="garden_finalizing">Finalizing %1$s environment\u2026</string>
     <!-- Optional provisioning (sudo) after the terminal is ready; never blocks it. -->
     <string name="optional_setup_failed">Administrator tools (sudo) could not be set up. The terminal works normally; retry from the menu.</string>
+    <string name="extra_repo_menu_default">Enable optional repository</string>
+    <string name="extra_repo_menu">Enable %1$s</string>
+    <string name="extra_repo_title">Enable %1$s?</string>
+    <string name="extra_repo_body">This is an optional integration with a third-party repository (%1$s, %2$s). Neither ThothTerm nor this app is affiliated with or endorsed by its project.\n\nIf you continue, the app will:\n\u2022 download one small keyring package (about %3$d KB) and its signature from %2$s over HTTPS;\n\u2022 accept them only if their size and SHA-256 checksums match values fixed in this app\u2019s source, then check that the keyring trusts exactly the %4$d pinned signing keys and leaves its revoked key revoked;\n\u2022 add the repository to this environment\u2019s pacman configuration; package signature checks stay required;\n\u2022 refresh the package databases from the repository (several MB).\n\nNo script from the network is run and no package is installed. Nothing is downloaded unless you choose Enable. The terminal works the same without it, and a failure changes nothing you use.</string>
+    <string name="extra_repo_enable">Enable</string>
+    <string name="extra_repo_not_now">Not now</string>
+    <string name="extra_repo_running">Enabling the repository in the background\u2026</string>
+    <string name="extra_repo_done">The repository is enabled. Run: sudo pacman -Syu</string>
+    <string name="extra_repo_failed">The repository could not be enabled. The terminal works normally; retry from the menu.</string>
     <string name="optional_setup_retry">Retry administrator tools setup</string>
     <string name="optional_setup_retrying">Setting up administrator tools in the background\u2026</string>
     <string name="garden_damaged_title">Your Linux environment needs attention.</string>

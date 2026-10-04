@@ -1,0 +1,36 @@
+ThothTerm Security is an independent Android application that runs an Arch
+Linux ARM AArch64 environment under PRoot, and a terminal to work in it. There
+is no root and no virtual machine: the environment runs on the phone itself,
+inside the app.
+
+It starts as a plain, minimal Arch Linux ARM system with pacman, sudo and curl.
+No security tools are installed and none are bundled with the app.
+
+On first run the app downloads the Arch Linux ARM root filesystem, only after
+you agree on a consent screen that names the size and the source. The
+checksum is fixed in the app's source and a download that does not match is
+refused. The terminal opens as soon as the system is unpacked.
+
+Optional: the BlackArch repository
+
+The app can also enable the third-party BlackArch repository, if you choose to,
+from the menu. Before anything is fetched a second consent screen explains
+what happens: the app downloads one small keyring package and its signature
+from blackarch.org over HTTPS, accepts it only if it is exactly the file
+pinned in the app's source, checks that the keyring trusts exactly the pinned
+signing keys, and then adds the repository to pacman with signature checks
+still required for every package. Nothing from that repository is bundled,
+no script from the network is run, and no package is installed for you. If you
+never enable it, the app never contacts blackarch.org.
+
+The repository publishes an AArch64 catalog alongside its x86_64 one. It is
+smaller, and not every package in it can be installed: some depend on packages
+that do not exist for AArch64. Nothing here is a promise that any particular
+tool is available or runs under PRoot. Use security tools only on systems you
+own or are authorised to test.
+
+This app is independent and is not affiliated with or endorsed by the
+BlackArch, Arch Linux or Arch Linux ARM projects. Arch Linux is a trademark of
+Levente Polyák and Judd Vinet, on behalf of Arch Linux.
+
+ThothTerm is free software under the Apache License 2.0.

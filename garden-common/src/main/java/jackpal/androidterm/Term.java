@@ -521,11 +521,22 @@ public class Term extends AppCompatActivity
         invalidateOptionsMenu();
     });
 
+    /** The optional repository's own setup: a toast per outcome, the menu follows its status. */
+    private final OptionalSetup.Listener mExtraRepoListener = status -> runOnUiThread(() -> {
+        if (status == OptionalSetup.Status.DONE) {
+            ScreenMessage.show(getApplicationContext(), R.string.extra_repo_done);
+        } else if (status == OptionalSetup.Status.FAILED) {
+            ScreenMessage.show(getApplicationContext(), R.string.extra_repo_failed);
+        }
+        invalidateOptionsMenu();
+    });
+
     @Override
     protected void onResume() {
         super.onResume();
         ThothLog.d(LogCategory.UI, "Term activity resumed");
         RootfsManager.get().optionalSetup().addListener(mOptionalSetupListener);
+        RootfsManager.get().extraRepoSetup().addListener(mExtraRepoListener);
         invalidateOptionsMenu();
         LanController.get().addListener(mLanListener);
         showLanState();
@@ -536,6 +547,7 @@ public class Term extends AppCompatActivity
     public void onPause() {
         super.onPause();
         RootfsManager.get().optionalSetup().removeListener(mOptionalSetupListener);
+        RootfsManager.get().extraRepoSetup().removeListener(mExtraRepoListener);
         LanController.get().removeListener(mLanListener);
         mUploadUi.detach();
 
@@ -631,6 +643,8 @@ public class Term extends AppCompatActivity
         } else if (id == R.id.menu_retry_optional_setup) {
             RootfsManager.get().retryOptionalSetup();
             ScreenMessage.show(getApplicationContext(), R.string.optional_setup_retrying);
+        } else if (id == R.id.menu_enable_extra_repo) {
+            confirmExtraRepo();
         }
         // Hide the action bar if appropriate
         if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES) {
@@ -676,6 +690,28 @@ public class Term extends AppCompatActivity
             ScreenMessage.show(getApplicationContext(),
                     "Failed to create a session");
         }
+    }
+
+    /**
+     * The explicit consent for the optional third-party repository: what is
+     * fetched and from where, how it is checked, and that skipping it costs
+     * nothing. Nothing is downloaded before the positive button.
+     */
+    private void confirmExtraRepo() {
+        final RootfsManager rootfs = RootfsManager.get();
+        if (!rootfs.extraRepoOffered()) return;
+        final AlertDialog.Builder b = new AlertDialog.Builder(this);
+        b.setTitle(getString(R.string.extra_repo_title, rootfs.extraRepoLabel()));
+        b.setMessage(getString(R.string.extra_repo_body, rootfs.extraRepoLabel(),
+                rootfs.extraRepoSiteHost(), rootfs.extraRepoKeyringKb(), rootfs.extraRepoKeyCount()));
+        b.setPositiveButton(R.string.extra_repo_enable, (dialog, id) -> {
+            dialog.dismiss();
+            if (rootfs.enableExtraRepo()) {
+                ScreenMessage.show(getApplicationContext(), R.string.extra_repo_running);
+            }
+        });
+        b.setNegativeButton(R.string.extra_repo_not_now, null);
+        b.show();
     }
 
     private void confirmCloseWindow() {
@@ -780,6 +816,16 @@ public class Term extends AppCompatActivity
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.findItem(R.id.menu_retry_optional_setup).setVisible(
                 RootfsManager.get().optionalSetup().status() == OptionalSetup.Status.FAILED);
+        MenuItem repoItem = menu.findItem(R.id.menu_enable_extra_repo);
+        RootfsManager rootfs = RootfsManager.get();
+        OptionalSetup.Status repoStatus = rootfs.extraRepoSetup().status();
+        boolean repoBusy = repoStatus == OptionalSetup.Status.PENDING
+                || repoStatus == OptionalSetup.Status.RUNNING;
+        repoItem.setVisible(rootfs.extraRepoOffered() && !repoBusy
+                && (!rootfs.extraRepoEnabled() || repoStatus == OptionalSetup.Status.FAILED));
+        if (repoItem.isVisible()) {
+            repoItem.setTitle(getString(R.string.extra_repo_menu, rootfs.extraRepoLabel()));
+        }
         menu.findItem(R.id.menu_toggle_keep_screen_on)
                 .setTitle(ScreenAwake.menuTitle(mScreenAwake.menu()));
         MenuItem wifiLockItem = menu.findItem(R.id.menu_toggle_wifilock);

@@ -47,6 +47,7 @@ public class PublicSdkApiTest {
             "term-ubuntu/src/androidTest/java",
             "garden-arch/src/main/java",
             "garden-debian/src/main/java",
+            "garden-security/src/main/java",
             "libtermexec/src/main/java",
             "emulatorview/src/main/java",
     };
