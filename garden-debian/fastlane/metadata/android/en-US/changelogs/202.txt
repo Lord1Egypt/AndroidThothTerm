@@ -1,0 +1,3 @@
+A timed-out background setup step is now really stopped, instead of running on after setup reported the failure.
+
+Store icon, and native libraries that build byte for byte the same on any machine.

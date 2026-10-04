@@ -112,7 +112,7 @@ public class GardenBrandingScriptsTest {
 
     @Test
     public void ubuntusBannerIsReproducedExactly() throws Exception {
-        File root = guestRoot("ThothTerm Ubuntu", "Ubuntu 26.04.1 LTS", GardenPaletteTest.ubuntu().guestFile());
+        File root = guestRoot("ThothTerm Resolute", "Ubuntu 26.04.1 LTS", GardenPaletteTest.ubuntu().guestFile());
         for (String columns : new String[]{"80", "30"}) {
             Map<String, String> env = java.util.Collections.singletonMap("COLUMNS", columns);
             String theirs = bash("bash " + ubuntuAsset("thothfetch"), null, env);
@@ -125,7 +125,7 @@ public class GardenBrandingScriptsTest {
 
     @Test
     public void ubuntusPromptIsReproducedExactly() throws Exception {
-        File root = guestRoot("ThothTerm Ubuntu", "Ubuntu 26.04.1 LTS", GardenPaletteTest.ubuntu().guestFile());
+        File root = guestRoot("ThothTerm Resolute", "Ubuntu 26.04.1 LTS", GardenPaletteTest.ubuntu().guestFile());
         String show = "; cd /; printf '%s' \"${PS1@P}\"";
         String theirs = bash(". " + ubuntuAsset("thothterm-ubuntu.sh") + show, null, null);
         String ours = bash(". " + gardenAsset("thothterm-garden.sh") + show, root, null);
