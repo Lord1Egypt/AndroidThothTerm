@@ -213,9 +213,11 @@ log "building libandroid-shmem.so"
     -Wl,-soname,libandroid-shmem.so -Wl,-z,noexecstack $PAGE_ALIGN_LDFLAGS
 
 log "building proot and loader"
-# GIT=false: PRoot's makefile would embed `git describe` of whatever repository
-# the build copy sits in -- this one's tag, plus "-dirty" when a build service
-# has edited the checkout. Without it PRoot reports its declared version.
+# GIT=false (a make argument: the makefile's own GIT = git would override the
+# environment): PRoot's makefile would embed `git describe` of whatever
+# repository the build copy sits in -- this one's tag, plus "-dirty" when a
+# build service has edited the checkout. Without it PRoot reports its declared
+# version.
 (
     cd "$BUILD_DIR/proot/src"
     CC="$CC" LD="$CC" OBJCOPY="$OBJCOPY" OBJDUMP="$OBJDUMP" STRIP="$STRIP" \
@@ -224,9 +226,8 @@ log "building proot and loader"
     LDFLAGS="-L$BUILD_DIR/lib -Wl,-z,noexecstack $PAGE_ALIGN_LDFLAGS" \
     LOADER_LDFLAGS="$PAGE_ALIGN_LDFLAGS" \
     PROOT_WITH_LIBANDROID_SHMEM=1 \
-    GIT=false \
     PROOT_UNBUNDLE_LOADER="$RUNTIME_DIR/loader" \
-    "$MAKE" -s
+    "$MAKE" -s GIT=false
 )
 
 PROOT_BIN="$BUILD_DIR/proot/src/proot"
