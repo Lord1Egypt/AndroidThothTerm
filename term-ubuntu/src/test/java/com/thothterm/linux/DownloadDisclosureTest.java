@@ -55,7 +55,7 @@ public class DownloadDisclosureTest {
     }
 
     private static String description() throws IOException {
-        return read("../fastlane/metadata/android/en-US/full_description.txt");
+        return read("fastlane/metadata/android/en-US/full_description.txt");
     }
 
     @Test
@@ -75,7 +75,7 @@ public class DownloadDisclosureTest {
     @Test
     public void noTrademarkInTheTitle() throws IOException {
         assertFalse(read("src/main/res/values/strings.xml").contains("ThothTerm Ubuntu"));
-        assertFalse(read("../fastlane/metadata/android/en-US/title.txt").contains("Ubuntu"));
+        assertFalse(read("fastlane/metadata/android/en-US/title.txt").contains("Ubuntu"));
         assertFalse(description().contains("ThothTerm Ubuntu"));
         assertTrue(description().contains("not affiliated with\nor endorsed by Canonical"));
     }
