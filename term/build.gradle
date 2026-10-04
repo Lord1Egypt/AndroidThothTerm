@@ -23,8 +23,8 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 10400
-        versionName '1.4.0'
+        versionCode 10401
+        versionName '1.4.1'
 
         // Device tests (androidTest) target the debug build, com.thothterm.devel:
         // the test runner needs AndroidX classes that R8 removes from the

@@ -1,6 +1,7 @@
 # ThothTerm Terminal Emulator 1.0.0 Golden Baseline
 
-> The current Regular ThothTerm Terminal release is **1.4.0**
+> The current Regular ThothTerm Terminal release is **1.4.1** (`terminal-v1.4.1`,
+> security patch, `docs/RELEASE_NOTES_1.4.1.md`), built on **1.4.0**
 > (`terminal-v1.4.0`: Upload files / Upload folder, Keep screen awake while
 > charging); see `docs/RELEASE_NOTES_1.4.0.md`. The Golden Baseline it builds
 > on is **1.3.0** (`terminal-v1.3.0`, `docs/TERMINAL_RELEASE_1.3.md`), with the
