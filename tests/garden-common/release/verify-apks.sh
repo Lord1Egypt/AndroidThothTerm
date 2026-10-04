@@ -10,12 +10,16 @@
 #                i.e. R8 kept them
 #   rootfs       a full flavour embeds the pinned rootfs, an F-Droid flavour
 #                embeds none
+#   exported     the merged manifest exports exactly the components
+#                tests/security/policy allows for the package (Garden Thorns,
+#                docs/security/THORNS.md)
 #
 #   tests/garden-common/release/verify-apks.sh APK...
 #
 # Needs ANDROID_HOME (build-tools aapt2/zipalign, cmdline-tools apkanalyzer)
 # and ANDROID_NDK_HOME (llvm-readelf). Exits 1 on any FAIL.
 set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
 SDK=${ANDROID_HOME:-$HOME/Android/Sdk}
 BT=$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)
 AAPT2=$BT/aapt2
@@ -35,6 +39,10 @@ for apk in "$@"; do
     target=$(printf '%s\n' "$badging" | sed -n "s/^targetSdkVersion:'\([^']*\)'/\1/p")
     echo "== $name: $pkg $ver ($code) minSdk $min targetSdk $target sha256 $(sha256sum "$apk" | cut -d' ' -f1) bytes $(stat -c %s "$apk")"
     [ -n "$pkg" ] && [ -n "$code" ]; line $([ $? = 0 ] && echo PASS || echo FAIL) "$name identity read by aapt2"
+
+    exported=$(python3 "$HERE/../../security/exported_components.py" "$apk"); rc=$?
+    printf '%s\n' "$exported" | grep -v '^PASS \|^FAIL '
+    line $([ $rc = 0 ] && echo PASS || echo FAIL) "$name exported components match tests/security/policy"
 
     "$ZIPALIGN" -c -P 16 4 "$apk" >/dev/null 2>&1
     line $([ $? = 0 ] && echo PASS || echo FAIL) "$name zipalign -c -P 16 4"

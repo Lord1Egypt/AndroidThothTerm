@@ -67,7 +67,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="enable_wifilock">WLAN nie abschalten</string>
     <string name="disable_wifilock">WLAN-Abschaltung erlauben</string>
 
-    <string name="app_collection_progress">Informationen anderer Apps werden abgefragt …</string>
 
     <!-- Navigation drawer -->
     <string name="navigation_drawer_open">Navigationsleiste öffnen</string>
@@ -180,11 +179,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <string name="confirm_window_close_message">Dieses Fenster schließen?</string>
 
-    <string name="perm_grp_term">Terminalemulator-Berechtigungen</string>
-    <string name="permdesc_grp_term">Wird für den Zugriff auf Terminalemulator-Funktionen verwendet.</string>
 
-    <string name="perm_run_script">Beliebige Skripte im Terminalemulator ausführen</string>
-    <string name="permdesc_run_script">Erlaubt der App, neue Fenster im Terminalemulator für Android zu öffnen und in diesen Fenstern Befehle mit allen Berechtigungen des Terminalemulators für Android auszuführen, einschließlich des Zugriffs auf das Internet und Ihre SD-Karte.</string>
 
 
     <string name="alt_sends_esc">»Alt«-Taste sendet »Esc«</string>
@@ -203,32 +198,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="script_access_error">Der Zugriff auf das ausgewählte Skript ist nicht möglich</string>
     <string name="script_source_content_error">Es wurde keine App zum Lesen von Inhalten gefunden</string>
 
-    <string name="activity_term_here_title">Terminal hier</string>
-    <!-- BEGIN SHORTCUT RELATED STRINGS -->
-    <!-- AndroidManifest.xml -->
-    <string name="activity_shortcut_create">Terminal-Verknüpfung</string>
-    <!-- FileSelection activity -->
-    <string name="fsnavigator_title">Datei auswählen</string>
-    <string name="fsnavigator_no_external_storage">Externer Speicher nicht verfügbar</string>
-    <string name="fsnavigator_optional_enter_path">oder hier einen Pfad eingeben</string>
-    <string name="fsnavigator_change_theme">Darstellung ändern</string>
-    <!-- AddShortcut activity -->
-    <string name="addshortcut_command_hint">Befehl</string>
-    <string name="addshortcut_example_hint">--beispiel=\"a\"</string>
-    <string name="addshortcut_button_find_command">Befehl suchen</string>
-    <string name="addshortcut_navigator_title">Verknüpfungs-Ziel wählen</string>
-    <string name="addshortcut_command_window_instructions">Der Befehl erfordert einen vollständigen Pfad, keine Argumente. Andere Befehle (z. B.: cd /sdcard) geben Sie als Argumente ein.</string>
-    <string name="addshortcut_arguments_label">Argumente</string>
-    <string name="addshortcut_shortcut_label">Verknüpfungs-Bezeichnung</string>
-    <string name="addshortcut_button_text_icon">Textsymbol erstellen</string>
-    <string name="addshortcut_make_text_icon">Textsymbol erstellen</string>
-    <string name="addshortcut_title">Terminal-Verknüpfung</string>
-    <!-- ColorValue.java -->
-    <string name="colorvalue_letter_alpha">α</string>
-    <string name="colorvalue_letter_red">R</string>
-    <string name="colorvalue_letter_green">G</string>
-    <string name="colorvalue_letter_blue">B</string>
-    <string name="colorvalue_label_lock_button_column">Fest</string>
-    <string name="colorvalue_icon_text_entry_hint">Icon-Text eingeben</string>
-    <!-- END SHORTCUT RELATED STRINGS -->
 </resources>

@@ -51,7 +51,6 @@ import androidx.preference.PreferenceManager;
 import com.thothterm.AppCompatActivity;
 import com.thothterm.Application;
 import com.thothterm.R;
-import com.thothterm.Settings;
 import com.thothterm.TermActionBar;
 import com.thothterm.TerminalZoom;
 import com.thothterm.TermPreferencesActivity;
@@ -63,7 +62,6 @@ import com.thothterm.linux.OptionalSetup;
 import com.thothterm.linux.RootfsManager;
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
-import com.thothterm.remote.CommandCollector;
 import com.thothterm.services.ServiceManager;
 import com.thothterm.utils.ConsoleStartupScript;
 import com.thothterm.upload.LocalUpload;
@@ -128,7 +126,6 @@ public class Term extends AppCompatActivity
     private boolean mAlreadyStarted = false;
     private boolean mStopServiceOnFinish = false;
     private int onResumeSelectWindow = -1;
-    private boolean command_collected;
     private TermService mTermService;
     private TermActionBar mActionBar;
     private ExtraKeysView mExtraKeys;
@@ -210,12 +207,10 @@ public class Term extends AppCompatActivity
 
     private Handler mHandler;
 
-    protected static TermSession createTermSession(Context context, String extraCommand) throws IOException {
+    protected static TermSession createTermSession(Context context) throws IOException {
         TermSettings settings = new TermSettings(context);
 
-        String initialCommand = Settings.prepareInitialCommand(context, extraCommand);
-
-        GenericTermSession session = new com.thothterm.linux.UbuntuTermSession(settings, initialCommand);
+        GenericTermSession session = new com.thothterm.linux.UbuntuTermSession(settings);
         // XXX We should really be able to fetch this from within TermSession
         session.setProcessExitMessage(context.getString(R.string.process_exit_message));
 
@@ -256,7 +251,6 @@ public class Term extends AppCompatActivity
         getOnBackPressedDispatcher().addCallback(this, mBackCallback);
 
         ThothLog.d(LogCategory.UI, "Term activity created");
-        command_collected = false;
         mHandler = new Handler(getMainLooper());
 
         if (icicle == null)
@@ -280,13 +274,6 @@ public class Term extends AppCompatActivity
         mExtraKeys.setTerminalProvider(this::getCurrentEmulatorView);
         mExtraKeys.applyPreferences(
                 PreferenceManager.getDefaultSharedPreferences(this));
-
-        if (!command_collected) {
-            CommandCollector.collect(this, () -> {
-                command_collected = true;
-                populateSessions();
-            });
-        }
 
         service_manager.onCreate(this);
 
@@ -316,7 +303,6 @@ public class Term extends AppCompatActivity
 
     private synchronized void populateSessions() {
         if (mTermService == null) return;
-        if (!command_collected) return;
 
         if (mTermService.getSessionCount() == 0) {
             try {
@@ -379,7 +365,7 @@ public class Term extends AppCompatActivity
     }
 
     private TermSession createTermSession() throws IOException {
-        return createTermSession(this, null);
+        return createTermSession(this);
     }
 
     /** Font size captured when the current pinch began; -1 while not pinching. */

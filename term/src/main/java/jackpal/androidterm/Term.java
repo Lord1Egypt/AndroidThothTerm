@@ -215,11 +215,16 @@ public class Term extends AppCompatActivity
     private Handler mHandler;
 
     protected static TermSession createTermSession(Context context, String extraCommand) throws IOException {
+        return createTermSession(context, extraCommand, null);
+    }
+
+    protected static TermSession createTermSession(Context context, String extraCommand,
+                                                   String workingDirectory) throws IOException {
         TermSettings settings = new TermSettings(context);
 
         String initialCommand = Settings.prepareInitialCommand(context, extraCommand);
 
-        GenericTermSession session = new ShellTermSession(settings, initialCommand);
+        GenericTermSession session = new ShellTermSession(settings, initialCommand, workingDirectory);
         // XXX We should really be able to fetch this from within TermSession
         session.setProcessExitMessage(context.getString(R.string.process_exit_message));
 

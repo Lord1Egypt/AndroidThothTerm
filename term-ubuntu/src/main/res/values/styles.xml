@@ -140,12 +140,4 @@
         <item name="actionModeBackground">?attr/colorPrimary</item>
     </style>
 
-    <!-- style used in "AddShortcut" activity -->
-    <style name="AppTheme.NoActionBar.Translucent">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:colorBackgroundCacheHint">@null</item>
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowAnimationStyle">@android:style/Animation</item>
-    </style>
-
 </resources>

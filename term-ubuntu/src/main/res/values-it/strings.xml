@@ -116,8 +116,6 @@
 
     <string name="confirm_window_close_message">Chiudi questa finestra?</string>
 
-    <string name="perm_run_script">Esegui comandi arbitrari nell\'Emulatore terminale</string>
-    <string name="permdesc_run_script">Permette all\'applicazione di aprire nuove finestre nell\'Emulatore terminale ed eseguire comandi in quelle finestre con tutti i permessi dell\'Emulatore, incluso l\'accesso ad internet e alla tua SD Card.</string>
 
 
     <string name="alt_sends_esc">Tasto Alt invia ESC</string>

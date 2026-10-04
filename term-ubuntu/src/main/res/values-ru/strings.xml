@@ -95,8 +95,6 @@
 
     <string name="confirm_window_close_message">Закрыть это окно?</string>
 
-    <string name="perm_run_script">Выполнение произвольных команд в терминале</string>
-    <string name="permdesc_run_script">Позволяет приложению открытие новых окон в терминале Android и запуск команд в этих окнах со всеми разрешениями терминала, в том числе доступ к Интернету и SD-карте.</string>
 
 
     <string name="alt_sends_esc">Клавиша Alt посылает ESC</string>
@@ -110,28 +108,5 @@
     <string name="use_keyboard_shortcuts_summary_on">Ctrl-Tab: переключение окон, Ctrl-Shift-N: новое окно, Ctrl-Shift-V: вставить</string>
     <string name="use_keyboard_shortcuts_summary_off">Сочетания клавиш отключены</string>
 
-    <string name="activity_term_here_title">Терминал здесь</string>
 
-    <!-- BEGIN SHORTCUT RELATED STRINGS -->
-    <string name="activity_shortcut_create">Ярлык терминала</string>
-    <!-- FileSelection activity -->
-    <string name="fsnavigator_title">Выбор файлов</string>
-    <string name="fsnavigator_no_external_storage">Внешние хранилища недоступно</string>
-    <string name="fsnavigator_optional_enter_path">Или введите путь здесь</string>
-    <string name="fsnavigator_change_theme">Изменить тему</string>
-    <!-- AddShortcut activity -->
-    <string name="addshortcut_command_hint">command</string>
-    <string name="addshortcut_example_hint">--пример=\"a\"</string>
-    <string name="addshortcut_button_find_command">Поиск команды</string>
-    <string name="addshortcut_navigator_title">ВЫБЕРИТЕ ЦЕЛЬ ЯРЛЫКА</string>
-    <string name="addshortcut_command_window_instructions">Командное окно требует полный путь без аргументов. Для других команд использовать окно Аргументы (пример: CD/SD-карта).</string>
-    <string name="addshortcut_arguments_label">Аргументы</string>
-    <string name="addshortcut_shortcut_label">Метка ярлыка</string>
-    <string name="addshortcut_button_text_icon">Текст значок</string>
-    <string name="addshortcut_make_text_icon">СОЗДАТЬ ЗНАЧОК ТЕКСТА</string>
-    <string name="addshortcut_title">Ярлык терминала</string>
-    <!-- ColorValue.java -->
-    <string name="colorvalue_label_lock_button_column">LOCK</string>
-    <string name="colorvalue_icon_text_entry_hint">Введите текст для значка</string>
-    <!-- END SHORTCUT RELATED STRINGS -->
 </resources>

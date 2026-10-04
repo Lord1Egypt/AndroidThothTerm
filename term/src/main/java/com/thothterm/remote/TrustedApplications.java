@@ -20,6 +20,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.IBinder;
 
 import com.thothterm.BuildConfig;
@@ -110,7 +111,18 @@ public class TrustedApplications {
             callback = listener;
         }
 
+        /*
+         * A package name proves nothing: anyone can install an app under it.
+         * Only an add-on signed with this app's own certificate is trusted;
+         * the commands it reports become shell aliases
+         * (docs/security/THORNS.md).
+         */
         private boolean bind(Context context) {
+            PackageManager pm = context.getPackageManager();
+            if (pm.checkSignatures(context.getPackageName(), component.getPackageName())
+                    != PackageManager.SIGNATURE_MATCH) {
+                return false;
+            }
             Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".command.v1")
                     .setComponent(component);
             return context.bindService(intent, connection, Context.BIND_AUTO_CREATE);

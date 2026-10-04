@@ -26,11 +26,6 @@
     <color name="brand_white">#FFFFFFFF</color>
     <color name="brand_text_muted_dark">#AAB9CC</color>
 
-    <color name="colorvalue_alpha">#FFFFFFFF</color>
-    <color name="colorvalue_red">#FFFF0000</color>
-    <color name="colorvalue_green">#FF00FF00</color>
-    <color name="colorvalue_blue">#FF0000FF</color>
-
     <!-- Diagnostics log level accents (legible on dark, light, and AMOLED). -->
     <color name="log_level_error">#FFE53935</color>
     <color name="log_level_warn">#FFFB8C00</color>

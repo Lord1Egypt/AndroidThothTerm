@@ -112,6 +112,4 @@
 
     <string name="confirm_window_close_message">გნებავთ ფანჯრის დახურვა?</string>
 
-    <string name="perm_run_script">ტერმინალში სასურველი ბრძანებების გაშვება</string>
-    <string name="permdesc_run_script">Allows application to open new windows in Terminal Emulator for Android and run commands in those windows with all of Terminal Emulator for Android\'s permissions, including access to the Internet and your SD Card.</string>
 </resources>

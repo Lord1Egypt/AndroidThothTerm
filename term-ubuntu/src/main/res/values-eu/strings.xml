@@ -111,6 +111,4 @@
 
     <string name="confirm_window_close_message">Leiho hau itxi?</string>
 
-    <string name="perm_run_script">Exekutatu hautazko komandoak Terminal Emulatzailean</string>
-    <string name="permdesc_run_script">Aplikazioari baimena ematen dio Android Terminal Emulatzailean leiho berriak irekitzeko eta leiho hauetan komandoak exekutatzeko Android Terminal Emulatzailearen baimen guztiekin, Interneterako eta zure SD txartelerako sarbidea barne.</string>
 </resources>

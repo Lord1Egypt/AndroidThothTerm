@@ -138,10 +138,6 @@
 
     <string name="confirm_window_close_message">Zamknąć to okno?</string>
 
-    <string name="perm_grp_term">Uprawnienia programu Terminal Emulator</string>
-    <string name="permdesc_grp_term">Służy do uzyskiwania dostępu do funkcji emulatora terminala.</string>
-    <string name="perm_run_script">Uruchamiaj komendy w Terminal Emulator</string>
-    <string name="permdesc_run_script">Pozwala na otwieranie nowych okien w aplikacji Terminal Emulator dla systemu Android i wykonywanie poleceń w tych oknach ze wszystkimi uprawnieniami, w tym dostępem do Internetu i karty SD.</string>
 
 
     <string name="alt_sends_esc">Przycisk Alt wysyła ESC</string>
@@ -160,32 +156,4 @@
     <string name="script_access_error">Nie można uzyskać dostępu do wybranego skryptu</string>
     <string name="script_source_content_error">Nie znaleziono działania do obsługi akcji „Pobierz zawartość”</string>
 
-    <string name="activity_term_here_title">Terminal tutaj</string>
-    <!-- BEGIN SHORTCUT RELATED STRINGS -->
-    <!-- AndroidManifest.xml -->
-    <string name="activity_shortcut_create">Skrót Terminala</string>
-    <!-- FileSelection activity -->
-    <string name="fsnavigator_title">Wybieranie pliku</string>
-    <string name="fsnavigator_no_external_storage">Pamięć zewnętrzna niedostępna</string>
-    <string name="fsnavigator_optional_enter_path">Lub wprowadź ścieżkę tutaj.</string>
-    <string name="fsnavigator_change_theme">Zmień motyw</string>
-    <!-- AddShortcut activity -->
-    <string name="addshortcut_command_hint">polecenie</string>
-    <string name="addshortcut_example_hint">--przyklad=\"a\"</string>
-    <string name="addshortcut_button_find_command">Znajdź polecenie</string>
-    <string name="addshortcut_navigator_title">WYBIERZ MIEJSCE DOCELOWE SKRÓTU</string>
-    <string name="addshortcut_command_window_instructions">Okno polecenia wymaga pełnej ścieżki, bez argumentów. Dla innych poleceń użyj okna argumentów (np.: cd /sdcard).</string>
-    <string name="addshortcut_arguments_label">Argumenty</string>
-    <string name="addshortcut_shortcut_label">Etykieta skrótu</string>
-    <string name="addshortcut_button_text_icon">Ikona tekstowa</string>
-    <string name="addshortcut_make_text_icon">TWORZENIE IKONY TEKSTOWEJ</string>
-    <string name="addshortcut_title">Skrót Terminala</string>
-    <!-- ColorValue.java -->
-    <string name="colorvalue_letter_alpha">α</string>
-    <string name="colorvalue_letter_red">R</string>
-    <string name="colorvalue_letter_green">G</string>
-    <string name="colorvalue_letter_blue">B</string>
-    <string name="colorvalue_label_lock_button_column">ZABLOKUJ</string>
-    <string name="colorvalue_icon_text_entry_hint">Wprowadź tekst ikony</string>
-    <!-- END SHORTCUT RELATED STRINGS -->
 </resources>

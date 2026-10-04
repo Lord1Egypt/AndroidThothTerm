@@ -114,8 +114,6 @@
 
     <string name="confirm_window_close_message">Zavrieť toto okno?</string>
 
-    <string name="perm_run_script">Spustiť ľubovoľné príkazy</string>
-    <string name="permdesc_run_script">Umožniť aplikáciám otvoriť nové okno v Emulátori terminálu pre Android a spustiť príkazy v tomto okne so všetkými povoleniami terminálu a to vrátane prístupu na Internet a ku karte SD.</string>
 
 
     <string name="alt_sends_esc">Posielať ESC pomocou klávesu Alt</string>
@@ -129,32 +127,5 @@
     <string name="use_keyboard_shortcuts_summary_on">Ctrl-Tab: prepnúť okno, Ctrl-Shift-N: nové okno, Ctrl-Shift-V: prilepiť.</string>
     <string name="use_keyboard_shortcuts_summary_off">Klávesové skratky sú zakázané.</string>
 
-    <string name="activity_term_here_title">Otvoriť terminál</string>
 
-    <!-- BEGIN SHORTCUT RELATED STRINGS -->
-    <string name="activity_shortcut_create">Skratka terminálu</string>
-    <!-- FileSelection activity -->
-    <string name="fsnavigator_title">Vyberte súbor</string>
-    <string name="fsnavigator_no_external_storage">Nedostupný externý ukladací priestor</string>
-    <string name="fsnavigator_optional_enter_path">Alebo zadajte umiestnenie sem.</string>
-    <string name="fsnavigator_change_theme">Zmeniť tému</string>
-    <!-- AddShortcut activity -->
-    <string name="addshortcut_command_hint">príkaz</string>
-    <string name="addshortcut_example_hint">--príklad=\"a\"</string>
-    <string name="addshortcut_button_find_command">Nájsť príkaz</string>
-    <string name="addshortcut_navigator_title">VYBERTE CIEĽ SKRATKY</string>
-    <string name="addshortcut_command_window_instructions">Príkazové okno vyžaduje celé umiestnenie, žiadne argumenty. Pre ostatné príkazy použite okno pre argumenty (napríklad: cd /sdcard).</string>
-    <string name="addshortcut_arguments_label">Argumenty</string>
-    <string name="addshortcut_shortcut_label">Názov skratky</string>
-    <string name="addshortcut_button_text_icon">Text ikony</string>
-    <string name="addshortcut_make_text_icon">Vytvoriť text ikony</string>
-    <string name="addshortcut_title">Skratka terminálu</string>
-    <!-- ColorValue.java -->
-    <string name="colorvalue_letter_alpha">α</string>
-    <string name="colorvalue_letter_red">Č</string>
-    <string name="colorvalue_letter_green">Z</string>
-    <string name="colorvalue_letter_blue">M</string>
-    <string name="colorvalue_label_lock_button_column">Zamknúť</string>
-    <string name="colorvalue_icon_text_entry_hint">Zadajte text ikony</string>
-    <!-- END SHORTCUT RELATED STRINGS -->
 </resources>

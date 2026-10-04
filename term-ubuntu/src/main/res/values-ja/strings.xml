@@ -112,8 +112,6 @@
 
     <string name="confirm_window_close_message">このウインドウを閉じますか?</string>
 
-    <string name="perm_run_script">端末エミュレータで任意のコマンドを実行</string>
-    <string name="permdesc_run_script">アプリケーションに対して，端末エミュレータに新規ウインドウを開かせ，インターネットやSDカードへのアクセスを含む，端末エミュレータが持つすべてのパーミッションでコマンドを実行することを許可する.</string>
 
 
     <string name="alt_sends_esc">AltキーでESCを送出</string>

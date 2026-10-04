@@ -100,7 +100,6 @@
 
     <string name="confirm_window_close_message">închideţi această fereastră?</string>
 
-    <string name="perm_run_script">Executare comenzi arbitrare în Emulator Terminal</string>
 
     <string name="alt_sends_esc">Tasta Alt trimite ESC</string>
     <string name="alt_sends_esc_summary_on">Tasta Alt trimite ESC.</string>
