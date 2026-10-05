@@ -142,7 +142,7 @@ downloaded and no prebuilt binary is copied in. They are packaged as
 | Docker CLI (`libdocker.so`), client only, unmodified | `third_party/docker-cli` (submodule) | `https://github.com/docker/cli` | tag `v29.8.1` = commit `4a63305d74332de5ceba7fcbccbc3cbb7412f5ba`, built with its own `vendor/` tree | Apache-2.0 (its vendored modules keep their own licences in `vendor/`) |
 
 `dockerd`, `containerd` and `runc` are not built or shipped. The Engine Guard
-packages in `assets/thothdock/engine-guard/` are empty placeholder `.deb` files
+packages in `assets/thothdock/engine-guard/` are empty placeholder `.deb` files (uncompressed, so their bytes do not depend on the build host's gzip)
 built by `engine-guard/build.sh` from the ThothDock commit above.
 
 ## 2. Application source lineage
