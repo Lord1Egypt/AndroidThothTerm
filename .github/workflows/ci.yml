@@ -43,7 +43,11 @@ jobs:
         run: |
           apk=$(ls garden-debian/build/outputs/apk/fdroid/release/*.apk | head -n1)
           unzip -l "$apk" | grep -E 'lib/arm64-v8a/lib(thothdock|docker)\.so'
-          if unzip -l "$apk" | grep -E 'dockerd|containerd|runc'; then echo "engine binary in APK"; exit 1; fi
+          # No engine binary anywhere in the native libraries.
+          if unzip -Z1 "$apk" | grep -E '^lib/.*(dockerd|containerd|runc)'; then echo "engine binary in APK"; exit 1; fi
+          # The containerd/runc/docker.io names under assets/ are the Engine
+          # Guard placeholder packages: empty .debs, well under 4 KB.
+          unzip -l "$apk" | awk '/assets\/thothdock\/engine-guard\/.*\.deb/ && $1 > 4096 {print "oversized guard package: " $4; bad=1} END {exit bad}'
           unzip -p "$apk" assets/thothdock/components.properties
       - uses: actions/upload-artifact@v4
         with:
