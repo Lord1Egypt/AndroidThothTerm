@@ -214,6 +214,15 @@ def stageRootfs = tasks.register('stageDebianRootfs') {
 // Without the property, anything a previous QA build staged is removed, so a
 // production build can never package the daemon or the Docker CLI.
 def thothDockSource = rootProject.findProperty('thothtermThothDockSource')
+// The ThothDock look (res, palette, edition name) is an overlay on the debug
+// source set, present only in a ThothDock QA build; the production Trixie
+// edition's branding is untouched.
+if (thothDockSource != null) {
+    android.sourceSets.debug {
+        res.srcDirs += 'src/thothdock/res'
+        assets.srcDirs += 'src/thothdock/assets'
+    }
+}
 def stageThothDock = tasks.register('stageThothDock') {
     description = 'Build ThothDock and stage the Docker CLI for a QA integration build.'
     group = 'build'
