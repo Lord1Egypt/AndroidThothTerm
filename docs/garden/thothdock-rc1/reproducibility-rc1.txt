@@ -1,20 +1,26 @@
-Production-id (com.thothterm.debian) fdroid-flavour release, unsigned, minified
-Toolchain: JDK 21, Go 1.26.8, NDK from the SDK; builds 1,2 in the work tree, build 3 in a fresh clone at another path
-a1.apk ac84c858f08bdda69577b8f5ab0c3a11bb370fb0cb0001517cd14f934c1c3ef6 15985935 entries 985
-a2.apk ac84c858f08bdda69577b8f5ab0c3a11bb370fb0cb0001517cd14f934c1c3ef6 15985935 entries 985
-byte-identical: True
-same entry names in same order: True
-same name set: True
-entries with different CRC/size/time/method: []
-entries with different payload bytes: []
+Trixie 0.3.0-rc.1 -- unsigned production-id (com.thothterm.debian) fdroid-flavour release APK
+Source: AndroidThothTerm 8f1dcb13c038c9f83978e1239c5c278adf00d178 (ThothDock af221db, Docker CLI v29.8.1 4a63305d)
 
-a1.apk ac84c858f08bdda69577b8f5ab0c3a11bb370fb0cb0001517cd14f934c1c3ef6 15985935 entries 985
-a3.apk ac84c858f08bdda69577b8f5ab0c3a11bb370fb0cb0001517cd14f934c1c3ef6 15985935 entries 985
-byte-identical: True
-same entry names in same order: True
-same name set: True
-entries with different CRC/size/time/method: []
-entries with different payload bytes: []
+Three independent environments built it; all three are byte-identical (same entries, order, CRCs, payload bytes):
 
-GitHub Actions (ubuntu-24.04, Temurin 21, setup-go 1.26.8), run 37285830203, commit f1075d7:
-garden-debian-fdroid-release-unsigned.apk sha256 ac84c858f08bdda69577b8f5ab0c3a11bb370fb0cb0001517cd14f934c1c3ef6 -- byte-identical to the local builds above (same entries, order, CRCs, payload bytes).
+  1. Local WSL2 (Ubuntu), JDK 21, Go 1.26.8 (go.dev toolchain), NDK from the SDK, umask 022
+  2. GitHub Actions run 37294262778 (ubuntu-24.04, Temurin 21, setup-go 1.26.8)
+  3. The F-Droid CI job in registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie
+     (fdroid build --test --refresh-scanner --on-server; Go 1.26.8 built from source with
+     make.bash, bootstrapped by Go 1.24.6 built from source; build user umask 002)
+
+  size 15985055 bytes, 985 entries
+  sha256 b540e92c67bedfcf0fd10a51efa5293797fdd98b0c14625b684186199d20b169
+
+What had to be fixed to get there (each found by comparing the F-Droid job's APK with ours):
+  - AGP stamped the git revision (or NO_VALID_GIT_FOUND) into META-INF/version-control-info.textproto:
+    vcsInfo.include = false for the release build type.
+  - The Engine Guard .deb placeholders were gzip-compressed (the buildserver's gzip made a data.tar.gz
+    one byte different): now built uncompressed (dpkg-deb -Znone).
+  - The same packages carried the build user's umask in directory modes (drwxrwxr-x under 002):
+    engine-guard/build.sh sets umask 022, and ThothDock CI diffs builds under 022 and 002.
+
+Scope: this is the unsigned release APK. Debug builds are not reproducible (AGP orders classesN.dex
+differently from run to run), which is why the Golden QA APK was not bit-identical between builds.
+A signed APK matches a rebuild only after the signature is compared apart from the signing block.
+Earlier comparison runs (same-path rebuilds, clone at another path) are summarised in the git history.

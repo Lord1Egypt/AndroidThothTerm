@@ -58,17 +58,17 @@ its own private storage and a PRoot runtime built for that id.
 ## Reproducibility
 
 The unsigned production-id `fdroid` release APK is byte-identical across
-builds (evidence: `docs/garden/thothdock-rc1/reproducibility-rc1.txt`): two clean
-builds in one work tree, a build from a fresh clone at another path, and the
-GitHub Actions build all give the same SHA-256, entries, order, CRCs and
-payload bytes. Two things made that true: the Go programs are built with
-`-trimpath`, vendored modules and an empty build id, and the release build type
-sets `vcsInfo.include = false` (AGP otherwise stamps the git revision, or
-`NO_VALID_GIT_FOUND`, into `META-INF/version-control-info.textproto`). Debug
-builds are **not** reproducible: the Android Gradle plugin orders the
+independent builds: a local build, GitHub Actions, and the F-Droid CI job in
+the `buildserver-trixie` image (Go built from source) all give the same
+SHA-256, entries, order, CRCs and payload bytes (evidence and the three fixes
+that were needed: `docs/garden/thothdock-rc1/reproducibility-rc1.txt`). The Go
+programs are built with `-trimpath`, vendored modules and an empty build id; the
+release build type has `vcsInfo.include = false`; the Engine Guard packages are
+uncompressed and built under a fixed umask.
+
+Debug builds are **not** reproducible: the Android Gradle plugin orders the
 `classesN.dex` entries differently from run to run, which is why the Golden QA
-APK was not bit-identical between builds. That is a debug-build property; the
-claim above is limited to the release APK, built with JDK 21, Go 1.26.8 and the
-NDK pinned in `ndkVersion.gradle`. Signing is separate: an APK signed with a
-given key matches a rebuild only after the signature is compared apart from the
-signing block (as F-Droid's `Binaries` verification does).
+APK was not bit-identical between builds. The claim above is limited to the
+release APK built with JDK 21, Go 1.26.8 and the NDK pinned in `ndkVersion.gradle`.
+A signed APK matches a rebuild only after the signature is compared apart from
+the signing block (as F-Droid's `Binaries` verification does).
