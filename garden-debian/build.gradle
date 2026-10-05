@@ -70,6 +70,12 @@ android {
             // are garden-common's consumer rules for its two JNI classes.
             minifyEnabled = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            // AGP would stamp the git revision into META-INF, so the same
+            // source built from a worktree, a clone or a source tarball would
+            // differ. The APK must depend on the source tree only.
+            vcsInfo {
+                include = false
+            }
         }
     }
     sourceSets {
