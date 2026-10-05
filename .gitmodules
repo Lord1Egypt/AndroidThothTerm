@@ -4,3 +4,9 @@
 [submodule "libandroid-shmem"]
 	path = third_party/libandroid-shmem
 	url = https://github.com/termux/libandroid-shmem.git
+[submodule "third_party/thothdock"]
+	path = third_party/thothdock
+	url = https://github.com/Lord1Egypt/ThothDock.git
+[submodule "third_party/docker-cli"]
+	path = third_party/docker-cli
+	url = https://github.com/docker/cli.git

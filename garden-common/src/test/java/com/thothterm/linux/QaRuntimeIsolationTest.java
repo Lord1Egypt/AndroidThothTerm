@@ -71,7 +71,7 @@ public class QaRuntimeIsolationTest {
     public void everyVariantAndTheRuntimeShareOneApplicationId() throws Exception {
         String ids = read("applicationId.gradle");
         assertTrue(ids.contains("findProperty('thothtermQaApplicationIdSuffix')"));
-        assertTrue("the suffix is validated", ids.contains("/\\.qa\\.[a-z][a-z0-9]*/"));
+        assertTrue("the suffix is validated", ids.contains("/\\.(qa|rc)\\.[a-z][a-z0-9]*/"));
         // An ext property named like the -P property would shadow it: findProperty
         // would return the closure and every build would fail.
         assertFalse(ids.contains("ext.thothtermQaApplicationIdSuffix"));

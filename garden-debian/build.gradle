@@ -25,8 +25,10 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        versionCode 202
-        versionName '0.2.2'
+        // 0.3.0-rc.1: the release candidate of the ThothDock edition. The
+        // stable 0.3.0 is 300; 299 keeps every candidate below it.
+        versionCode 299
+        versionName '0.3.0-rc.1'
 
         // Device tests (the pinch gesture and garden-common's shared tests);
         // run with `am instrument` against the installed app, never
@@ -101,8 +103,8 @@ android {
             // executable bit inside ApplicationInfo.nativeLibraryDir.
             useLegacyPackaging = true
             keepDebugSymbols += ["**/libproot.so", "**/libproot_loader.so"]
-            // ThothDock QA integration: the Docker CLI ships byte-for-byte as
-            // published, and the daemon as built (already stripped).
+            // ThothDock: the Docker CLI and the daemon are built stripped; they
+            // must reach nativeLibraryDir exactly as built.
             keepDebugSymbols += ["**/libthothdock.so", "**/libdocker.so"]
         }
     }
@@ -112,9 +114,9 @@ dependencies {
     implementation project(':garden-common')
     // The Containers screen (ThothDock UI overlay) extends garden-common's
     // AppCompatActivity, so it needs the library on its compile classpath.
-    if (rootProject.findProperty('thothtermThothDockSource') != null) {
-        debugImplementation libs.appcompat
-        debugImplementation libs.activity
+    if (rootProject.findProperty('thothtermThothDock') != 'off') {
+        implementation libs.appcompat
+        implementation libs.activity
     }
 
     testImplementation 'junit:junit:4.13.2'
@@ -215,40 +217,33 @@ def stageRootfs = tasks.register('stageDebianRootfs') {
     }
 }
 
-// ThothDock QA integration (docs/garden/THOTHDOCK_QA.md): only with
-// -PthothtermThothDockSource=<ThothDock checkout> AND a QA application id.
-// Without the property, anything a previous QA build staged is removed, so a
-// production build can never package the daemon or the Docker CLI.
-def thothDockSource = rootProject.findProperty('thothtermThothDockSource')
-// The ThothDock look (res, palette, edition name) is an overlay on the debug
-// source set, present only in a ThothDock QA build; the production Trixie
-// edition's branding is untouched.
-if (thothDockSource != null) {
+// ThothDock is part of this edition: the daemon, the Docker CLI, the Engine
+// Guard packages and the Containers screen. Both programs are built from the
+// pinned submodules (third_party/thothdock, third_party/docker-cli) with the Go
+// toolchain on PATH; nothing is downloaded. -PthothtermThothDock=off builds the
+// plain Trixie edition: anything staged earlier is removed, so that build can
+// never carry the daemon or the Docker CLI. docs/garden/THOTHDOCK.md.
+def thothDockEnabled = rootProject.findProperty('thothtermThothDock') != 'off'
+def thothDockSource = rootProject.findProperty('thothtermThothDockSource') ?: rootProject.file('third_party/thothdock').path
+def dockerCliSource = rootProject.findProperty('thothtermDockerCliSource') ?: rootProject.file('third_party/docker-cli').path
+// The ThothDock look (res, palette, edition name) is an overlay on the build
+// types, so debug and release carry the same identity.
+if (thothDockEnabled) {
     android.sourceSets.test.java.srcDirs += 'src/thothdock/test/java'
-    android.sourceSets.debug {
-        res.srcDirs += 'src/thothdock/res'
-        assets.srcDirs += 'src/thothdock/assets'
-        java.srcDirs += 'src/thothdock/java'
-        manifest.srcFile 'src/thothdock/AndroidManifest.xml'
-    }
-}
-// A ThothDock build is never mistaken for the production Trixie edition: its
-// application id is the QA id (enforced above) and its version says so.
-if (thothDockSource != null) {
-    android {
-        defaultConfig {
-            versionName = '0.2.2-thothdock-golden.1'
-            versionCode = 202901
-        }
+    [android.sourceSets.debug, android.sourceSets.release].each { set ->
+        set.res.srcDirs += 'src/thothdock/res'
+        set.assets.srcDirs += 'src/thothdock/assets'
+        set.java.srcDirs += 'src/thothdock/java'
+        set.manifest.srcFile 'src/thothdock/AndroidManifest.xml'
     }
 }
 def stageThothDock = tasks.register('stageThothDock') {
-    description = 'Build ThothDock and stage the Docker CLI for a QA integration build.'
+    description = 'Build ThothDock and the Docker CLI from source and stage them.'
     group = 'build'
     def jniOut = new File(gardenDir, 'jniLibs')
     def assetsOut = new File(gardenDir, 'assets')
     def pins = rootProject.file('garden-common/thothdock/thothdock.properties')
-    inputs.property 'source', thothDockSource == null ? '' : thothDockSource.toString()
+    inputs.property 'enabled', thothDockEnabled
     inputs.property 'applicationId', android.defaultConfig.applicationId
     inputs.file pins
     inputs.file rootProject.file('garden-common/tools/stage-thothdock.sh')
@@ -256,16 +251,14 @@ def stageThothDock = tasks.register('stageThothDock') {
     doLast {
         def staged = [new File(jniOut, 'arm64-v8a/libthothdock.so'), new File(jniOut, 'arm64-v8a/libdocker.so'),
                       new File(assetsOut, 'thothdock/components.properties')]
-        if (thothDockSource == null) {
+        if (!thothDockEnabled) {
             staged.each { it.delete() }
+            project.delete(new File(assetsOut, 'thothdock'))
             return
         }
-        if (rootProject.ext.thothtermQaSuffix() == '') {
-            throw new GradleException("ThothDock is bundled only into QA builds: pass -PthothtermQaApplicationIdSuffix=.qa.<name>")
-        }
         def cmd = ['sh', rootProject.file('garden-common/tools/stage-thothdock.sh').path, pins.path,
-                   file(thothDockSource.toString()).path, jniOut.path, assetsOut.path,
-                   new File(gardenDir, 'thothdock-work').path]
+                   file(thothDockSource.toString()).path, file(dockerCliSource.toString()).path,
+                   jniOut.path, assetsOut.path, new File(gardenDir, 'thothdock-work').path]
         def proc = new ProcessBuilder(cmd).redirectErrorStream(true).start()
         proc.inputStream.eachLine { logger.lifecycle(it) }
         if (proc.waitFor() != 0) throw new GradleException('stage-thothdock.sh failed')

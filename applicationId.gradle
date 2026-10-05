@@ -5,7 +5,8 @@
 //
 // Without -PthothtermQaApplicationIdSuffix it is the production id, exactly as
 // before. With -PthothtermQaApplicationIdSuffix=.qa.<name> EVERY variant of
-// that invocation is <production id>.qa.<name>, and the PRoot runtime and
+// that invocation is <production id>.qa.<name> (or .rc.<name>, a release
+// candidate tested beside the production app), and the PRoot runtime and
 // native code are built for that id, so the QA app is a complete Garden app in
 // its own private storage (/data/data/<QA id>/), never a production one. See
 // tests/garden-common/extractor/device-gate.sh and
@@ -28,9 +29,9 @@ ext.thothtermQaSuffix = { ->
     def suffix = rootProject.findProperty('thothtermQaApplicationIdSuffix')
     if (suffix == null) return ''
     suffix = suffix.toString()
-    if (!(suffix ==~ /\.qa\.[a-z][a-z0-9]*/)) {
+    if (!(suffix ==~ /\.(qa|rc)\.[a-z][a-z0-9]*/)) {
         throw new GradleException(
-                "thothtermQaApplicationIdSuffix must look like .qa.<name> (lower-case letters and digits): " + suffix)
+                "thothtermQaApplicationIdSuffix must look like .qa.<name> or .rc.<name> (lower-case letters and digits): " + suffix)
     }
     return suffix
 }
