@@ -41,3 +41,34 @@ by `garden-debian/build.gradle` only when `-PthothtermThothDockSource` is given:
   bound at `/usr/local/bin/docker`; it shows `Engine ThothDock` when the socket
   exists and `Engine Offline` when it does not. Other builds print exactly what
   they did before.
+
+## Golden candidate additions (branch feature/thothdock-golden)
+
+Still QA-only: the overlay is compiled in only with
+`-PthothtermThothDockSource` plus a QA application id suffix, so no production
+build, package id, tag or F-Droid metadata changes.
+
+- **Engine Guard** (`dock/EngineGuard.java`, `RootfsManager.runGuestAdmin`):
+  after the guest exists, installs the `thothdock-engine-guard` and placeholder
+  packages (`docker.io`, `docker-ce`, `docker-engine`, `moby-engine`,
+  `containerd`, `containerd.io`, `runc`) with a dpkg install in the guest, so
+  `apt full-upgrade` and `apt install docker.io` cannot replace ThothDock. The
+  Docker CLI package stays upgradable. `thothdock doctor --guard` reports it.
+- **Containers screen** (Settings, Containers; `TermActionBar`, `menu_term.xml`,
+  overlay `ContainersActivity`): a pure client of the ThothDock socket via
+  `ApiClient` (one write per request, one retry for GET, visible errors).
+  Start, Stop, Restart, Logs (bounded), Delete with confirmation, Shell
+  (types `docker exec -it NAME sh` into the terminal). No CPU or memory
+  figures, no Compose.
+- **Branding polish**: selection and ANSI blue palette roles
+  (`GardenPalette`, `ColorScheme`, renderers), graphite popups and dialogs,
+  wordmark in the Containers header.
+- **Lifecycle**: identity-checked stale socket and pid cleanup, atomic socket
+  creation, single instance, daemon dies with the app. Closing the last
+  window or choosing Exit stops the daemon and containers.
+- Tests: `garden-common` 357, `garden-debian` 28 (including `ApiClientTest`
+  and `PageAlignmentTest`, which now expects the ThothDock ELF pair), 0
+  failures. Evidence: ThothDock `docs/evidence/golden/`.
+- Golden APK: `ThothTerm-ThothDock-Golden-QA.apk`, applicationId
+  `com.thothterm.debian.qa.thothdock`, versionName `0.2.2-thothdock-golden.1`,
+  versionCode `202901`, debug-signed with the Android Debug key.
