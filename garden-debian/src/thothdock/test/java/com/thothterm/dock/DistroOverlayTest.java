@@ -22,6 +22,10 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.Properties;
 import org.junit.Test;
 
@@ -50,5 +54,25 @@ public class DistroOverlayTest {
         main.remove("editionName");
         overlay.remove("editionName");
         assertEquals(main, overlay);
+    }
+
+    private static String strings(String path) throws Exception {
+        File f = new File(path);
+        if (!f.exists()) f = new File("garden-debian/" + path);
+        return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+    }
+
+    /** The first-run screens must not greet the user with the other edition's name. */
+    @Test
+    public void everyStringNamingTrixieIsOverriddenByTheOverlay() throws Exception {
+        String main = strings("src/main/res/values/strings.xml");
+        String overlay = strings("src/thothdock/res/values/strings.xml");
+        Matcher m = Pattern.compile("<string name=\"([a-z_0-9]+)\"[^>]*>([^<]*)</string>").matcher(main);
+        while (m.find()) {
+            if (m.group(2).contains("ThothTerm Trixie")) {
+                assertTrue(m.group(1) + " still says ThothTerm Trixie in the ThothDock edition",
+                        overlay.contains("<string name=\"" + m.group(1) + "\""));
+            }
+        }
     }
 }
