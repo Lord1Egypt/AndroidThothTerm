@@ -63,6 +63,14 @@ public final class ThothDock {
     public static final String GUEST_SOCKET_DIR = "/run/thothdock";
     public static final String GUEST_DOCKER_HOST = "unix:///run/thothdock/thothdock.sock";
     public static final String GUEST_CLI = "/usr/local/bin/docker";
+    /** Intent extra: text the Containers screen wants typed into the current terminal window. */
+    public static final String EXTRA_TERMINAL_INPUT = "com.thothterm.dock.TERMINAL_INPUT";
+
+    /** The Containers screen (compiled only into builds that carry the ThothDock UI overlay). */
+    public static final String CONTAINERS_ACTIVITY = "com.thothterm.dock.ContainersActivity";
+
+    /** ThothDock's own binary inside the guest, for `thothdock doctor --guard`. */
+    public static final String GUEST_TOOL = "/usr/local/bin/thothdock";
 
     /** Containers get this long to stop; the daemon adds 5 s of its own. */
     private static final int SHUTDOWN_TIMEOUT_SECONDS = 10;
@@ -73,6 +81,7 @@ public final class ThothDock {
 
     private static volatile ThothDock sInstance;
 
+    private final Context appContext;
     private final File nativeLibDir;
     private final File root;
     private final File socketDir;
@@ -90,6 +99,7 @@ public final class ThothDock {
 
     private ThothDock(Context context) {
         Context app = context.getApplicationContext();
+        appContext = app;
         nativeLibDir = new File(app.getApplicationInfo().nativeLibraryDir);
         root = new File(app.getFilesDir(), "thothdock");
         socketDir = new File(root, "sock");
@@ -98,6 +108,21 @@ public final class ThothDock {
         logFile = new File(root, "daemon.log");
         bundled = new File(nativeLibDir, DAEMON).isFile() && new File(nativeLibDir, CLI).isFile();
         status = bundled ? Status.STOPPED : Status.ABSENT;
+        if (bundled) cleanupStale();
+    }
+
+    /**
+     * Runs once per app process, before any terminal session can look at the
+     * socket: if no ThothDock daemon of ours is alive, its socket and pid file
+     * are leftovers of a crash or force-stop and are removed, so the guest
+     * (and the banner) never see a stale socket. A live daemon is left alone
+     * here; {@link #startDaemon} replaces it. Nothing is signalled.
+     */
+    private void cleanupStale() {
+        long[] rec = readPidRecord();
+        if (rec != null && isOurDaemon((int) rec[0], rec[1])) return;
+        removeSocketPath();
+        pidFile.delete();
     }
 
     public static void init(Context context) {
@@ -117,6 +142,41 @@ public final class ThothDock {
         ThothDock dock = sInstance;
         if (dock == null) throw new IllegalStateException("ThothDock not initialized");
         return dock;
+    }
+
+    Context context() {
+        return appContext;
+    }
+
+    /**
+     * The Engine Guard placeholder version bundled with this build
+     * ("9999:1.0+thothdock.N"), from the staged components file.
+     */
+    String guardVersion() {
+        try (java.io.InputStream in = appContext.getAssets().open("thothdock/components.properties")) {
+            java.util.Properties p = new java.util.Properties();
+            p.load(in);
+            String v = p.getProperty("guardVersion");
+            return v == null ? "" : v;
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    /** True when this build carries the Containers screen. */
+    public boolean hasContainersUi() {
+        try {
+            appContext.getPackageManager().getActivityInfo(
+                    new android.content.ComponentName(appContext.getPackageName(), CONTAINERS_ACTIVITY), 0);
+            return true;
+        } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
+    /** The API socket on the host (app-private). */
+    public String socketPath() {
+        return socket.getAbsolutePath();
     }
 
     public boolean isBundled() {
@@ -182,7 +242,8 @@ public final class ThothDock {
         String dir = socketDirForGuest();
         if (dir == null) return java.util.Collections.emptyList();
         return Arrays.asList("--bind=" + dir + ":" + GUEST_SOCKET_DIR,
-                "--bind=" + cliPath() + ":" + GUEST_CLI);
+                "--bind=" + cliPath() + ":" + GUEST_CLI,
+                "--bind=" + new File(nativeLibDir, DAEMON).getAbsolutePath() + ":" + GUEST_TOOL);
     }
 
     /** The guest environment that points the stock Docker CLI at the socket. */
@@ -233,6 +294,7 @@ public final class ThothDock {
                 }
                 if (waitReady(p)) {
                     setStatus(Status.RUNNING);
+                    EngineGuard.scheduleEnsure();
                 } else if (p.isAlive()) {
                     ThothLog.w(LogCategory.RUNTIME, "ThothDock did not answer in time; stopping it");
                     killHard(p);
@@ -397,8 +459,13 @@ public final class ThothDock {
         synchronized (lock) {
             if (process != null && process.isAlive()) return;
         }
+        removeSocketPath();
+    }
+
+    /** Unlinks the socket path (a socket, a file or a planted symlink) without following it. */
+    private void removeSocketPath() {
         try {
-            if (socket.exists() || Files.isSymbolicLink(socket.toPath())) {
+            if (Files.exists(socket.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
                 Files.deleteIfExists(socket.toPath());
             }
         } catch (IOException e) {
@@ -408,36 +475,63 @@ public final class ThothDock {
 
     /**
      * A daemon from an earlier app process (the system restarted the app)
-     * still holds the data root's lock. It is found through its pid file and
-     * killed only if /proc confirms it is ThothDock.
+     * still holds the data root's lock. It is found through its pid file --
+     * "pid start-time" -- and killed only if /proc confirms that exact
+     * process: same start time, and argv[0] is our libthothdock.so. A reused
+     * pid never matches, so an unrelated process is never signalled.
      */
     private void killLeftover() {
-        int pid;
-        try {
-            pid = Integer.parseInt(new String(Files.readAllBytes(pidFile.toPath()), StandardCharsets.US_ASCII).trim());
-        } catch (IOException | NumberFormatException e) {
-            return;
-        }
-        if (pid <= 1 || !isThothDock(pid)) return;
+        long[] rec = readPidRecord();
+        if (rec == null) return;
+        int pid = (int) rec[0];
+        if (!isOurDaemon(pid, rec[1])) return;
         ThothLog.w(LogCategory.RUNTIME, "Stopping a leftover ThothDock pid=" + pid);
         try {
             Os.kill(pid, OsConstants.SIGKILL);
         } catch (ErrnoException e) {
             return;
         }
-        for (int i = 0; i < 30 && isThothDock(pid); i++) sleep(100);
+        for (int i = 0; i < 30 && isOurDaemon(pid, rec[1]); i++) sleep(100);
     }
 
-    private boolean isThothDock(int pid) {
+    /** {pid, start time} from the pid file, or null if absent or malformed. */
+    private long[] readPidRecord() {
+        try {
+            String[] f = new String(Files.readAllBytes(pidFile.toPath()), StandardCharsets.US_ASCII).trim().split("\\s+");
+            if (f.length != 2) return null;
+            long pid = Long.parseLong(f[0]);
+            long start = Long.parseLong(f[1]);
+            if (pid <= 1 || pid > Integer.MAX_VALUE || start <= 0) return null;
+            return new long[]{pid, start};
+        } catch (IOException | NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** True only for the live process that started at {@code start} and runs our daemon binary. */
+    private boolean isOurDaemon(int pid, long start) {
+        if (startTimeOf(pid) != start) return false;
         try {
             byte[] cmd = Files.readAllBytes(new File("/proc/" + pid + "/cmdline").toPath());
             String first = new String(cmd, StandardCharsets.UTF_8);
             int nul = first.indexOf('\0');
             if (nul >= 0) first = first.substring(0, nul);
-            return first.equals(new File(nativeLibDir, DAEMON).getAbsolutePath())
-                    || first.endsWith("/" + DAEMON);
+            return first.equals(new File(nativeLibDir, DAEMON).getAbsolutePath());
         } catch (IOException e) {
             return false;
+        }
+    }
+
+    /** Field 22 of /proc/pid/stat (clock ticks after boot), or 0 if the process does not exist. */
+    static long startTimeOf(int pid) {
+        try {
+            String stat = new String(Files.readAllBytes(new File("/proc/" + pid + "/stat").toPath()), StandardCharsets.UTF_8);
+            int close = stat.lastIndexOf(')');
+            if (close < 0) return 0;
+            String[] f = stat.substring(close + 1).trim().split("\\s+");
+            return f.length > 19 ? Long.parseLong(f[19]) : 0;
+        } catch (IOException | NumberFormatException e) {
+            return 0;
         }
     }
 

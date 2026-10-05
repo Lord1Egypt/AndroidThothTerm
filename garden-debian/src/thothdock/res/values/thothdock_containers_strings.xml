@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (c) 2026 Mohamed Mounir.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<resources>
+    <string name="containers_brand" translatable="false">ThothDock</string>
+    <string name="containers_tagline">Docker-compatible userspace engine</string>
+    <string name="containers_engine_running">Engine running</string>
+    <string name="containers_engine_offline">Engine offline</string>
+    <string name="containers_engine_detail">ThothDock %1$s · Docker API %2$s · %3$s</string>
+    <string name="containers_offline_hint">The ThothDock engine is not answering. The terminal still works; start the engine to manage containers here.</string>
+    <string name="containers_start_engine">Start engine</string>
+    <string name="containers_starting_engine">Starting the engine…</string>
+    <string name="containers_running">Running</string>
+    <string name="containers_stopped">Stopped</string>
+    <string name="containers_images">Images</string>
+    <string name="containers_empty">No containers yet. Create one in the terminal, for example: docker run -d alpine sleep 600</string>
+    <string name="containers_start">Start</string>
+    <string name="containers_stop">Stop</string>
+    <string name="containers_restart">Restart</string>
+    <string name="containers_logs">Logs</string>
+    <string name="containers_shell">Shell</string>
+    <string name="containers_delete">Delete</string>
+    <string name="containers_refresh">Refresh</string>
+    <string name="containers_delete_title">Delete %1$s?</string>
+    <string name="containers_delete_message">The container and its filesystem are removed. Named volumes are kept.</string>
+    <string name="containers_delete_running_message">The container is running: it will be stopped, then deleted with its filesystem. Named volumes are kept.</string>
+    <string name="containers_error_start">Could not start: %1$s</string>
+    <string name="containers_error_stop">Could not stop: %1$s</string>
+    <string name="containers_error_restart">Could not restart: %1$s</string>
+    <string name="containers_error_delete">Could not delete: %1$s</string>
+    <string name="containers_error_name">This container\'s name cannot be used in a command.</string>
+    <string name="containers_logs_title">Logs · %1$s</string>
+    <string name="containers_logs_invalid">No such container.</string>
+</resources>

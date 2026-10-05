@@ -18,7 +18,8 @@ pal = dict(l.strip().split("=", 1) for l in open(f"{root}/assets/garden/palette.
            if "=" in l and not l.startswith("#"))
 same = {"primary": "thothdock_primary", "highlight": "thothdock_primary_highlight",
         "muted": "thothdock_terminal_dim", "foreground": "thothdock_terminal_text",
-        "background": "thothdock_terminal_background", "surface": "thothdock_surface"}
+        "background": "thothdock_terminal_background", "surface": "thothdock_surface",
+        "selection": "thothdock_selection", "ansiBlue": "thothdock_ansi_blue"}
 bad = [f"{r}: {pal[r]} != {tokens[t]}" for r, t in same.items() if pal[r].lower() != tokens[t].lower()]
 
 
@@ -41,4 +42,13 @@ for role in ("primary", "secondary", "highlight", "foreground", "muted", "prompt
 if bad:
     print("FAIL:", *bad, sep="\n  ")
     sys.exit(1)
+# Selected text keeps its own colours on the selection background.
+c = contrast(pal["foreground"], pal["selection"])
+print(f"foreground on selection {c:5.1f}:1")
+if c < 4.5:
+    sys.exit("FAIL: selected text contrast")
+c = contrast(pal["ansiBlue"], pal["background"])
+print(f"ansiBlue on background  {c:5.1f}:1")
+if c < 4.5:
+    sys.exit("FAIL: ANSI blue contrast")
 print("palette and tokens agree")

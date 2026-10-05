@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ThothDock UI overlay: debug source set, only in a ThothDock build.
+     Neither screen is exported. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name="com.thothterm.dock.ContainersActivity"
+            android:exported="false"
+            android:label="@string/containers"
+            android:parentActivityName="com.thothterm.TermActivity"/>
+        <activity
+            android:name="com.thothterm.dock.ContainerLogsActivity"
+            android:exported="false"
+            android:label="@string/containers"
+            android:parentActivityName="com.thothterm.dock.ContainersActivity"/>
+    </application>
+</manifest>

@@ -132,6 +132,12 @@ public class TermActionBar {
         });
     }
 
+    /** Shows the drawer's Containers row; it is hidden unless the build bundles ThothDock. */
+    public void setContainersVisible(boolean visible) {
+        MenuItem item = nav_view.getMenu().findItem(R.id.nav_containers);
+        if (item != null) item.setVisible(visible);
+    }
+
     /** The trailing Off/Active label of the drawer's LAN Mode row. */
     public void setLanState(CharSequence state) {
         MenuItem item = nav_view.getMenu().findItem(R.id.nav_lan_mode);

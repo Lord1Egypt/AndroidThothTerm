@@ -105,4 +105,55 @@ public class GardenPaletteTest {
             // fail closed
         }
     }
+
+    private static String mandatory() {
+        StringBuilder good = new StringBuilder();
+        for (String r : GardenPalette.TEXT_ROLES) good.append(r).append("=#112233\n");
+        for (String r : GardenPalette.SURFACE_ROLES) good.append(r).append("=#112233\n");
+        return good.toString();
+    }
+
+    /** The optional roles are absent for every existing edition and change nothing for them. */
+    @Test
+    public void optionalRolesAreAbsentUnlessAnEditionAddsThem() throws Exception {
+        GardenPalette u = ubuntu();
+        assertTrue(!u.has("selection") && !u.has("ansiBlue"));
+        GardenPalette p = load(mandatory() + "selection=#12407A\nansiBlue=#4D8DFF\n");
+        assertTrue(p.has("selection") && p.has("ansiBlue"));
+        assertEquals(0xFF12407A, p.argb("selection"));
+        assertEquals(0xFF4D8DFF, p.argb("ansiBlue"));
+        // They never leak into the guest's palette file or the LAN page.
+        assertTrue(!p.guestFile().contains("selection") && !p.guestFile().contains("ansiBlue"));
+        assertTrue(!p.css().contains("selection") && !p.css().contains("ansiBlue"));
+    }
+
+    @Test
+    public void aMalformedOptionalRoleFailsClosed() throws Exception {
+        for (String bad : new String[]{"selection=blue\n", "ansiBlue=#12\n", "selection=#1234567\n"}) {
+            try {
+                load(mandatory() + bad);
+                fail("accepted " + bad);
+            } catch (IOException expected) {
+                // fail closed
+            }
+        }
+    }
+
+    /** A scheme without a selection colour selects with the cursor colour, as before. */
+    @Test
+    public void colorSchemeDefaultsKeepTheOldSelectionBehaviour() {
+        jackpal.androidterm.emulatorview.ColorScheme plain =
+                new jackpal.androidterm.emulatorview.ColorScheme(0xFFAAAAAA, 0xFF000000, 0xFF000000, 0xFF123456);
+        assertEquals(0xFF123456, plain.getSelectionBackColor());
+        assertEquals(0, plain.getAnsiBlueColor());
+        jackpal.androidterm.emulatorview.ColorScheme twoColour =
+                new jackpal.androidterm.emulatorview.ColorScheme(0xFFAAAAAA, 0xFF000000);
+        assertEquals(twoColour.getCursorBackColor(), twoColour.getSelectionBackColor());
+        assertEquals(0xFF123456, new jackpal.androidterm.emulatorview.ColorScheme(new int[]{1, 2, 3, 0xFF123456}).getSelectionBackColor());
+        jackpal.androidterm.emulatorview.ColorScheme own =
+                new jackpal.androidterm.emulatorview.ColorScheme(0xFFAAAAAA, 0xFF000000, 0xFF000000, 0xFF123456, 0xFF12407A, 0xFF4D8DFF);
+        assertEquals(0xFF12407A, own.getSelectionBackColor());
+        assertEquals(0xFF4D8DFF, own.getAnsiBlueColor());
+        assertEquals(0xFF123456, own.getCursorBackColor());
+    }
 }

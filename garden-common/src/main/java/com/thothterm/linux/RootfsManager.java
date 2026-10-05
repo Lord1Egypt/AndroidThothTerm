@@ -1336,6 +1336,19 @@ public final class RootfsManager {
         }
     }
 
+    /**
+     * Runs a one-shot fake-root script in the guest, serialized with the other
+     * guest package work. Never on the main thread; throws on a non-zero exit
+     * or after the provisioning timeout (the process is then SIGKILLed).
+     * Used by optional capabilities (the ThothDock Engine Guard) that must not
+     * delay the terminal.
+     */
+    public String runGuestAdmin(String script) throws IOException {
+        synchronized (adminLock) {
+            return runProvisioning(rootfsDir, script);
+        }
+    }
+
     /** Runs a one-shot fake-root PRoot command for offline provisioning. */
     private String runProvisioning(File root, String script) throws IOException {
         GardenRuntime runtime = GardenRuntime.from(this, "xterm-256color");
