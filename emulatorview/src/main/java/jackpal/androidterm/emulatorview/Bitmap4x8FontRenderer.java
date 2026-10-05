@@ -85,7 +85,7 @@ class Bitmap4x8FontRenderer extends BaseTextRenderer {
         }
 
         if (selectionStyle) {
-            backColor = TextStyle.ciCursorBackground;
+            backColor = TextStyle.ciSelectionBackground;
         }
 
         boolean invisible = (effect & TextStyle.fxInvisible) != 0;

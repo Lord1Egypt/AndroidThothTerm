@@ -36,6 +36,11 @@ public class ColorScheme {
     private int backColor;
     private int cursorForeColor;
     private int cursorBackColor;
+    // Optional: selected-text background (defaults to the cursor background,
+    // which is what every scheme used before it existed) and a replacement
+    // for the ANSI "dim blue" (0 = keep xterm's 0000ee).
+    private int selectionBackColor;
+    private int ansiBlueColor;
     final private static int sDefaultCursorBackColor = 0xff808080;
 
     private void setDefaultCursorColors() {
@@ -73,6 +78,7 @@ public class ColorScheme {
         this.foreColor = foreColor;
         this.backColor = backColor;
         setDefaultCursorColors();
+        this.selectionBackColor = cursorBackColor;
     }
 
     /**
@@ -88,6 +94,21 @@ public class ColorScheme {
         this.backColor = backColor;
         this.cursorForeColor = cursorForeColor;
         this.cursorBackColor = cursorBackColor;
+        this.selectionBackColor = cursorBackColor;
+    }
+
+    /**
+     * Creates a <code>ColorScheme</code> with its own selection background and,
+     * optionally, a more legible ANSI blue for dark backgrounds.
+     *
+     * @param selectionBackColor background of selected text, ARGB
+     * @param ansiBlueColor      replacement for ANSI colour 4 (dim blue), ARGB, or 0 to keep xterm's
+     */
+    public ColorScheme(int foreColor, int backColor, int cursorForeColor, int cursorBackColor,
+                       int selectionBackColor, int ansiBlueColor) {
+        this(foreColor, backColor, cursorForeColor, cursorBackColor);
+        this.selectionBackColor = selectionBackColor;
+        this.ansiBlueColor = ansiBlueColor;
     }
 
     /**
@@ -109,6 +130,17 @@ public class ColorScheme {
             this.cursorForeColor = scheme[2];
             this.cursorBackColor = scheme[3];
         }
+        this.selectionBackColor = cursorBackColor;
+    }
+
+    /** @return the background of selected text, ARGB */
+    public int getSelectionBackColor() {
+        return selectionBackColor;
+    }
+
+    /** @return the replacement for ANSI colour 4 (dim blue), ARGB, or 0 for xterm's own */
+    public int getAnsiBlueColor() {
+        return ansiBlueColor;
     }
 
     /**

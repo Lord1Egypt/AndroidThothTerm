@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (c) 2026 Mohamed Mounir.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_splash_mark"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="26dp"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/containers_brand"
+                android:scaleType="fitStart"
+                android:src="@drawable/thothdock_wordmark"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/containers_tagline"
+                android:textColor="@color/thothdock_text_secondary"
+                android:textSize="13sp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/engine_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="@string/containers_engine_offline"
+        android:textColor="@color/thothdock_text_secondary"
+        android:textSize="15sp"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/engine_detail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/thothdock_text_secondary"
+        android:textSize="13sp"/>
+
+    <TextView
+        android:id="@+id/offline_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/containers_offline_hint"
+        android:textColor="@color/thothdock_text_secondary"
+        android:textSize="13sp"
+        android:visibility="gone"/>
+
+    <Button
+        android:id="@+id/start_engine"
+        style="@style/Widget.AppCompat.Button.Borderless"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/containers_start_engine"
+        android:textColor="@color/thothdock_primary"
+        android:visibility="gone"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <LinearLayout style="@style/ThothDockStat">
+
+            <TextView
+                android:id="@+id/stat_running"
+                style="@style/ThothDockStatValue"
+                android:text="–"
+                android:textColor="@color/thothdock_state_running"/>
+
+            <TextView
+                style="@style/ThothDockStatLabel"
+                android:text="@string/containers_running"/>
+        </LinearLayout>
+
+        <LinearLayout style="@style/ThothDockStat">
+
+            <TextView
+                android:id="@+id/stat_stopped"
+                style="@style/ThothDockStatValue"
+                android:text="–"/>
+
+            <TextView
+                style="@style/ThothDockStatLabel"
+                android:text="@string/containers_stopped"/>
+        </LinearLayout>
+
+        <LinearLayout style="@style/ThothDockStat">
+
+            <TextView
+                android:id="@+id/stat_images"
+                style="@style/ThothDockStatValue"
+                android:text="–"
+                android:textColor="@color/thothdock_kind_image"/>
+
+            <TextView
+                style="@style/ThothDockStatLabel"
+                android:text="@string/containers_images"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/containers_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:text="@string/containers_empty"
+        android:textColor="@color/thothdock_text_secondary"
+        android:textSize="14sp"
+        android:visibility="gone"/>
+
+</LinearLayout>

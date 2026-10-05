@@ -35,6 +35,13 @@
         android:icon="@drawable/ic_settings_white_24dp"
         android:title="@string/preferences"/>
 
+    <!-- Shown only in a build that bundles ThothDock (see Term#showContainersEntry). -->
+    <item
+        android:id="@+id/nav_containers"
+        android:icon="@drawable/ic_containers_white_24dp"
+        android:title="@string/containers"
+        android:visible="false"/>
+
     <group>
 
         <item

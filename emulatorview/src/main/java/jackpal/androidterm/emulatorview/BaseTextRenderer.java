@@ -384,6 +384,10 @@ abstract class BaseTextRenderer implements TextRenderer {
         mPalette[TextStyle.ciBackground] = scheme.getBackColor();
         mPalette[TextStyle.ciCursorForeground] = scheme.getCursorForeColor();
         mPalette[TextStyle.ciCursorBackground] = scheme.getCursorBackColor();
+        mPalette[TextStyle.ciSelectionBackground] = scheme.getSelectionBackColor();
+        if (scheme.getAnsiBlueColor() != 0) {
+            mPalette[4] = scheme.getAnsiBlueColor();
+        }
     }
 
     protected void drawCursorImp(Canvas canvas, float x, float y, float charWidth, float charHeight,

@@ -98,7 +98,7 @@ class PaintRenderer extends BaseTextRenderer {
         }
 
         if (selectionStyle) {
-            backColor = TextStyle.ciCursorBackground;
+            backColor = TextStyle.ciSelectionBackground;
         }
 
         boolean blink = (effect & TextStyle.fxBlink) != 0;

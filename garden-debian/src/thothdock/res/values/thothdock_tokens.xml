@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (c) 2026 Mohamed Mounir.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<!-- ThothDock design tokens (docs/branding in the ThothDock repository,
+     VISUAL_IDENTITY.md). The one place the hex values live for Android; the
+     chrome roles in colors.xml and the future Containers page refer to these. -->
+<resources>
+    <!-- Surfaces -->
+    <color name="thothdock_background">#070B10</color>
+    <color name="thothdock_terminal_background">#090D12</color>
+    <color name="thothdock_surface">#111820</color>
+    <color name="thothdock_surface_raised">#18222D</color>
+    <color name="thothdock_border">#253542</color>
+
+    <!-- Accents -->
+    <color name="thothdock_primary">#18E7FF</color>
+    <color name="thothdock_primary_highlight">#6CF4FF</color>
+    <color name="thothdock_secondary">#147DFF</color>
+    <color name="thothdock_silver">#C7D3DC</color>
+    <color name="thothdock_selection">#12407A</color>
+    <color name="thothdock_ansi_blue">#4D8DFF</color>
+
+    <!-- Text -->
+    <color name="thothdock_text_primary">#E7F2F8</color>
+    <color name="thothdock_text_secondary">#9BAEBB</color>
+    <color name="thothdock_terminal_text">#DCE8EE</color>
+    <color name="thothdock_terminal_dim">#80939F</color>
+
+    <!-- Status -->
+    <color name="thothdock_success">#4DE39A</color>
+    <color name="thothdock_warning">#FFC857</color>
+    <color name="thothdock_error">#FF6174</color>
+
+    <!-- Future Containers page: one colour per object state or kind. -->
+    <color name="thothdock_state_running">#4DE39A</color>
+    <color name="thothdock_state_stopped">#6F8394</color>
+    <color name="thothdock_state_exited">#8A98A3</color>
+    <color name="thothdock_state_error">#E8606F</color>
+    <color name="thothdock_kind_port">#147DFF</color>
+    <color name="thothdock_kind_image">#C7D3DC</color>
+</resources>

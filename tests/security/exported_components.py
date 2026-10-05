@@ -105,7 +105,7 @@ def inventory(apk):
 
 
 def policy_for(package):
-    base = re.sub(r"(\.qa\..*|\.devel)$", "", package)
+    base = re.sub(r"(\.(qa|rc)\..*|\.devel)$", "", package)
     path = os.path.join(HERE, "policy", base + ".json")
     if not os.path.exists(path):
         return path, None

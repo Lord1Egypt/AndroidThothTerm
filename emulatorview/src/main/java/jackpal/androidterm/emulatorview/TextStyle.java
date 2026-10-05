@@ -17,7 +17,9 @@ final class TextStyle {
     final static int ciCursorForeground = 258;     // VT100 text cursor foreground color
     final static int ciCursorBackground = 259;     // VT100 text cursor background color
 
-    final static int ciColorLength = ciCursorBackground + 1;
+    final static int ciSelectionBackground = 260;  // selected-text background (defaults to the cursor's)
+
+    final static int ciColorLength = ciSelectionBackground + 1;
 
     final static int kNormalTextStyle = encode(ciForeground, ciBackground, fxNormal);
 
