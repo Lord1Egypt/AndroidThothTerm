@@ -76,7 +76,30 @@ esac
 
 arch=${HOSTTYPE:-aarch64}
 
-if [ "$cols" -lt 44 ]; then
+# ThothDock QA builds bind the Docker CLI at /usr/local/bin/docker; only then
+# does the banner describe the engine. Nothing is run here: the socket exists
+# only while the daemon serves it, so its presence is the live state.
+dock=
+if [ -e "$root/usr/local/bin/docker" ]; then
+  dock=1
+  engine=Offline
+  [ -S "$root/run/thothdock/thothdock.sock" ] && engine=ThothDock
+fi
+
+if [ -n "$dock" ] && [ "$cols" -ge 44 ]; then
+  edition=$(clean "$edition" 30)
+  os=$(clean "$os" 30)
+  m=$muted
+  printf '%s\n' "${primary}    /\\${reset}        ${highlight}${edition}${reset}"
+  printf '%s\n' "${primary} __/  \\__${reset}     ${foreground}ThothTerm Container Runtime${reset}"
+  printf '%s\n' "${secondary}/  \\  /  \\${reset}"
+  printf '%s\n' "${secondary}\\   \\/   /${reset}    ${m}Guest         ${reset}${foreground}${os}${reset}"
+  printf '%s\n' "${primary} \\  /\\  /${reset}     ${m}Architecture  ${reset}${foreground}$(clean "$arch" 16)${reset}"
+  printf '%s\n' "${primary}    \\/${reset}        ${m}Shell         ${reset}${foreground}Bash${reset}"
+  printf '%s\n' "${secondary}    >_${reset}        ${m}Engine        ${reset}${foreground}${engine}${reset}"
+  printf '%s\n' "              ${m}Docker API    ${reset}${foreground}1.41${reset}"
+  printf '%s\n' "              ${m}Runtime       ${reset}${foreground}Garden PRoot${reset}"
+elif [ "$cols" -lt 44 ]; then
   edition=$(clean "$edition" "$cols")
   os=$(clean "$os" "$cols")
   printf '%s\n' "${primary}    /\\${reset}"
@@ -91,6 +114,9 @@ if [ "$cols" -lt 44 ]; then
   printf '%s\n' "${foreground}${os}${reset}"
   printf '%s\n' "${muted}User  ${reset}${foreground}thoth${reset}"
   printf '%s\n' "${muted}Home  ${reset}${foreground}/home/thoth${reset}"
+  if [ -n "$dock" ]; then
+    printf '%s\n' "${muted}Engine ${reset}${foreground}${engine}${reset}"
+  fi
 else
   edition=$(clean "$edition" 30)
   os=$(clean "$os" 30)
