@@ -1,0 +1,51 @@
+name: ci
+
+# No secrets are used or needed: the jobs only compile, test and build an
+# unsigned release-compatible APK. Signing is never done in CI.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  garden:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      # ThothDock and the Docker CLI are built from source with this toolchain
+      # (GOTOOLCHAIN=local: Go never downloads another).
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.8"
+      - name: Android SDK licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+      - name: Unit tests (garden-common, Trixie edition with ThothDock)
+        env:
+          GOTOOLCHAIN: local
+        run: ./gradlew --console=plain :garden-common:testDebugUnitTest :garden-debian:testFullDebugUnitTest
+      - name: Lint (Trixie edition)
+        env:
+          GOTOOLCHAIN: local
+        run: ./gradlew --console=plain :garden-debian:lintFdroidRelease
+      - name: Build the F-Droid release variant (unsigned)
+        env:
+          GOTOOLCHAIN: local
+        run: ./gradlew --console=plain :garden-debian:assembleFdroidRelease
+      - name: The APK carries the daemon and the Docker CLI, and no engine
+        run: |
+          apk=$(ls garden-debian/build/outputs/apk/fdroid/release/*.apk | head -n1)
+          unzip -l "$apk" | grep -E 'lib/arm64-v8a/lib(thothdock|docker)\.so'
+          if unzip -l "$apk" | grep -E 'dockerd|containerd|runc'; then echo "engine binary in APK"; exit 1; fi
+          unzip -p "$apk" assets/thothdock/components.properties
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trixie-fdroid-release-unsigned
+          path: garden-debian/build/outputs/apk/fdroid/release/*.apk

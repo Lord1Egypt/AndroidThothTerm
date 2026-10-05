@@ -45,8 +45,9 @@ import java.util.concurrent.TimeUnit;
  * where nested PRoot does not work. The guest reaches it through one
  * bind-mounted directory holding only its owner-only Unix socket.
  *
- * <p>Present only in QA integration builds that bundle {@code libthothdock.so}
- * and {@code libdocker.so}; without them every method is a no-op. ThothDock is
+ * <p>Active only in editions that bundle {@code libthothdock.so} and
+ * {@code libdocker.so} (ThothTerm Trixie 0.3.0 and later); without them every
+ * method is a no-op. ThothDock is
  * optional: the terminal never waits for it, and a failure only changes the
  * status shown in the notification.</p>
  */

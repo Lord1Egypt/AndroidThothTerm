@@ -18,7 +18,25 @@ What you get
 * Copy and paste, selection and scrollback
 * Correct display of Arabic and other right-to-left text
 * A welcome banner that shows the Debian release actually installed
+* ThothDock: the Docker command line, working on the phone, with no root
+* A Containers screen to start, stop, restart, read the logs of and delete containers
 * LAN Mode, to use the same Debian from a web browser on another computer
+
+ThothDock
+
+ThothDock is a Docker-compatible container engine written for unrooted
+Android. The unmodified Docker command line talks to it over a private socket
+that only this app can open, so docker pull, run, exec, logs, stop, volumes and
+-p port publishing work from the terminal. There is no dockerd, no containerd
+and no runc: containers run through the same PRoot that runs Debian.
+
+These containers are userspace environments, not a security boundary: there are
+no namespaces, no resource limits and no CPU or memory figures. A published
+port is a loopback listener that every app on the phone can reach, and UDP
+publishing is not supported. Containers stop when the app is closed. Images are
+downloaded only when you run docker pull or docker run, never in the
+background. Engine Guard stops apt from installing a real Docker engine over
+ThothDock; the Docker command line itself stays updatable.
 
 LAN Mode
 

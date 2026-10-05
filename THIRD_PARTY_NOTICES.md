@@ -128,6 +128,23 @@ from a CDN. Built reproducibly from npm packages pinned by sha512 in
 `index.html`, `app.js`, `app.css` and `rtl.js` are ThothTerm's own (Apache-2.0).
 esbuild 0.28.2 (MIT) only builds the bundle and is not shipped.
 
+### 1.6 ThothDock and the Docker CLI (ThothTerm Trixie 0.3.0 and later; built from source)
+
+`garden-common/tools/stage-thothdock.sh` compiles both programs from pinned
+submodules with the Go toolchain on `PATH` (`GOTOOLCHAIN=local`). Nothing is
+downloaded and no prebuilt binary is copied in. They are packaged as
+`libthothdock.so` and `libdocker.so` in `nativeLibraryDir`.
+
+| Component | Source in this repo | Upstream | Exact revision | License |
+|---|---|---|---|---|
+| ThothDock daemon (`libthothdock.so`) | `third_party/thothdock` (submodule) | `https://github.com/Lord1Egypt/ThothDock` | pinned in `garden-common/thothdock/thothdock.properties` | Apache-2.0 |
+| `golang.org/x/sys` (inside ThothDock) | `third_party/thothdock/vendor/` | `https://go.googlesource.com/sys` | v0.47.0, vendored | BSD-3-Clause |
+| Docker CLI (`libdocker.so`), client only, unmodified | `third_party/docker-cli` (submodule) | `https://github.com/docker/cli` | tag `v29.8.1` = commit `4a63305d74332de5ceba7fcbccbc3cbb7412f5ba`, built with its own `vendor/` tree | Apache-2.0 (its vendored modules keep their own licences in `vendor/`) |
+
+`dockerd`, `containerd` and `runc` are not built or shipped. The Engine Guard
+packages in `assets/thothdock/engine-guard/` are empty placeholder `.deb` files
+built by `engine-guard/build.sh` from the ThothDock commit above.
+
 ## 2. Application source lineage
 
 ThothTerm is a fork of **TermOne Plus**
