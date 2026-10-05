@@ -504,6 +504,13 @@ public class Term extends AppCompatActivity
 
     private final LanController.Listener mLanListener = this::showLanState;
 
+    private void showContainersEntry() {
+        if (mActionBar == null) return;
+        com.thothterm.dock.ThothDock dock = com.thothterm.dock.ThothDock.getIfInitialized();
+        // The screen itself exists only in builds that bundle ThothDock's UI.
+        mActionBar.setContainersVisible(dock != null && dock.isBundled() && dock.hasContainersUi());
+    }
+
     private void showLanState() {
         if (mActionBar == null) return;
         mActionBar.setLanState(getString(LanController.get().isOn()
@@ -540,6 +547,7 @@ public class Term extends AppCompatActivity
         invalidateOptionsMenu();
         LanController.get().addListener(mLanListener);
         showLanState();
+        showContainersEntry();
         mUploadUi.attach();
     }
 
@@ -663,6 +671,8 @@ public class Term extends AppCompatActivity
             request_choose_window.launch(new Intent(this, WindowListActivity.class));
         else if (id == R.id.nav_preferences)
             doPreferences();
+        else if (id == R.id.nav_containers)
+            startActivity(new Intent().setClassName(getPackageName(), com.thothterm.dock.ThothDock.CONTAINERS_ACTIVITY));
         else if (id == R.id.nav_action_help)
             doShowAbout();
         else
@@ -788,6 +798,16 @@ public class Term extends AppCompatActivity
         if (component == null ||
                 !Application.ID.equals(component.getPackageName())) {
             /* not from application */
+            return;
+        }
+
+        // The Containers screen asks for a command to be typed into the current
+        // window (docker exec -it NAME sh). Only this app can send it: the
+        // activity is not exported and the component is checked above.
+        String typed = intent.getStringExtra(com.thothterm.dock.ThothDock.EXTRA_TERMINAL_INPUT);
+        if (typed != null) {
+            TermSession current = getCurrentTermSession();
+            if (current != null && typed.length() <= 256) current.write(typed);
             return;
         }
 

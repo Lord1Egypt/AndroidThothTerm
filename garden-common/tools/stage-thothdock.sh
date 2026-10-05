@@ -4,6 +4,7 @@
 #   <jni dir>/arm64-v8a/libthothdock.so   ThothDock daemon, built from source
 #   <jni dir>/arm64-v8a/libdocker.so      the stock Docker CLI, unmodified
 #   <assets dir>/thothdock/components.properties   what was staged (commit, sizes, SHA-256)
+#   <assets dir>/thothdock/engine-guard/*.deb + SHA256SUMS   the Engine Guard packages
 #
 # Both land in nativeLibraryDir with the executable bit, like libproot.so.
 #
@@ -45,6 +46,13 @@ SHORT="$(echo "$FULL" | cut -c1-7)"
 cp "$WORK/libthothdock.so" "$JNI/libthothdock.so"
 chmod 755 "$JNI/libthothdock.so"
 
+# ---- Engine Guard packages (Debian-family guests), built from the same commit ----
+command -v dpkg-deb >/dev/null || die "dpkg-deb not found (needed to build the Engine Guard packages)"
+rm -rf "$ASSETS/engine-guard"
+( cd "$WORK/thothdock-src" && SOURCE_DATE_EPOCH=1790000000 sh engine-guard/build.sh "$ASSETS/engine-guard" >/dev/null ) \
+    || die "Engine Guard build failed"
+GUARD_VERSION="$(dpkg-deb -f "$ASSETS"/engine-guard/docker.io_*_all.deb Version)"
+
 # ---- Docker CLI -----------------------------------------------------------------
 TGZ="$WORK/$(basename "$URL")"
 if [ ! -f "$TGZ" ] || [ "$(sha "$TGZ")" != "$TAR_SHA" ]; then
@@ -66,5 +74,6 @@ thothdockSize=$(stat -c %s "$JNI/libthothdock.so")
 dockerCliVersion=$(pin dockerCliVersion)
 dockerCliSha256=$CLI_SHA
 dockerCliSize=$(stat -c %s "$JNI/libdocker.so")
+guardVersion=$GUARD_VERSION
 PROPS
 echo "stage-thothdock: ThothDock $SHORT sha256 $(sha "$JNI/libthothdock.so"), Docker CLI $(pin dockerCliVersion)"

@@ -48,6 +48,13 @@ public final class GardenPalette {
     };
     /** Roles used as full colours by the app and the LAN page. */
     public static final String[] SURFACE_ROLES = {"background", "surface"};
+    /**
+     * Optional roles an edition may add; absent, the terminal behaves as it
+     * always did. {@code selection}: background of selected text (default: the
+     * cursor colour). {@code ansiBlue}: a legible replacement for ANSI colour 4
+     * on a dark background.
+     */
+    public static final String[] OPTIONAL_ROLES = {"selection", "ansiBlue"};
 
     private static final Pattern HEX = Pattern.compile("#[0-9A-Fa-f]{6}");
 
@@ -74,7 +81,20 @@ public final class GardenPalette {
                 colors.put(role, Integer.parseInt(value.substring(1), 16));
             }
         }
+        for (String role : OPTIONAL_ROLES) {
+            String value = p.getProperty(role, "").trim();
+            if (value.isEmpty()) continue;
+            if (!HEX.matcher(value).matches()) {
+                throw new IOException("Invalid " + role + " in " + ASSET);
+            }
+            colors.put(role, Integer.parseInt(value.substring(1), 16));
+        }
         return new GardenPalette(colors);
+    }
+
+    /** True if the palette defines the role (always true for the mandatory ones). */
+    public boolean has(String role) {
+        return colors.containsKey(role);
     }
 
     /** The role's colour as 0xRRGGBB. */

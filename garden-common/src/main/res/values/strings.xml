@@ -71,6 +71,7 @@
     <string name="title_garden_show_welcome">Show welcome banner</string>
     <string name="summary_garden_show_welcome">Show ThothTerm system information in each new window.</string>
     <string name="preferences">Settings</string>
+    <string name="containers">Containers</string>
     <string name="new_window">New window</string>
     <string name="close_window">Close window</string>
     <string name="window_list">Windows</string>

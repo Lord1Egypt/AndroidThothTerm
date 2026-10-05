@@ -110,6 +110,12 @@ android {
 
 dependencies {
     implementation project(':garden-common')
+    // The Containers screen (ThothDock UI overlay) extends garden-common's
+    // AppCompatActivity, so it needs the library on its compile classpath.
+    if (rootProject.findProperty('thothtermThothDockSource') != null) {
+        debugImplementation libs.appcompat
+        debugImplementation libs.activity
+    }
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.6.2'
@@ -221,6 +227,18 @@ if (thothDockSource != null) {
     android.sourceSets.debug {
         res.srcDirs += 'src/thothdock/res'
         assets.srcDirs += 'src/thothdock/assets'
+        java.srcDirs += 'src/thothdock/java'
+        manifest.srcFile 'src/thothdock/AndroidManifest.xml'
+    }
+}
+// A ThothDock build is never mistaken for the production Trixie edition: its
+// application id is the QA id (enforced above) and its version says so.
+if (thothDockSource != null) {
+    android {
+        defaultConfig {
+            versionName = '0.2.2-thothdock-golden.1'
+            versionCode = 202901
+        }
     }
 }
 def stageThothDock = tasks.register('stageThothDock') {

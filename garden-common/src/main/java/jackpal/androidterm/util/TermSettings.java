@@ -195,8 +195,10 @@ public class TermSettings {
             // The edition's own terminal colours; the cursor is its accent.
             GardenPalette palette = RootfsManager.get().palette();
             if (palette != null) {
+                int selection = palette.has("selection") ? palette.argb("selection") : palette.argb("primary");
+                int ansiBlue = palette.has("ansiBlue") ? palette.argb("ansiBlue") : 0;
                 return new ColorScheme(palette.argb("foreground"), palette.argb("background"),
-                        palette.argb("background"), palette.argb("primary"));
+                        palette.argb("background"), palette.argb("primary"), selection, ansiBlue);
             }
         }
         return Settings.color_schemes[mColorId];

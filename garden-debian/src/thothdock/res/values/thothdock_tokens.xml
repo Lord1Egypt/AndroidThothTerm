@@ -32,6 +32,7 @@
     <color name="thothdock_secondary">#147DFF</color>
     <color name="thothdock_silver">#C7D3DC</color>
     <color name="thothdock_selection">#12407A</color>
+    <color name="thothdock_ansi_blue">#4D8DFF</color>
 
     <!-- Text -->
     <color name="thothdock_text_primary">#E7F2F8</color>
