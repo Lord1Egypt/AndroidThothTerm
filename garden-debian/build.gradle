@@ -25,10 +25,9 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        // 0.3.0-rc.1: the release candidate of the ThothDock edition. The
-        // stable 0.3.0 is 300; 299 keeps every candidate below it.
-        versionCode 299
-        versionName '0.3.0-rc.1'
+        // 0.3.0: ThothTerm Trixie with ThothDock. (0.3.0-rc.1 was 299.)
+        versionCode 300
+        versionName '0.3.0'
 
         // Device tests (the pinch gesture and garden-common's shared tests);
         // run with `am instrument` against the installed app, never
