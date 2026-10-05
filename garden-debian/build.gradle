@@ -224,6 +224,7 @@ def thothDockSource = rootProject.findProperty('thothtermThothDockSource')
 // source set, present only in a ThothDock QA build; the production Trixie
 // edition's branding is untouched.
 if (thothDockSource != null) {
+    android.sourceSets.test.java.srcDirs += 'src/thothdock/test/java'
     android.sourceSets.debug {
         res.srcDirs += 'src/thothdock/res'
         assets.srcDirs += 'src/thothdock/assets'

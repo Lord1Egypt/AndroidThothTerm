@@ -207,7 +207,8 @@ public class ContainersActivity extends AppCompatActivity {
             s.online = true;
         } catch (IOException e) {
             s.online = false;
-            s.error = e.getMessage();
+            s.error = e.getClass().getSimpleName() + ": " + e.getMessage();
+            ThothLog.w(LogCategory.RUNTIME, "Containers: the engine did not answer: " + s.error);
         }
         return s;
     }
@@ -234,6 +235,8 @@ public class ContainersActivity extends AppCompatActivity {
             statRunning.setText("–");
             statStopped.setText("–");
             statImages.setText("–");
+            offlineHint.setText(getString(R.string.containers_offline_hint)
+                    + (s.error == null ? "" : "\n\n" + s.error));
             offlineHint.setVisibility(View.VISIBLE);
             startEngine.setVisibility(View.VISIBLE);
             emptyView.setVisibility(View.GONE);

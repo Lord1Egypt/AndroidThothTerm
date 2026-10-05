@@ -86,18 +86,42 @@ final class ApiClient {
         return s;
     }
 
-    private static void send(OutputStream out, String method, String path, String json) throws IOException {
+    /**
+     * The whole request as ONE buffer. It must be a single write: the server
+     * answers an HTTP/1.0 request and closes the connection at once, and a
+     * second (even empty) write after the headers can then hit a closed
+     * socket -- "Broken pipe" -- although the request was served.
+     */
+    static byte[] encodeRequest(String method, String path, String json) {
         byte[] body = json == null ? new byte[0] : json.getBytes(StandardCharsets.UTF_8);
         StringBuilder h = new StringBuilder();
         h.append(method).append(' ').append(path).append(" HTTP/1.0\r\nHost: thothdock\r\n");
         if (json != null) h.append("Content-Type: application/json\r\n");
         h.append("Content-Length: ").append(body.length).append("\r\n\r\n");
-        out.write(h.toString().getBytes(StandardCharsets.US_ASCII));
-        out.write(body);
+        byte[] head = h.toString().getBytes(StandardCharsets.US_ASCII);
+        byte[] all = new byte[head.length + body.length];
+        System.arraycopy(head, 0, all, 0, head.length);
+        System.arraycopy(body, 0, all, head.length, body.length);
+        return all;
+    }
+
+    private static void send(OutputStream out, String method, String path, String json) throws IOException {
+        out.write(encodeRequest(method, path, json));
         out.flush();
     }
 
     Response request(String method, String path, String json, int timeoutMs) throws IOException {
+        try {
+            return requestOnce(method, path, json, timeoutMs);
+        } catch (java.net.SocketTimeoutException e) {
+            throw e; // the server is busy, not gone: do not double the wait
+        } catch (IOException e) {
+            if (!"GET".equals(method)) throw e; // never repeat an action that may have run
+            return requestOnce(method, path, json, timeoutMs);
+        }
+    }
+
+    private Response requestOnce(String method, String path, String json, int timeoutMs) throws IOException {
         try (LocalSocket s = connect(timeoutMs)) {
             send(s.getOutputStream(), method, path, json);
             return parse(s.getInputStream());
