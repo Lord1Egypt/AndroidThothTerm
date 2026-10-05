@@ -265,7 +265,14 @@ def stageThothDock = tasks.register('stageThothDock') {
         def cmd = ['sh', rootProject.file('garden-common/tools/stage-thothdock.sh').path, pins.path,
                    file(thothDockSource.toString()).path, file(dockerCliSource.toString()).path,
                    jniOut.path, assetsOut.path, new File(gardenDir, 'thothdock-work').path]
-        def proc = new ProcessBuilder(cmd).redirectErrorStream(true).start()
+        def pb = new ProcessBuilder(cmd).redirectErrorStream(true)
+        // -PthothtermGoRoot=<Go tree>: use that toolchain (the F-Droid recipe
+        // builds Go from source and points Gradle at it) instead of PATH's.
+        def goRoot = rootProject.findProperty('thothtermGoRoot')
+        if (goRoot != null) {
+            pb.environment().put('PATH', file(goRoot.toString()).path + '/bin' + File.pathSeparator + System.getenv('PATH'))
+        }
+        def proc = pb.start()
         proc.inputStream.eachLine { logger.lifecycle(it) }
         if (proc.waitFor() != 0) throw new GradleException('stage-thothdock.sh failed')
     }
