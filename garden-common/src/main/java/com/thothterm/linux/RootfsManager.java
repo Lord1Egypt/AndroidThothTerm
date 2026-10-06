@@ -942,6 +942,7 @@ public final class RootfsManager {
         setupUserAccount(root);
         removeManagedSudoHelper(root);
         setupSudo(root);
+        setupEngineGuard(root);
 
         File profileDir = guestDir(root, "/etc/profile.d");
         managed("locale fix", () -> writeGuest(root, new File(profileDir, "01-locale-fix.sh"),
@@ -1100,6 +1101,34 @@ public final class RootfsManager {
                     GuestConfig.ensureDebconfFrontendTemplate(
                             ManagedFiles.read(fileOps, root, templatesDat))));
         }
+    }
+
+    /**
+     * ThothDock's Engine Guard enforcement (apt hook, its configuration, the
+     * pin) is part of the guest being ready: this runs wherever the guest is
+     * made usable -- install, repair, and every terminal window before its
+     * PRoot starts -- so no apt can run first. The hook is written before the
+     * configuration that names it, each file by atomic rename. Unlike the
+     * other managed files, a failure here propagates: a guest that cannot be
+     * guarded does not become ready. The dpkg registration of the placeholders
+     * stays in the background ({@code EngineGuard}).
+     */
+    private void setupEngineGuard(File root) throws IOException {
+        if (isPacman()) return;
+        com.thothterm.dock.EngineGuard.Enforcement guard = com.thothterm.dock.EngineGuard.enforcement(appContext);
+        if (guard != null) writeEngineGuard(fileOps, root, guard);
+    }
+
+    /** The enforcement files, hook first, each by atomic rename; a no-op where the guest has no dpkg. */
+    static void writeEngineGuard(FileOps ops, File root, com.thothterm.dock.EngineGuard.Enforcement guard)
+            throws IOException {
+        if (!ops.isRegularFile(new File(root, "var/lib/dpkg/status"))) return;
+        File hookDir = guestDir(ops, root, "/usr/lib/thothdock");
+        ManagedFiles.writeIfChanged(ops, root, new File(hookDir, "engine-guard-hook"), guard.hook, 0755);
+        ManagedFiles.writeIfChanged(ops, root, new File(guestDir(ops, root, "/etc/apt/apt.conf.d"),
+                "99thothdock-engine-guard"), guard.aptConf, 0644);
+        ManagedFiles.writeIfChanged(ops, root, new File(guestDir(ops, root, "/etc/apt/preferences.d"),
+                "thothdock-engine-guard"), guard.pin, 0644);
     }
 
     /** Records the managed guest-configuration schema applied to this rootfs. */
@@ -1576,9 +1605,13 @@ public final class RootfsManager {
 
     /** A guest directory, resolved inside the guest and created if missing. */
     private File guestDir(File root, String guestPath) throws IOException {
-        File dir = GuestPaths.resolve(fileOps, root, guestPath, true);
+        return guestDir(fileOps, root, guestPath);
+    }
+
+    private static File guestDir(FileOps ops, File root, String guestPath) throws IOException {
+        File dir = GuestPaths.resolve(ops, root, guestPath, true);
         if (dir == null) throw new IOException("Symlink loop at " + guestPath);
-        ManagedFiles.ensureDirectories(fileOps, root, dir);
+        ManagedFiles.ensureDirectories(ops, root, dir);
         return dir;
     }
 

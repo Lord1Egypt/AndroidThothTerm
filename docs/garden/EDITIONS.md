@@ -11,7 +11,7 @@ superseded).
 |---|---|---|---|---|---|
 | ThothTerm Terminal Emulator | `com.thothterm` | `term` | none (Android shell) | — | `terminal-v*` |
 | ThothTerm Resolute | `com.thothterm.ubuntu` | `term-ubuntu` | Ubuntu 26.04.1 base (downloaded from cdimage.ubuntu.com, SHA-256 pinned) | 7681 | `ubuntu-v*` |
-| ThothTerm Trixie | `com.thothterm.debian` | `garden-debian` | Debian GNU/Linux 13 (trixie) rootfs, `debian-rootfs-trixie-arm64-f6520ff1c6ee` | 7682 | `trixie-v*` |
+| ThothTerm • ThothDock (the Trixie edition; before 0.3.1 "ThothTerm Trixie") | `com.thothterm.debian` | `garden-debian` | Debian GNU/Linux 13 (trixie) rootfs, `debian-rootfs-trixie-arm64-f6520ff1c6ee` | 7682 | `trixie-v*` |
 | ThothTerm Rolling | `com.thothterm.arch` | `garden-arch` | Arch Linux ARM rootfs, `arch-rootfs-aarch64-03a4c669ed6f` | 7683 | `arch-v*` |
 | ThothTerm Security | `com.thothterm.security` | `garden-security` | Rolling's Arch Linux ARM rootfs (same archive) | 7684 | `security-v*` |
 

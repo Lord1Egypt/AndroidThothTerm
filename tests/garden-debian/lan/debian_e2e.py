@@ -36,7 +36,7 @@ with sync_playwright() as p:
     pg.on('pageerror', lambda e: errors.append(str(e)))
     pg.goto(ORIGIN + '/'); pg.wait_for_selector('#pin', state='visible', timeout=15000)
     check('pairing page first, no shell before auth', pg.is_visible('#pin') and not pg.is_visible('.xterm-rows'))
-    check('page names the edition: ThothTerm Trixie / LAN Terminal', pg.title() == 'ThothTerm Trixie — LAN Terminal' and pg.inner_text('.brand') == 'ThothTerm Trixie' and pg.inner_text('.sub') == 'LAN Terminal', (pg.title(), pg.inner_text('.brand')))
+    check('page names the product: ThothTerm • ThothDock / LAN Terminal', pg.title() == 'ThothTerm • ThothDock — LAN Terminal' and pg.inner_text('.brand') == 'ThothTerm • ThothDock' and pg.inner_text('.sub') == 'LAN Terminal', (pg.title(), pg.inner_text('.brand')))
     pg.fill('#pin', '000000' if PIN != '000000' else '111111'); pg.click('#pair-form button'); pg.wait_for_timeout(1500)
     check('wrong PIN rejected', 'Wrong PIN' in pg.inner_text('#pair-error'), pg.inner_text('#pair-error'))
     pg.wait_for_timeout(1100); pg.fill('#pin', PIN); pg.click('#pair-form button'); wait_ok(pg)

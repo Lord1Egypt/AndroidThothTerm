@@ -55,6 +55,7 @@ rm -rf "$ASSETS/engine-guard"
 ( cd "$WORK/thothdock-src" && SOURCE_DATE_EPOCH=1790000000 sh engine-guard/build.sh "$ASSETS/engine-guard" >/dev/null ) \
     || die "Engine Guard build failed"
 GUARD_VERSION="$(dpkg-deb -f "$ASSETS"/engine-guard/docker.io_*_all.deb Version)"
+GUARD_PACKAGE_VERSION="$(dpkg-deb -f "$ASSETS"/engine-guard/thothdock-engine-guard_*_all.deb Version)"
 
 # ---- Docker CLI, from the upstream source tag ---------------------------------
 CLI_FULL="$(git -C "$CLI_SRC" rev-parse --verify "$CLI_COMMIT^{commit}")" || die "$CLI_COMMIT not in $CLI_SRC"
@@ -82,5 +83,6 @@ dockerCliSha256=$(sha "$JNI/libdocker.so")
 dockerCliSize=$(stat -c %s "$JNI/libdocker.so")
 goVersion=$HAVE
 guardVersion=$GUARD_VERSION
+guardPackageVersion=$GUARD_PACKAGE_VERSION
 PROPS
 echo "stage-thothdock: ThothDock $SHORT sha256 $(sha "$JNI/libthothdock.so"), Docker CLI $CLI_VERSION sha256 $(sha "$JNI/libdocker.so"), Go $HAVE"

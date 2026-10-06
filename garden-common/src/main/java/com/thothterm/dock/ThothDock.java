@@ -97,6 +97,8 @@ public final class ThothDock {
     private boolean wanted;
     private boolean superviseRunning;
     private Process process;
+    /** Start time (see {@link #startTimeOf}) of {@link #process}: its identity, which a reused pid does not share. */
+    private long processStart;
 
     private ThothDock(Context context) {
         Context app = context.getApplicationContext();
@@ -158,6 +160,18 @@ public final class ThothDock {
             java.util.Properties p = new java.util.Properties();
             p.load(in);
             String v = p.getProperty("guardVersion");
+            return v == null ? "" : v;
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    /** The version of the {@code thothdock-engine-guard} package bundled with this build, or "". */
+    String guardPackageVersion() {
+        try (java.io.InputStream in = appContext.getAssets().open("thothdock/components.properties")) {
+            java.util.Properties p = new java.util.Properties();
+            p.load(in);
+            String v = p.getProperty("guardPackageVersion");
             return v == null ? "" : v;
         } catch (IOException e) {
             return "";
@@ -298,7 +312,7 @@ public final class ThothDock {
                     EngineGuard.scheduleEnsure();
                 } else if (p.isAlive()) {
                     ThothLog.w(LogCategory.RUNTIME, "ThothDock did not answer in time; stopping it");
-                    killHard(p);
+                    killHard(p, startOf(p));
                 }
                 int code = waitExit(p);
                 synchronized (lock) {
@@ -367,8 +381,10 @@ public final class ThothDock {
         builder.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile));
         builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
         Process p = builder.start();
+        long start = startTimeOf(pidOf(p));
         synchronized (lock) {
             process = p;
+            processStart = start;
         }
         ThothLog.i(LogCategory.RUNTIME, "ThothDock started pid=" + pidOf(p));
         return p;
@@ -434,17 +450,19 @@ public final class ThothDock {
     public void stop() {
         if (!bundled) return;
         final Process p;
+        final long start;
         synchronized (lock) {
             wanted = false;
             p = process;
+            start = processStart;
         }
         if (p == null) return;
-        signal(p, OsConstants.SIGTERM);
+        signal(p, start, OsConstants.SIGTERM);
         Thread t = new Thread(() -> {
             try {
                 if (!p.waitFor(STOP_WAIT_MS, TimeUnit.MILLISECONDS)) {
                     ThothLog.w(LogCategory.RUNTIME, "ThothDock ignored SIGTERM; SIGKILL");
-                    killHard(p);
+                    killHard(p, start);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -546,12 +564,28 @@ public final class ThothDock {
         }
     }
 
-    private static void signal(Process p, int sig) {
+    /** The identity recorded for {@code p}, or 0 when it is no longer the current daemon. */
+    private long startOf(Process p) {
+        synchronized (lock) {
+            return process == p ? processStart : 0;
+        }
+    }
+
+    /**
+     * Signals the daemon only while it is still the process that started at
+     * {@code start}. The child is reaped by the runtime as soon as it exits and
+     * its pid can then be handed to an unrelated process, so a bare kill(pid)
+     * could hit a stranger; a pid that no longer has the recorded start time is
+     * not signalled. SIGTERM goes through {@link Process#destroy}, which the
+     * runtime serialises with its own reaping.
+     */
+    private static void signal(Process p, long start, int sig) {
         int pid = pidOf(p);
-        if (pid <= 0) {
+        if (sig == OsConstants.SIGTERM || pid <= 0) {
             p.destroy();
             return;
         }
+        if (!sameProcess(pid, start)) return;
         try {
             Os.kill(pid, sig);
         } catch (ErrnoException ignored) {
@@ -559,9 +593,14 @@ public final class ThothDock {
         }
     }
 
+    /** True only for the live process {@code pid} that started at {@code start}. */
+    static boolean sameProcess(int pid, long start) {
+        return pid > 0 && start > 0 && startTimeOf(pid) == start;
+    }
+
     /** destroyForcibly() is only SIGTERM on Android; the kill is explicit. */
-    private static void killHard(Process p) {
-        signal(p, OsConstants.SIGKILL);
+    private static void killHard(Process p, long start) {
+        signal(p, start, OsConstants.SIGKILL);
         try {
             p.waitFor(3, TimeUnit.SECONDS);
         } catch (InterruptedException e) {

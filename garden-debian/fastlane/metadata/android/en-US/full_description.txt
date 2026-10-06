@@ -1,5 +1,6 @@
-ThothTerm Trixie is an independent Android application that provides a Debian
-GNU/Linux 13 (trixie) userspace under PRoot, and a terminal to work in it.
+ThothTerm • ThothDock is an independent Android application. It provides a terminal, a Debian
+GNU/Linux 13 (trixie) environment to work in under PRoot, and ThothDock, a
+Docker-compatible container engine for phones without root.
 There is no root, no virtual machine and no server somewhere else: the Debian
 GNU/Linux 13 (trixie) environment runs on the phone itself, inside the app.
 
@@ -65,7 +66,7 @@ Requirements
 * About 185 MB for Debian right after setup (measured on a phone), plus
   what apt's package lists and the software you install add
 
-ThothTerm Trixie is an independent application and is not affiliated with or
+ThothTerm • ThothDock is an independent application and is not affiliated with or
 endorsed by the Debian Project. Debian is a registered trademark owned by
 Software in the Public Interest, Inc.
 
