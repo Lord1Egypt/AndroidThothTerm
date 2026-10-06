@@ -22,9 +22,6 @@ Builds:
     commit: trixie-v0.3.1
     subdir: garden-debian
     submodules: true
-    scandelete:
-      - third_party/docker-cli/cli/command/container/testdata/utf16.env
-      - third_party/docker-cli/cli/command/container/testdata/utf16be.env
     sudo:
       - apt-get update
       - apt-get install -y golang-go
@@ -32,6 +29,9 @@ Builds:
       - fdroid
     srclibs:
       - go@go1.26.8
+    scanignore:
+      - third_party/docker-cli/cli/command/container/testdata/utf16.env
+      - third_party/docker-cli/cli/command/container/testdata/utf16be.env
     build:
       - git -C $$go$$ checkout -qf go1.24.6
       - pushd $$go$$/src
@@ -89,9 +89,12 @@ MaintainerNotes: |-
 
   Scanner: the Docker CLI source tree carries two UTF-16 text fixtures,
   third_party/docker-cli/cli/command/container/testdata/utf16.env and
-  utf16be.env. They are test data of the upstream CLI, not compiled and not
-  packaged, so exactly these two files are removed with scandelete before the
-  scan; no directory is ignored.
+  utf16be.env. They are test data of the upstream CLI (the scanner flags them
+  as "executable binary, possibly code" because of the UTF-16 bytes); they are
+  not compiled and not packaged. Exactly these two files are listed in
+  scanignore. scandelete does not apply: fdroid scanner reports "Unused
+  scandelete path" for them, because that warning is only handled by
+  scanignore. No directory is ignored.
 
   Container images are fetched only when the user runs docker pull or docker
   run (HTTPS, digest-verified); never in the background. Pulls are bounded by
