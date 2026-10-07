@@ -40,7 +40,7 @@ public class DistroOverlayTest {
         if (!f.exists()) f = new File("garden-debian/" + path);
         Properties p = new Properties();
         try (InputStream in = new FileInputStream(f)) {
-            p.load(in);
+            p.load(new java.io.InputStreamReader(in, StandardCharsets.UTF_8));
         }
         return p;
     }
@@ -49,8 +49,8 @@ public class DistroOverlayTest {
     public void overlayDiffersFromTrixieOnlyInTheEditionName() throws Exception {
         Properties main = load("src/main/assets/garden/distro.properties");
         Properties overlay = load("src/thothdock/assets/garden/distro.properties");
-        assertEquals("ThothDock", overlay.getProperty("editionName"));
-        assertTrue(!"ThothDock".equals(main.getProperty("editionName")));
+        assertEquals("ThothTerm \u2022 ThothDock", overlay.getProperty("editionName"));
+        assertTrue(!"ThothTerm \u2022 ThothDock".equals(main.getProperty("editionName")));
         main.remove("editionName");
         overlay.remove("editionName");
         assertEquals(main, overlay);

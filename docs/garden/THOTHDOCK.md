@@ -1,6 +1,10 @@
-# ThothDock in ThothTerm Trixie
+# ThothTerm • ThothDock
 
-ThothTerm Trixie 0.3.0 and later bundles ThothDock: a Docker Engine API 1.41
+**ThothTerm • ThothDock** is the product name of package `com.thothterm.debian` (from 0.3.1; before that the
+listing said "ThothTerm Trixie"). The package id and the `trixie-v*` tags are unchanged, so updates keep working.
+The guest it runs is still Debian GNU/Linux 13 (trixie), and says so wherever it names the distribution.
+
+Version 0.3.0 and later bundles ThothDock: a Docker Engine API 1.41
 daemon (Apache-2.0, [Lord1Egypt/ThothDock](https://github.com/Lord1Egypt/ThothDock))
 that runs containers through the PRoot this app already ships. It starts no
 `dockerd`, `containerd` or `runc`, and none is packaged.
@@ -37,10 +41,36 @@ Placeholder packages at epoch 9999 for `docker.io`, `docker-ce`,
 pin and a dpkg hook keep `apt` from installing a real engine over ThothDock. The
 Docker CLI packages are not guarded and stay updatable.
 
+Two parts, with different timing (0.3.1):
+
+* **Enforcement** (the hook, its apt configuration and the pin) is part of the
+  guest being ready. `RootfsManager.setupEngineGuard` writes the three files out
+  of the SHA-256-verified guard package, hook first, each by atomic rename, in
+  every step that makes the guest usable: a fresh install, a repair and the
+  start of every terminal window, before any guest process can run apt. It is
+  three small file writes, needs neither the daemon, dpkg nor the network, and a
+  guest that cannot be guarded is an error, not an unguarded terminal.
+* **Registration** (installing the placeholders and the guard package with
+  dpkg, so apt lists them as installed) runs on a background thread after the
+  daemon is ready, because it needs the dpkg lock and a guest process. Protection
+  does not wait for it: without placeholders the candidate for `docker.io` is the
+  stock package, which the hook refuses. Registration is retried at the next
+  daemon start.
+
+The hook reads apt protocol-3 records (`name oldver oldarch oldmulti cmp newver
+newarch newmulti action`), allows only the ThothDock placeholder version for a
+protected name, and fails closed on an unreadable protected record or any other
+protocol (ThothDock issue #3). The guard package is versioned separately from the
+placeholders (`1.0+thothdock.2`), so dpkg replaces an older hook.
 ## Network and downloads
 
 Nothing is downloaded in the background. Container images are fetched from a
 registry over HTTPS only when the user runs `docker pull` or `docker run`.
+
+## Pull ceilings
+
+A pull is bounded by explicit ceilings (layers, compressed and decompressed bytes, entries, free
+storage), with clear errors and cleanup; see ThothDock's `docs/SECURITY_MODEL.md`.
 
 ## Limits
 

@@ -15,14 +15,14 @@
  * limitations under the License.
 -->
 
-<!-- The ThothDock edition: names the environment everywhere the Trixie edition would say "ThothTerm Trixie". The
-     guest still identifies itself truthfully as Debian GNU/Linux 13 (trixie). -->
+<!-- The product is "ThothTerm • ThothDock" (package com.thothterm.debian): this names it everywhere the plain
+     Trixie edition would say "ThothTerm Trixie". The guest it runs is, and says it is, Debian GNU/Linux 13 (trixie). -->
 <resources>
     <string name="application_terminal" translatable="false">ThothTerm • ThothDock</string>
     <string name="application_positioning">Docker-compatible userspace engine on Android, ARM64</string>
-    <string name="about_title">About ThothDock</string>
-    <string name="service_notify_text">ThothDock is running</string>
-    <string name="about_notice">ThothDock is an independent application and is not affiliated with or endorsed by the Debian Project. Debian is a registered trademark owned by Software in the Public Interest, Inc.</string>
-    <string name="garden_welcome">Welcome to ThothDock</string>
-    <string name="garden_consent_body">ThothDock runs a Debian GNU/Linux %1$s environment. This build does not include it, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n• This downloads executable software onto your device after installation.\n• It consists of unmodified packages from the official Debian archive, assembled into a root filesystem by the ThothTerm project with a reproducible build. The Debian Project did not build or endorse this download.\n• It is not part of this app’s package and was not built or verified by F‑Droid.\n• ThothTerm checks the download’s size and SHA‑256 checksum against values fixed in this app’s source, and refuses it if they do not match.\n\nNothing is downloaded unless you choose Download Debian.</string>
+    <string name="about_title">About ThothTerm • ThothDock</string>
+    <string name="service_notify_text">ThothTerm • ThothDock is running</string>
+    <string name="about_notice">ThothTerm • ThothDock is an independent application and is not affiliated with or endorsed by the Debian Project. Debian is a registered trademark owned by Software in the Public Interest, Inc.</string>
+    <string name="garden_welcome">Welcome to ThothTerm • ThothDock</string>
+    <string name="garden_consent_body">ThothTerm • ThothDock runs a Debian GNU/Linux %1$s environment. This build does not include it, so it has to be downloaded before the terminal can start.\n\nDownload size: about %2$d MB\nFrom: %3$s\n\nWhat you are agreeing to:\n• This downloads executable software onto your device after installation.\n• It consists of unmodified packages from the official Debian archive, assembled into a root filesystem by the ThothTerm project with a reproducible build. The Debian Project did not build or endorse this download.\n• It is not part of this app’s package and was not built or verified by F‑Droid.\n• ThothTerm checks the download’s size and SHA‑256 checksum against values fixed in this app’s source, and refuses it if they do not match.\n\nNothing is downloaded unless you choose Download Debian.</string>
 </resources>

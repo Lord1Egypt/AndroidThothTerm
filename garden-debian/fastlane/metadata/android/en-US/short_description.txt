@@ -1,1 +1,1 @@
-A Debian GNU/Linux 13 (trixie) terminal on your phone. No root needed.
+Docker on your phone, in a Debian GNU/Linux 13 (trixie) terminal. No root.
