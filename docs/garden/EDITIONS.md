@@ -37,7 +37,7 @@ independently of that setup. Details: `docs/garden/security/DESIGN.md`; rules:
 |---|---|---|---|---|
 | Terminal | 1.4.1 / 10401 | `terminal-v1.4.1` | `760d54e` | released |
 | Resolute | 0.3.2 / 302 | `ubuntu-v0.3.2` | `760d54e` | released |
-| Trixie | 0.2.2 / 202 | `trixie-v0.2.2` | `760d54e` | released |
+| ThothTerm • ThothDock (Trixie) | 0.3.1 / 301 | `trixie-v0.3.1` | the tag | released |
 | Rolling | 0.1.1 / 101 | `arch-v0.1.1` | `760d54e` | released |
 | Security | 0.1.0 / 100 | `security-v0.1.0` | `4cbf7a8` | released |
 
@@ -49,6 +49,6 @@ F-Droid maintainers' decision.
 | Product | MR | State |
 |---|---|---|
 | Resolute 0.3.2 | !49556 | open, ready, pipeline green |
-| Trixie 0.2.2 | !50342 | open, ready, pipeline green |
+| ThothTerm • ThothDock 0.3.1 | !50342 | open, ready, pipeline green |
 | Rolling 0.1.1 | !51045 | open, ready, pipeline green; upstream signing (`Binaries`, `AllowedAPKSigningKeys` 3f85da4f…f679; `docs/RELEASE_SIGNING.md`) |
 | Security 0.1.0 | !51185 | open, ready, pipeline green; upstream signing (`Binaries`, `AllowedAPKSigningKeys` 24dd0902…e3c6) |

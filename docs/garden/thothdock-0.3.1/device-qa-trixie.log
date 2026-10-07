@@ -1,0 +1,79 @@
+### apt
++ apt-get update
++ tail -3
+Get:9 http://deb.debian.org/debian-security trixie-security/main Translation-en [162 kB]
+Fetched 16.8 MB in 6s (3041 kB/s)
+Reading package lists...
++ apt-get -y upgrade
++ tail -4
+Preparing to unpack .../openssl_3.5.7-1~deb13u3_arm64.deb ...
+Unpacking openssl (3.5.7-1~deb13u3) over (3.5.7-1~deb13u2) ...
+Setting up openssl (3.5.7-1~deb13u3) ...
+Processing triggers for libc-bin (2.41-12+deb13u4) ...
++ apt-get -y full-upgrade
++ tail -3
+Reading state information...
+Calculating upgrade...
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
++ echo rc=0
+rc=0
+### guard
+Reading state information...
+docker.io is already the newest version (9999:1.0+thothdock.1).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+E: The Docker CLI is unaffected; update ThothDock through its app.
+Fetched 65.2 MB in 11s (5816 kB/s)
+E: Sub-process /usr/lib/thothdock/engine-guard-hook returned an error code (1)
+E: Failure running script /usr/lib/thothdock/engine-guard-hook
+rc-stock=0
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+ii  containerd                9999:1.0+thothdock.1              all          Docker Engine
+ii  containerd.io             9999:1.0+thothdock.1              all          Docker Engine
+ii  docker-ce                 9999:1.0+thothdock.1              all          Docker Engine
+ii  docker-engine             9999:1.0+thothdock.1              all          Docker Engine
+ii  docker.io                 9999:1.0+thothdock.1              all          Docker Engine
+ii  moby-engine               9999:1.0+thothdock.1              all          Docker Engine
+ii  runc                      9999:1.0+thothdock.1              all          Docker Engine
+ii  thothdock-engine-guard    1.0+thothdock.2                   all          Keeps a stock
+Engine Guard
+  PASS  docker.io                  protected (9999:1.0+thothdock.1)
+  PASS  docker-ce                  protected (9999:1.0+thothdock.1)
+  PASS  docker-engine              protected (9999:1.0+thothdock.1)
+  PASS  moby-engine                protected (9999:1.0+thothdock.1)
+  PASS  containerd                 protected (9999:1.0+thothdock.1)
+  PASS  containerd.io              protected (9999:1.0+thothdock.1)
+  PASS  runc                       protected (9999:1.0+thothdock.1)
+  PASS  thothdock-engine-guard     1.0+thothdock.2
+  PASS  dockerd                    absent
+  PASS  containerd                 absent
+  PASS  runc                       absent
+  PASS  docker-proxy               absent
+  PASS  docker-init                absent
+  PASS  containerd-shim-runc-v2    absent
+
+  INFO  Docker CLI                 29.8.1
+  INFO  ThothDock Engine           0.1.1
+  INFO  Docker API                 1.41 (minimum 1.24)
+doctor=0
+Preparing to unpack /tmp/dio2.deb ...
+Unpacking docker.io (9999:1.0+thothdock.2) over (9999:1.0+thothdock.1) ...
+Setting up docker.io (9999:1.0+thothdock.2) ...
+ii  docker.io      9999:1.0+thothdock.2 all          test pl
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+PASS docker version
+PASS docker info
+PASS docker ps
+PASS docker pull alpine
+PASS run --rm
+PASS exec
+PASS logs
+PASS stop
+PASS start
+PASS restart
+PASS volumes
+PASS -p TCP
+PASS missing cmd 127
+q1 q2 
