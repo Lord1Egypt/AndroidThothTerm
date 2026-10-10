@@ -50,6 +50,10 @@ gcc -O2 -static -o "$W/probe" "$HERE/net-ip-probe.c" 2>"$W/probe.log" \
     || { cat "$W/probe.log"; echo "ENVIRONMENT BLOCKED (not a PRoot result): no static libc"; exit 2; }
 export PROOT_TMP_DIR="$W/tmp"; mkdir -p "$PROOT_TMP_DIR"
 in_proot() { ip=$1; shift; "$PROOT" -r / --kill-on-exit --net-ip="$ip" "$@"; }
+# serve_bg IP LOG PROBE-ARGS...: a background server whose $! is PRoot itself
+# (a backgrounded function would leave $! naming a subshell, and killing that
+# subshell orphans PRoot).
+serve_bg() { ip=$1 log=$2; shift 2; "$PROOT" -r / --kill-on-exit --net-ip="$ip" "$@" > "$log" 2>&1 & PIDS="$PIDS $!"; }
 
 $PROOT --help | grep -q -- '--net-ip' ; ok $? "proot --help lists --net-ip"
 
@@ -66,9 +70,9 @@ PIDS=""
 # PRoot ignores SIGTERM while its tracee runs: SIGKILL ends it and the tracee.
 cleanup() { for p in $PIDS; do kill -9 "$p" 2>/dev/null; done; wait 2>/dev/null; }
 trap cleanup EXIT
-in_proot 127.77.0.5 "$W/probe" serve 24000 > "$W/a.log" 2>&1 & PIDS="$PIDS $!"
-in_proot 127.77.0.6 "$W/probe" serve 24000 > "$W/b.log" 2>&1 & PIDS="$PIDS $!"
-in_proot 127.77.0.7 "$W/probe" serve 80 > "$W/c.log" 2>&1 & PIDS="$PIDS $!"
+serve_bg 127.77.0.5 "$W/a.log" "$W/probe" serve 24000
+serve_bg 127.77.0.6 "$W/b.log" "$W/probe" serve 24000
+serve_bg 127.77.0.7 "$W/c.log" "$W/probe" serve 80
 for _ in $(seq 50); do
     [ "$(cat "$W/a.log" "$W/b.log" "$W/c.log" | grep -c serving)" = 3 ] && break
     sleep 0.1
@@ -113,4 +117,8 @@ for _ in $(seq 50); do grep -q serving "$W/plain.log" && break; sleep 0.1; done
 ss -Hltn | awk '{print $4}' | grep -qx '0.0.0.0:24200'
 ok $? "without --net-ip, bind 0.0.0.0 is unchanged"
 
+cleanup
+trap - EXIT
+sleep 0.5
+[ "$(ps -eo args | grep -c "^$PROOT ")" = 0 ]; ok $? "no PRoot process is left behind"
 exit $fail
