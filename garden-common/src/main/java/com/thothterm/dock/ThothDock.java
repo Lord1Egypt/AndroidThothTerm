@@ -71,7 +71,12 @@ public final class ThothDock {
     public static final String CONTAINERS_ACTIVITY = "com.thothterm.dock.ContainersActivity";
 
     /** The Web Panel page (same overlay as the Containers screen). */
-    public static final String WEB_PANEL_ACTIVITY = "com.thothterm.dock.WebPanelActivity";
+    /** Intent extra naming the tab the management screen opens on (one of the TAB_ values). */
+    public static final String EXTRA_TAB = "com.thothterm.dock.extra.TAB";
+    public static final String TAB_CONTAINERS = "containers";
+    public static final String TAB_IMAGES = "images";
+    public static final String TAB_VOLUMES = "volumes";
+    public static final String TAB_PANEL = "panel";
 
     /** ThothDock's own binary inside the guest, for `thothdock doctor --guard`. */
     public static final String GUEST_TOOL = "/usr/local/bin/thothdock";

@@ -15,58 +15,65 @@
  * limitations under the License.
 -->
 
-<LinearLayout
+<!-- ListView ignores margins on a row's root, so the gutter is the wrapper's padding:
+     the same 16dp as the header and the Web Panel cards. -->
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="12dp"
-    android:layout_marginTop="10dp"
-    android:layout_marginEnd="12dp"
-    android:background="@drawable/thothdock_card"
-    android:orientation="vertical"
-    android:padding="14dp">
+    android:paddingStart="16dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:background="@drawable/thothdock_card"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/simple_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="middle"
+                android:singleLine="true"
+                android:textColor="@color/thothdock_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/simple_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/thothdock_text_secondary"
+                android:textSize="13sp"/>
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/simple_title"
-            android:layout_width="0dp"
+            android:id="@+id/simple_sub"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_marginTop="3dp"
             android:ellipsize="middle"
             android:singleLine="true"
-            android:textColor="@color/thothdock_text_primary"
-            android:textSize="16sp"
-            android:textStyle="bold"/>
+            android:textColor="@color/thothdock_kind_image"
+            android:textSize="13sp"
+            android:typeface="monospace"/>
 
         <TextView
-            android:id="@+id/simple_badge"
-            android:layout_width="wrap_content"
+            android:id="@+id/simple_meta"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginTop="2dp"
             android:textColor="@color/thothdock_text_secondary"
             android:textSize="13sp"/>
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/simple_sub"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
-        android:ellipsize="middle"
-        android:singleLine="true"
-        android:textColor="@color/thothdock_kind_image"
-        android:textSize="13sp"
-        android:typeface="monospace"/>
-
-    <TextView
-        android:id="@+id/simple_meta"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textColor="@color/thothdock_text_secondary"
-        android:textSize="13sp"/>
-</LinearLayout>
+</FrameLayout>

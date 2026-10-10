@@ -187,6 +187,15 @@
     </HorizontalScrollView>
 
     <TextView
+        android:id="@+id/tab_note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textColor="@color/thothdock_text_secondary"
+        android:textSize="13sp"
+        android:visibility="gone"/>
+
+    <TextView
         android:id="@+id/containers_empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -13,35 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.thothterm.dock;
-
-import com.thothterm.debian.R;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
-/** Images in the local store: tags, size and age. Read only. */
-public class ImagesActivity extends SimpleListActivity {
-    @Override
-    int titleRes() {
-        return R.string.images_title;
+/**
+ * The read-only Images and Volumes tabs: rows built from the JSON the
+ * Containers screen already fetched for its summary tiles, so showing a tab
+ * costs no extra request.
+ */
+final class ListSources {
+    private ListSources() {
     }
 
-    @Override
-    int emptyRes() {
-        return R.string.images_empty;
+    /** One row. */
+    static final class Item {
+        final String title;
+        final String badge;
+        final String sub;
+        final String meta;
+
+        Item(String title, String badge, String sub, String meta) {
+            this.title = title;
+            this.badge = badge;
+            this.sub = sub;
+            this.meta = meta;
+        }
     }
 
-    @Override
-    Result load(ApiClient api) throws IOException {
-        JSONArray images = api.getArray("/images/json");
+    /** The rows of one tab and its summary line. */
+    static final class Result {
+        final List<Item> items = new ArrayList<>();
+        String summary = "";
+    }
+
+    /** Images in the local store: tags, size and age. */
+    static Result images(JSONArray images) {
         Result r = new Result();
         long total = 0;
-        for (int i = 0; i < images.length(); i++) {
+        for (int i = 0; images != null && i < images.length(); i++) {
             JSONObject o = images.optJSONObject(i);
             if (o == null) continue;
             JSONArray tags = o.optJSONArray("RepoTags");
@@ -57,6 +72,21 @@ public class ImagesActivity extends SimpleListActivity {
                     id.length() > 12 ? id.substring(0, 12) : id, ago(o.optLong("Created"))));
         }
         r.summary = String.format(Locale.US, "%d images · %s on disk", r.items.size(), megabytes(total));
+        return r;
+    }
+
+    /** Named volumes: name, driver and the Compose project that owns them. */
+    static Result volumes(JSONArray volumes) {
+        Result r = new Result();
+        for (int i = 0; volumes != null && i < volumes.length(); i++) {
+            JSONObject o = volumes.optJSONObject(i);
+            if (o == null) continue;
+            JSONObject labels = o.optJSONObject("Labels");
+            String project = labels == null ? "" : labels.optString("com.docker.compose.project", "");
+            r.items.add(new Item(o.optString("Name"), o.optString("Driver", "local"),
+                    project.isEmpty() ? "" : "stack " + project, "created " + o.optString("CreatedAt", "")));
+        }
+        r.summary = String.format(Locale.US, "%d volumes", r.items.size());
         return r;
     }
 

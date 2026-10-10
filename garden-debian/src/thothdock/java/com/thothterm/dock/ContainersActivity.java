@@ -55,14 +55,41 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * The Containers screen. A client of the ThothDock API exactly like the Docker
- * CLI: it lists, starts, stops, restarts, deletes and reads logs through the
- * engine's socket, and keeps no container state of its own, so the CLI and
- * this screen always agree. Nothing here is measured from cgroups -- there are
- * none -- so no CPU or memory figures are shown.
+ * The ThothDock management screen: Containers, Images, Volumes and Web Panel
+ * as in-place tabs under one header (branding, engine status, summary tiles).
+ * A client of the ThothDock API exactly like the Docker CLI: it lists, starts,
+ * stops, restarts, deletes and reads logs through the engine's socket, and
+ * keeps no container state of its own, so the CLI and this screen always
+ * agree. Nothing here is measured from cgroups -- there are none -- so no CPU
+ * or memory figures are shown.
+ *
+ * <p>Switching tabs swaps the list's adapter; it never starts another
+ * Activity. The one poll (3 s, only while the screen is visible) feeds the
+ * tiles and whichever tab is showing, so no section is fetched twice. The Web
+ * Panel tab is a one-row list driven by {@link WebPanelController}.</p>
  */
 public class ContainersActivity extends AppCompatActivity {
     private static final long POLL_MS = 3000;
+    private static final String STATE_TAB = "tab";
+    private static final String STATE_SCROLL_POS = "scrollPos";
+    private static final String STATE_SCROLL_TOP = "scrollTop";
+
+    /** The four tabs, in chip order. */
+    enum Tab {
+        CONTAINERS(ThothDock.TAB_CONTAINERS), IMAGES(ThothDock.TAB_IMAGES),
+        VOLUMES(ThothDock.TAB_VOLUMES), PANEL(ThothDock.TAB_PANEL);
+
+        final String key;
+
+        Tab(String key) {
+            this.key = key;
+        }
+
+        static Tab of(String key) {
+            for (Tab t : values()) if (t.key.equals(key)) return t;
+            return CONTAINERS;
+        }
+    }
 
     /** What one poll saw. */
     private static final class Snapshot {
@@ -73,6 +100,8 @@ public class ContainersActivity extends AppCompatActivity {
         String arch = "";
         int images;
         int volumes = -1;
+        ListSources.Result imageList = new ListSources.Result();
+        ListSources.Result volumeList = new ListSources.Result();
         List<ContainerRow> containers = new ArrayList<>();
     }
 
@@ -82,10 +111,21 @@ public class ContainersActivity extends AppCompatActivity {
     private final AtomicBoolean polling = new AtomicBoolean();
     private final Set<String> busy = new HashSet<>();
     private final List<ContainerRow> rows = new ArrayList<>();
+    private final List<ListSources.Item> imageItems = new ArrayList<>();
+    private final List<ListSources.Item> volumeItems = new ArrayList<>();
+    private final int[] scrollPos = new int[Tab.values().length];
+    private final int[] scrollTop = new int[Tab.values().length];
 
     private ApiClient api;
     private boolean started;
+    private Tab tab = Tab.CONTAINERS;
+    private Snapshot last;
+    private ListView list;
     private RowAdapter adapter;
+    private ItemAdapter imageAdapter;
+    private ItemAdapter volumeAdapter;
+    private PanelAdapter panelAdapter;
+    private WebPanelController panelController;
     private View header;
     private TextView engineState;
     private TextView engineDetail;
@@ -96,6 +136,8 @@ public class ContainersActivity extends AppCompatActivity {
     private TextView offlineHint;
     private Button startEngine;
     private TextView emptyView;
+    private TextView tabNote;
+    private final TextView[] chips = new TextView[Tab.values().length];
 
     private final Runnable pollLoop = new Runnable() {
         @Override
@@ -112,12 +154,10 @@ public class ContainersActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(com.thothterm.R.id.toolbar);
         setSupportActionBar(toolbar);
         ActionBar bar = getSupportActionBar();
-        if (bar != null) {
-            bar.setDisplayHomeAsUpEnabled(true);
-            bar.setTitle(com.thothterm.R.string.containers);
-        }
+        if (bar != null) bar.setDisplayHomeAsUpEnabled(true);
         ThothDock dock = ThothDock.getIfInitialized();
         api = new ApiClient(dock == null ? "" : dock.socketPath());
+        panelController = new WebPanelController(this);
 
         header = LayoutInflater.from(this).inflate(R.layout.header_containers, null, false);
         engineState = header.findViewById(R.id.engine_state);
@@ -126,9 +166,13 @@ public class ContainersActivity extends AppCompatActivity {
         statStopped = header.findViewById(R.id.stat_stopped);
         statImages = header.findViewById(R.id.stat_images);
         statVolumes = header.findViewById(R.id.stat_volumes);
-        header.findViewById(R.id.chip_images).setOnClickListener(v -> startActivity(new Intent(this, ImagesActivity.class)));
-        header.findViewById(R.id.chip_volumes).setOnClickListener(v -> startActivity(new Intent(this, VolumesActivity.class)));
-        header.findViewById(R.id.chip_panel).setOnClickListener(v -> startActivity(new Intent(this, WebPanelActivity.class)));
+        chips[Tab.CONTAINERS.ordinal()] = header.findViewById(R.id.chip_containers);
+        chips[Tab.IMAGES.ordinal()] = header.findViewById(R.id.chip_images);
+        chips[Tab.VOLUMES.ordinal()] = header.findViewById(R.id.chip_volumes);
+        chips[Tab.PANEL.ordinal()] = header.findViewById(R.id.chip_panel);
+        for (Tab t : Tab.values()) {
+            chips[t.ordinal()].setOnClickListener(v -> selectTab(t));
+        }
         offlineHint = header.findViewById(R.id.offline_hint);
         startEngine = header.findViewById(R.id.start_engine);
         startEngine.setOnClickListener(v -> {
@@ -136,17 +180,48 @@ public class ContainersActivity extends AppCompatActivity {
             if (d != null) d.ensureRunning();
             Toast.makeText(this, R.string.containers_starting_engine, Toast.LENGTH_SHORT).show();
         });
-        ListView list = findViewById(R.id.containers_list);
+        emptyView = header.findViewById(R.id.containers_empty);
+        tabNote = header.findViewById(R.id.tab_note);
+        list = findViewById(R.id.containers_list);
         list.addHeaderView(header, null, false);
         adapter = new RowAdapter();
-        list.setAdapter(adapter);
-        emptyView = header.findViewById(R.id.containers_empty);
+        imageAdapter = new ItemAdapter(imageItems);
+        volumeAdapter = new ItemAdapter(volumeItems);
+        panelAdapter = new PanelAdapter();
+
+        Tab initial = Tab.of(getIntent().getStringExtra(ThothDock.EXTRA_TAB));
+        if (savedInstanceState != null) {
+            initial = Tab.of(savedInstanceState.getString(STATE_TAB));
+            int[] pos = savedInstanceState.getIntArray(STATE_SCROLL_POS);
+            int[] top = savedInstanceState.getIntArray(STATE_SCROLL_TOP);
+            if (pos != null && pos.length == scrollPos.length) System.arraycopy(pos, 0, scrollPos, 0, pos.length);
+            if (top != null && top.length == scrollTop.length) System.arraycopy(top, 0, scrollTop, 0, top.length);
+        }
+        showTab(initial);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String key = intent.getStringExtra(ThothDock.EXTRA_TAB);
+        if (key != null) selectTab(Tab.of(key));
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        rememberScroll();
+        out.putString(STATE_TAB, tab.key);
+        out.putIntArray(STATE_SCROLL_POS, scrollPos);
+        out.putIntArray(STATE_SCROLL_TOP, scrollTop);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         started = true;
+        if (tab == Tab.PANEL) panelController.show();
         ui.post(pollLoop);
     }
 
@@ -154,6 +229,7 @@ public class ContainersActivity extends AppCompatActivity {
     protected void onStop() {
         started = false;
         ui.removeCallbacks(pollLoop);
+        panelController.hide();
         super.onStop();
     }
 
@@ -161,6 +237,7 @@ public class ContainersActivity extends AppCompatActivity {
     protected void onDestroy() {
         poller.shutdownNow();
         actions.shutdownNow();
+        panelController.destroy();
         super.onDestroy();
     }
 
@@ -180,11 +257,91 @@ public class ContainersActivity extends AppCompatActivity {
             poll();
             return true;
         }
-        if (item.getItemId() == R.id.menu_web_panel) {
-            startActivity(new Intent(this, WebPanelActivity.class));
-            return true;
-        }
         return super.onOptionsItemSelected(item);
+    }
+
+    // ---- tabs ------------------------------------------------------------------
+
+    private void selectTab(Tab t) {
+        if (t == tab) return;
+        rememberScroll();
+        panelController.hide();
+        showTab(t);
+        if (t == Tab.PANEL && started) panelController.show();
+    }
+
+    private void rememberScroll() {
+        View first = list.getChildAt(0);
+        scrollPos[tab.ordinal()] = list.getFirstVisiblePosition();
+        scrollTop[tab.ordinal()] = first == null ? 0 : first.getTop() - list.getPaddingTop();
+    }
+
+    /** Makes t the visible tab: highlight, title, adapter, header note and scroll position. */
+    private void showTab(Tab t) {
+        tab = t;
+        for (Tab c : Tab.values()) {
+            TextView chip = chips[c.ordinal()];
+            boolean on = c == t;
+            chip.setBackgroundResource(on ? R.drawable.thothdock_chip_selected : R.drawable.thothdock_chip);
+            chip.setSelected(on);
+        }
+        ActionBar bar = getSupportActionBar();
+        if (bar != null) bar.setTitle(titleFor(t));
+        switch (t) {
+            case IMAGES:
+                list.setAdapter(imageAdapter);
+                break;
+            case VOLUMES:
+                list.setAdapter(volumeAdapter);
+                break;
+            case PANEL:
+                list.setAdapter(panelAdapter);
+                break;
+            default:
+                list.setAdapter(adapter);
+        }
+        showContentNote();
+        list.setSelectionFromTop(scrollPos[t.ordinal()], scrollTop[t.ordinal()]);
+    }
+
+    private int titleFor(Tab t) {
+        switch (t) {
+            case IMAGES:
+                return R.string.images_title;
+            case VOLUMES:
+                return R.string.volumes_title;
+            case PANEL:
+                return com.thothterm.R.string.web_panel;
+            default:
+                return com.thothterm.R.string.containers;
+        }
+    }
+
+    /** The summary line and empty text under the tabs, for the visible tab only. */
+    private void showContentNote() {
+        boolean online = last != null && last.online;
+        tabNote.setVisibility(View.GONE);
+        emptyView.setVisibility(View.GONE);
+        if (tab == Tab.PANEL || last == null || !online) return;
+        switch (tab) {
+            case IMAGES:
+                tabNote.setText(last.imageList.summary
+                        + (imageItems.isEmpty() ? "" : "\n" + getString(R.string.list_readonly_hint)));
+                tabNote.setVisibility(View.VISIBLE);
+                emptyView.setText(R.string.images_empty);
+                emptyView.setVisibility(imageItems.isEmpty() ? View.VISIBLE : View.GONE);
+                break;
+            case VOLUMES:
+                tabNote.setText(last.volumeList.summary
+                        + (volumeItems.isEmpty() ? "" : "\n" + getString(R.string.list_readonly_hint)));
+                tabNote.setVisibility(View.VISIBLE);
+                emptyView.setText(R.string.volumes_empty);
+                emptyView.setVisibility(volumeItems.isEmpty() ? View.VISIBLE : View.GONE);
+                break;
+            default:
+                emptyView.setText(R.string.containers_empty);
+                emptyView.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+        }
     }
 
     // ---- polling ---------------------------------------------------------------
@@ -214,8 +371,10 @@ public class ContainersActivity extends AppCompatActivity {
             s.containers = ContainerRow.parse(api.getArray("/containers/json?all=1"));
             JSONArray images = api.getArray("/images/json");
             s.images = images.length();
+            s.imageList = ListSources.images(images);
             JSONArray volumes = api.getObject("/volumes").optJSONArray("Volumes");
             s.volumes = volumes == null ? 0 : volumes.length();
+            s.volumeList = ListSources.volumes(volumes);
             s.online = true;
         } catch (IOException e) {
             s.online = false;
@@ -226,6 +385,7 @@ public class ContainersActivity extends AppCompatActivity {
     }
 
     private void render(Snapshot s) {
+        last = s;
         if (s.online) {
             int running = 0;
             for (ContainerRow r : s.containers) if (r.isRunning()) running++;
@@ -238,9 +398,12 @@ public class ContainersActivity extends AppCompatActivity {
             statVolumes.setText(s.volumes < 0 ? "–" : String.valueOf(s.volumes));
             offlineHint.setVisibility(View.GONE);
             startEngine.setVisibility(View.GONE);
-            emptyView.setVisibility(s.containers.isEmpty() ? View.VISIBLE : View.GONE);
             rows.clear();
             rows.addAll(s.containers);
+            imageItems.clear();
+            imageItems.addAll(s.imageList.items);
+            volumeItems.clear();
+            volumeItems.addAll(s.volumeList.items);
         } else {
             engineState.setText(R.string.containers_engine_offline);
             engineState.setTextColor(getColor(R.color.thothdock_error));
@@ -253,10 +416,24 @@ public class ContainersActivity extends AppCompatActivity {
                     + (s.error == null ? "" : "\n\n" + s.error));
             offlineHint.setVisibility(View.VISIBLE);
             startEngine.setVisibility(View.VISIBLE);
-            emptyView.setVisibility(View.GONE);
             rows.clear();
+            imageItems.clear();
+            volumeItems.clear();
         }
-        adapter.notifyDataSetChanged();
+        // Only the visible tab is redrawn; the Web Panel tab has no engine data.
+        showContentNote();
+        switch (tab) {
+            case CONTAINERS:
+                adapter.notifyDataSetChanged();
+                break;
+            case IMAGES:
+                imageAdapter.notifyDataSetChanged();
+                break;
+            case VOLUMES:
+                volumeAdapter.notifyDataSetChanged();
+                break;
+            default:
+        }
     }
 
     // ---- actions ---------------------------------------------------------------
@@ -378,6 +555,73 @@ public class ContainersActivity extends AppCompatActivity {
             Button delete = v.findViewById(R.id.btn_delete);
             delete.setEnabled(!working);
             delete.setOnClickListener(x -> confirmDelete(r));
+            return v;
+        }
+    }
+
+    /** Rows of the read-only Images and Volumes tabs. */
+    private final class ItemAdapter extends BaseAdapter {
+        private final List<ListSources.Item> items;
+
+        ItemAdapter(List<ListSources.Item> items) {
+            this.items = items;
+        }
+
+        @Override
+        public int getCount() {
+            return items.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return items.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convert, ViewGroup parent) {
+            View v = convert != null ? convert
+                    : LayoutInflater.from(ContainersActivity.this).inflate(R.layout.item_simple, parent, false);
+            ListSources.Item it = items.get(position);
+            ((TextView) v.findViewById(R.id.simple_title)).setText(it.title);
+            ((TextView) v.findViewById(R.id.simple_badge)).setText(it.badge);
+            ((TextView) v.findViewById(R.id.simple_sub)).setText(it.sub);
+            ((TextView) v.findViewById(R.id.simple_meta)).setText(it.meta);
+            return v;
+        }
+    }
+
+    /** The Web Panel tab: one row whose view the controller binds. */
+    private final class PanelAdapter extends BaseAdapter {
+        @Override
+        public int getCount() {
+            return 1;
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return "panel";
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public boolean isEnabled(int position) {
+            return false;
+        }
+
+        @Override
+        public View getView(int position, View convert, ViewGroup parent) {
+            View v = convert != null ? convert
+                    : LayoutInflater.from(ContainersActivity.this).inflate(R.layout.panel_content, parent, false);
+            panelController.bind(v);
             return v;
         }
     }

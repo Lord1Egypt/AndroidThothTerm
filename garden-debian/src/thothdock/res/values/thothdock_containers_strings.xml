@@ -45,8 +45,6 @@
     <string name="containers_error_name">This container\'s name cannot be used in a command.</string>
     <string name="containers_logs_title">Logs · %1$s</string>
     <string name="containers_logs_invalid">No such container.</string>
-    <string name="panel_title">ThothDock Web Panel</string>
-    <string name="panel_tagline">Manage your containers from a browser</string>
     <string name="panel_state_off">Web Panel is off</string>
     <string name="panel_state_on">Web Panel is running</string>
     <string name="panel_state_starting">Starting the Web Panel…</string>
@@ -80,7 +78,6 @@
     <string name="panel_fingerprint_copied">Fingerprint copied</string>
     <string name="panel_failed">The Web Panel did not start: %1$s</string>
     <string name="panel_help">The Web Panel has its own pairing code and certificate and is separate from LAN Mode. Stop it here at any time; it also stops when ThothTerm exits.</string>
-    <string name="panel_open_from_containers">Web Panel</string>
     <string name="images_title">Images</string>
     <string name="volumes_title">Volumes</string>
     <string name="images_summary">%1$d images · %2$s on disk</string>

@@ -672,14 +672,21 @@ public class Term extends AppCompatActivity
         else if (id == R.id.nav_preferences)
             doPreferences();
         else if (id == R.id.nav_containers)
-            startActivity(new Intent().setClassName(getPackageName(), com.thothterm.dock.ThothDock.CONTAINERS_ACTIVITY));
+            openManagementScreen(com.thothterm.dock.ThothDock.TAB_CONTAINERS);
         else if (id == R.id.nav_web_panel)
-            startActivity(new Intent().setClassName(getPackageName(), com.thothterm.dock.ThothDock.WEB_PANEL_ACTIVITY));
+            openManagementScreen(com.thothterm.dock.ThothDock.TAB_PANEL);
         else if (id == R.id.nav_action_help)
             doShowAbout();
         else
             return false;
         return true;
+    }
+
+    /** Containers and Web Panel are tabs of one screen; reuse it rather than stack another. */
+    private void openManagementScreen(String tab) {
+        startActivity(new Intent().setClassName(getPackageName(), com.thothterm.dock.ThothDock.CONTAINERS_ACTIVITY)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .putExtra(com.thothterm.dock.ThothDock.EXTRA_TAB, tab));
     }
 
     private void doCreateNewWindow() {
