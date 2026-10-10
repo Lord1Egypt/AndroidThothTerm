@@ -161,6 +161,49 @@ public class ThothfetchTest {
         assertEquals(lines, raw.stream().map(l -> ANSI.matcher(l).replaceAll("")).collect(java.util.stream.Collectors.toList()));
     }
 
+    private static List<String> renderWithArgs(int columns, File root, boolean stripAnsi, String arg) throws Exception {
+        assumeTrue("bash is required to exercise the banner", new File("/bin/bash").canExecute());
+        ProcessBuilder builder = new ProcessBuilder("bash", script().getAbsolutePath(), arg);
+        builder.environment().put("COLUMNS", Integer.toString(columns));
+        builder.environment().put("THOTHTERM_GUEST_ROOT", root.getAbsolutePath());
+        builder.environment().remove("NO_COLOR");
+        builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        List<String> lines = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) lines.add(stripAnsi ? ANSI.matcher(line).replaceAll("") : line);
+        }
+        assertEquals("thothfetch exit code", 0, process.waitFor());
+        return lines;
+    }
+
+    /** --logo: the 95x52 icon art, one coloured cell per character, then a short info block. */
+    @Test
+    public void logoIsTheFullSizeIcon() throws Exception {
+        List<String> plain = renderWithArgs(120, dockRoot(), true, "--logo");
+        for (int i = 0; i < 52; i++) {
+            assertEquals("logo row " + i + " is 95 cells wide", 95, plain.get(i).length());
+            assertTrue("logo row " + i + " is only blank cells with colours stripped", plain.get(i).isBlank());
+        }
+        assertTrue(plain.stream().anyMatch(l -> l.contains(EDITION)));
+        assertTrue(plain.stream().anyMatch(l -> l.contains("Engine        Offline")));
+        List<String> raw = renderWithArgs(120, dockRoot(), false, "--logo");
+        assertTrue("logo uses 256-colour backgrounds", raw.get(20).contains("\u001b[48;5;"));
+        // A normal phone-width run never draws the logo.
+        assertEquals(9, render(63, dockRoot(), true).size());
+    }
+
+    @Test
+    public void asciiLogoWithoutColourKeepsTheCharacters() throws Exception {
+        File root = dockRoot();
+        new File(root, "etc/thothterm/palette").delete();
+        List<String> lines = renderWithArgs(120, root, true, "--logo");
+        assertEquals("@@@@@@@@@@@@@@@@@@@@@%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@@@@@@@@@@@@@@@@@@@@@", lines.get(0));
+        assertEquals(95, lines.get(5).length());
+    }
+
     @Test
     public void thothDockMarkSurvivesNarrowScreens() throws Exception {
         for (int cols : new int[]{20, 30, 61}) {
