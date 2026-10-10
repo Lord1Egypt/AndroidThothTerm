@@ -70,6 +70,9 @@ public final class ThothDock {
     /** The Containers screen (compiled only into builds that carry the ThothDock UI overlay). */
     public static final String CONTAINERS_ACTIVITY = "com.thothterm.dock.ContainersActivity";
 
+    /** The Web Panel page (same overlay as the Containers screen). */
+    public static final String WEB_PANEL_ACTIVITY = "com.thothterm.dock.WebPanelActivity";
+
     /** ThothDock's own binary inside the guest, for `thothdock doctor --guard`. */
     public static final String GUEST_TOOL = "/usr/local/bin/thothdock";
 

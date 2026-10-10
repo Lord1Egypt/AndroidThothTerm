@@ -9,6 +9,21 @@
             android:label="@string/containers"
             android:parentActivityName="com.thothterm.TermActivity"/>
         <activity
+            android:name="com.thothterm.dock.ImagesActivity"
+            android:exported="false"
+            android:label="@string/images_title"
+            android:parentActivityName="com.thothterm.dock.ContainersActivity"/>
+        <activity
+            android:name="com.thothterm.dock.VolumesActivity"
+            android:exported="false"
+            android:label="@string/volumes_title"
+            android:parentActivityName="com.thothterm.dock.ContainersActivity"/>
+        <activity
+            android:name="com.thothterm.dock.WebPanelActivity"
+            android:exported="false"
+            android:label="@string/web_panel"
+            android:parentActivityName="com.thothterm.TermActivity"/>
+        <activity
             android:name="com.thothterm.dock.ContainerLogsActivity"
             android:exported="false"
             android:label="@string/containers"

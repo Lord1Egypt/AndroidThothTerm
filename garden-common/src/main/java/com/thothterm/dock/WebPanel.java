@@ -24,6 +24,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.system.ErrnoException;
 import android.system.Os;
+import android.os.FileObserver;
 import android.system.OsConstants;
 
 import com.thothterm.logging.LogCategory;
@@ -41,6 +42,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -69,7 +71,18 @@ public final class WebPanel {
         }
     }
 
+    /** Told when the panel starts, stops, exits or gets a new pairing code. Called from any thread. */
+    public interface Listener {
+        void onWebPanelChanged();
+    }
+
+    public static final String MODE_LOCAL = "local";
+    public static final String MODE_WIFI = "wifi";
+    private static final String PREFS = "thothdock_web_panel";
+
     private static volatile WebPanel sInstance;
+    private final CopyOnWriteArrayList<Listener> listeners = new CopyOnWriteArrayList<>();
+    private final Context context;
 
     private final File daemon;
     private final File root;
@@ -80,13 +93,42 @@ public final class WebPanel {
     private Process process;
     private long processStart;
     private String listenHost;
+    /** Reports pairing.json being rewritten: a code was used, ended or renewed. Event driven, no polling. */
+    private FileObserver watcher;
 
     private WebPanel(ThothDock dock) {
+        context = dock.context();
         daemon = dock.daemonBinary();
         root = dock.dataRoot();
         socket = new File(dock.socketPath());
         pairingFile = new File(root, "panel/pairing.json");
         logFile = new File(root, "panel.log");
+    }
+
+    public void addListener(Listener l) {
+        listeners.addIfAbsent(l);
+    }
+
+    public void removeListener(Listener l) {
+        listeners.remove(l);
+    }
+
+    private void changed() {
+        for (Listener l : listeners) l.onWebPanelChanged();
+    }
+
+    /** The mode the owner last chose; "local" until they choose otherwise. */
+    public String savedMode() {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("mode", MODE_LOCAL);
+    }
+
+    public void saveMode(String mode) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("mode", mode).apply();
+    }
+
+    /** The address to type in a browser, always with its scheme: https://host:7690/ . */
+    public static String httpsUrl(String host) {
+        return "https://" + host + ":" + PORT + "/";
     }
 
     public static WebPanel get() {
@@ -145,6 +187,7 @@ public final class WebPanel {
     public void start(String host) throws IOException {
         stop();
         pairingFile.delete();
+        watchPairing();
         List<String> argv = Arrays.asList(daemon.getAbsolutePath(), "panel",
                 "--root", root.getAbsolutePath(),
                 "--socket", socket.getAbsolutePath(),
@@ -178,6 +221,7 @@ public final class WebPanel {
             }
             forked.countDown();
             ThothLog.i(LogCategory.RUNTIME, "Web Panel started on " + host + ":" + PORT);
+            changed();
             while (true) {
                 try {
                     p.waitFor();
@@ -193,6 +237,8 @@ public final class WebPanel {
                 }
             }
             ThothLog.i(LogCategory.RUNTIME, "Web Panel exited");
+            unwatchPairing();
+            changed();
         }, "ThothDock-panel");
         t.setDaemon(true);
         t.start();
@@ -203,6 +249,29 @@ public final class WebPanel {
             throw new IOException("interrupted");
         }
         if (failure[0] != null) throw failure[0];
+    }
+
+    @SuppressWarnings("deprecation") // the File constructor needs API 29; minSdk is 26
+    private void watchPairing() {
+        File dir = pairingFile.getParentFile();
+        if (dir == null || (!dir.isDirectory() && !dir.mkdirs())) return;
+        synchronized (lock) {
+            if (watcher != null) watcher.stopWatching();
+            watcher = new FileObserver(dir.getPath(), FileObserver.MOVED_TO | FileObserver.CLOSE_WRITE) {
+                @Override
+                public void onEvent(int event, String path) {
+                    if ("pairing.json".equals(path)) changed();
+                }
+            };
+            watcher.startWatching();
+        }
+    }
+
+    private void unwatchPairing() {
+        synchronized (lock) {
+            if (watcher != null) watcher.stopWatching();
+            watcher = null;
+        }
     }
 
     /** The pairing details, once the panel has written them (null before). */
@@ -263,7 +332,9 @@ public final class WebPanel {
             }
         }
         pairingFile.delete();
+        unwatchPairing();
         ThothLog.i(LogCategory.RUNTIME, "Web Panel stopped");
+        changed();
     }
 
     /** The panel if this process ever created it, for shutdown paths. */

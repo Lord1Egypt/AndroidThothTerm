@@ -136,29 +136,73 @@ public class ThothfetchTest {
         return root;
     }
 
-    /** The ThothDock layout: the icon's mark, 20 columns wide, info from column 21. */
+    private static final java.util.regex.Pattern BRAILLE = java.util.regex.Pattern.compile("[\u2801-\u28FF]");
+
+    private static File dockRootWithoutColour() throws Exception {
+        File root = dockRoot();
+        assertTrue(new File(root, "etc/thothterm/palette").delete());
+        return root;
+    }
+
+    /** Phone width (63) with colours: the logo-derived braille banner beside the info, 22-cell art, info from column 24. */
     @Test
-    public void thothDockMarkHasFixedGeometry() throws Exception {
+    public void logoBannerBesideTheInfoOnAPhone() throws Exception {
         List<String> lines = render(63, dockRoot(), true);
-        assertEquals("nine mark rows", 9, lines.size());
-        int infoRows = 0;
+        assertEquals("eleven lines", 11, lines.size());
+        assertTrue("braille art on the first row", BRAILLE.matcher(lines.get(0)).find());
+        assertTrue("title beside the art: " + lines.get(1), lines.get(1).endsWith("  " + EDITION));
+        assertEquals("info starts at column 24", 'T', lines.get(1).charAt(24));
+        assertTrue(lines.stream().anyMatch(l -> l.endsWith("Engine  Offline")));
+        assertTrue(lines.stream().anyMatch(l -> l.endsWith("API     1.41")));
         for (String line : lines) {
             assertFalse("no tabs: " + line, line.contains("\t"));
-            assertTrue("fits a 63-column phone: " + line, line.length() <= 62);
-            if (line.length() > 21) {
-                infoRows++;
-                assertEquals("mark/info gap at column 20 of '" + line + "'", ' ', line.charAt(20));
-                assertTrue("info starts at column 21 of '" + line + "'", line.charAt(21) != ' ');
-            }
+            assertTrue("fits a 63-column phone: " + line, line.codePointCount(0, line.length()) <= 62);
         }
-        assertEquals("eight info rows", 8, infoRows);
-        assertTrue(lines.get(0).contains(EDITION));
-        assertTrue("bird's eye", lines.get(1).contains("(o)"));
-        assertTrue("engine row", lines.stream().anyMatch(l -> l.contains("Engine       Offline")));
-        // Colour sequences never add width.
         List<String> raw = render(63, dockRoot(), false);
-        assertTrue(raw.stream().anyMatch(l -> ANSI.matcher(l).find()));
-        assertEquals(lines, raw.stream().map(l -> ANSI.matcher(l).replaceAll("")).collect(java.util.stream.Collectors.toList()));
+        assertTrue(raw.stream().anyMatch(l -> l.contains("38;5;")));
+        assertEquals("colour sequences never add width", lines,
+                raw.stream().map(l -> ANSI.matcher(l).replaceAll("")).collect(java.util.stream.Collectors.toList()));
+    }
+
+    /** 110+ columns: the 60x30 logo beside the info. */
+    @Test
+    public void largeLogoOnDesktopTerminals() throws Exception {
+        List<String> lines = render(120, dockRoot(), true);
+        assertEquals("thirty lines", 30, lines.size());
+        assertTrue(lines.stream().anyMatch(l -> l.contains("Engine        Offline")));
+        assertTrue(lines.stream().anyMatch(l -> l.contains(EDITION)));
+        for (String line : lines) assertTrue("fits 110 columns: " + line, line.codePointCount(0, line.length()) <= 109);
+    }
+
+    /** Under 62 columns (but 32+): the 30x15 logo above a short info block. */
+    @Test
+    public void logoStacksOnNarrowScreens() throws Exception {
+        for (int cols : new int[]{32, 45, 61}) {
+            List<String> lines = render(cols, dockRoot(), true);
+            assertEquals("15 art rows, a blank row and three text rows at " + cols, 19, lines.size());
+            assertTrue(BRAILLE.matcher(lines.get(0)).find());
+            assertTrue(lines.contains(EDITION));
+            assertTrue(lines.contains("Engine Offline"));
+            for (String line : lines) assertTrue("fits " + cols + ": " + line, line.codePointCount(0, line.length()) <= cols);
+        }
+    }
+
+    /** Without colours the banner falls back to the owner's ASCII designs. */
+    @Test
+    public void asciiFallbackWithoutColours() throws Exception {
+        List<String> phone = render(63, dockRootWithoutColour(), true);
+        assertEquals(9, phone.size());
+        assertEquals("      .-^-.        " + EDITION, phone.get(0));
+        assertEquals("     THOTHDock     Docker API    1.41", phone.get(7));
+        List<String> wide = render(100, dockRootWithoutColour(), true);
+        assertEquals(11, wide.size());
+        assertTrue(wide.get(0).contains(".--^--."));
+        for (int cols : new int[]{20, 30, 61}) {
+            List<String> lines = render(cols, dockRootWithoutColour(), true);
+            assertEquals(" _____(o> )_____", lines.get(1));
+            assertTrue(lines.contains(EDITION.substring(0, Math.min(EDITION.length(), cols))));
+            for (String line : lines) assertTrue("fits " + cols + ": " + line, line.length() <= Math.max(cols, 28));
+        }
     }
 
     private static List<String> renderWithArgs(int columns, File root, boolean stripAnsi, String arg) throws Exception {
@@ -192,7 +236,7 @@ public class ThothfetchTest {
         List<String> raw = renderWithArgs(120, dockRoot(), false, "--logo");
         assertTrue("logo uses 256-colour backgrounds", raw.get(20).contains("\u001b[48;5;"));
         // A normal phone-width run never draws the logo.
-        assertEquals(9, render(63, dockRoot(), true).size());
+        assertEquals(11, render(63, dockRoot(), true).size());
     }
 
     @Test
@@ -202,18 +246,6 @@ public class ThothfetchTest {
         List<String> lines = renderWithArgs(120, root, true, "--logo");
         assertEquals("@@@@@@@@@@@@@@@@@@@@@%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@@@@@@@@@@@@@@@@@@@@@", lines.get(0));
         assertEquals(95, lines.get(5).length());
-    }
-
-    @Test
-    public void thothDockMarkSurvivesNarrowScreens() throws Exception {
-        for (int cols : new int[]{20, 30, 61}) {
-            List<String> lines = render(cols, dockRoot(), true);
-            assertTrue("mark then text at " + cols, lines.size() >= 12);
-            assertTrue(lines.get(1).contains("(o)"));
-            assertTrue(lines.contains(EDITION.substring(0, Math.min(EDITION.length(), cols))));
-            assertTrue(lines.contains("Engine Offline"));
-            for (String line : lines) assertTrue("fits " + cols + ": " + line, line.length() <= Math.max(cols, 28));
-        }
     }
 
     @Test

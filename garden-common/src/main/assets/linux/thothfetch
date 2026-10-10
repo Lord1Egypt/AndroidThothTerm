@@ -185,49 +185,214 @@ if [ -n "$logo" ]; then
   exit 0
 fi
 
-# The ThothDock mark: the icon's Thoth-bird T over two container stacks and a
-# tray. Every row is padded to 20 columns (ThothfetchTest checks it); info
-# text starts at column 21 and the longest line is 62 columns, so it fits a
-# 63-column phone terminal without wrapping.
-# Colours by role: primary (bird, tray), secondary (containers), muted (T bar).
-dock_mark() {
-  local p=$primary s=$secondary t=$muted r=$reset
-  mark[0]="${t}  ______ ${p}.-'-.${t} _____${r}"
-  mark[1]="${t}  \\____ \\${p}/ (o)\\${t}/___/${r}"
-  mark[2]="${t}        ||${p} \`-.__\`.  ${r}"
-  mark[3]="${s} .---.${t}  ||${p}     \`-'  ${r}"
-  mark[4]="${s} |:::|${t}  ||  ${s}.---.   ${r}"
-  mark[5]="${s} |:::|${t}  ||  ${s}|:::|   ${r}"
-  mark[6]="${p} /${s}:::${p}\\__${t}||${p}__/${s}:::${p}\\   ${r}"
-  mark[7]="${p} \\_____ \\/ _____/   ${r}"
-  mark[8]="${p}   \\____\\/____/     ${r}"
+# ThothDock banners: the owner's compact (8 rows) and wide (11 rows) designs,
+# characters exactly as supplied except that the shared left indent is trimmed.
+# The layout is chosen from the measured terminal width (ThothfetchTest):
+#   cols < 62   compact art stacked above the info
+#   62..79      compact art beside the info (a 63-column phone terminal)
+#   >= 80       wide art beside the info
+# The full 95x52 logo (--logo, or >= 100x64) never goes below those sizes.
+compact_art=(
+  '      .-^-.'
+  ' _____(o> )_____'
+  '/_____/|_|\_____\'
+  '  |[]|  |  |[]|'
+  '  |[]|  |  |[]|'
+  '  |__|__|__|__|'
+  '    \___V___/'
+  '     THOTHDock'
+)
+compact_w=17
+wide_art=(
+  '         .--^--.'
+  '    _____/  o>  \_____'
+  '  _/_____/  |  \_____\_'
+  ' /_____/  __|__  \_____\'
+  '     /  /  |  \  \'
+  '.---|[]|   |   |[]|---.'
+  '|   |[]|  /|\  |[]|   |'
+  '|   |__|_/ | \_|__|   |'
+  ' \      /  |  \      /'
+  '  \____/___V___\____/'
+  '        THOTHDock'
+)
+wide_w=24
+
+# Logo-derived banners: the real icon converted to braille cells (2x4 dots,
+# four times the detail of a block) in 256 colours, by
+# tools/garden/branding/thothdock_banner.py. Each row is padded to its width.
+#   logo_s  22 columns x 11 rows   beside the info on 62..109 columns (phones)
+#   logo_m  30 columns x 15 rows   above the info under 62 columns
+#   logo_l  60 columns x 30 rows   beside the info on 110+ columns (desktops)
+logo_s=(
+  $' \e[38;5;188m⡠⠴⠶⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⡶⠦⢄\e[0m '
+  $' \e[38;5;188m⢀⣀⣀⣀⣭⣿⣿\e[0m\e[38;5;31m⣿⠿\e[0m\e[38;5;32m⠛\e[0m\e[38;5;188m⠿\e[0m\e[38;5;38m⢿\e[0m\e[38;5;31m⣿\e[0m\e[38;5;188m⣿⣿⣯⣥⣀⣀⡀\e[0m '
+  $'  \e[38;5;32m⢯\e[0m\e[38;5;188m⡛⠛⠛⠛⠻⣿⣄\e[0m \e[38;5;45m⢛\e[0m\e[38;5;38m⣧\e[0m\e[38;5;45m⣬\e[0m\e[38;5;39m⣻\e[0m\e[38;5;38m⣿\e[0m\e[38;5;31m⣟\e[0m\e[38;5;188m⠛\e[0m\e[38;5;24m⢛\e[0m\e[38;5;32m⡿\e[0m  '
+  $'  \e[38;5;24m⠈\e[0m\e[38;5;38m⠻\e[0m\e[38;5;45m⠶⠶⠶\e[0m\e[38;5;39m⠶\e[0m\e[38;5;32m⠮\e[0m\e[38;5;31m⡟\e[0m\e[38;5;188m⣷⡄\e[0m\e[38;5;25m⢀\e[0m \e[38;5;32m⠉\e[0m\e[38;5;45m⠙⠻⣷\e[0m\e[38;5;39m⡏\e[0m   '
+  $'      \e[38;5;45m⣀⣤\e[0m\e[38;5;32m⡄⣿\e[0m\e[38;5;188m⣿⡿\e[0m\e[38;5;39m⣿\e[0m    \e[38;5;25m⠈\e[0m\e[38;5;45m⢻\e[0m\e[38;5;38m⡄\e[0m  '
+  $'    \e[38;5;33m⢸\e[0m\e[38;5;39m⣿⣿⣿\e[0m\e[38;5;25m⠃\e[0m\e[38;5;38m⣻\e[0m\e[38;5;188m⠈⠁\e[0m\e[38;5;45m⣿\e[0m\e[38;5;32m⢸\e[0m\e[38;5;45m⣿⣶\e[0m\e[38;5;39m⣤\e[0m  \e[38;5;38m⠃\e[0m  '
+  $' \e[38;5;31m⢀\e[0m\e[38;5;24m⡠\e[0m \e[38;5;32m⣸\e[0m\e[38;5;33m⣯⣿\e[0m\e[38;5;39m⣿\e[0m\e[38;5;25m⠂\e[0m\e[38;5;38m⢿\e[0m  \e[38;5;39m⣿\e[0m\e[38;5;31m⢈\e[0m\e[38;5;39m⣿\e[0m\e[38;5;32m⣿⣿\e[0m \e[38;5;188m⢀\e[0m   '
+  $' \e[38;5;32m⢸⣷\e[0m \e[38;5;26m⠿⣿⣿\e[0m\e[38;5;32m⣿\e[0m \e[38;5;31m⣿\e[0m  \e[38;5;32m⣿\e[0m\e[38;5;25m⠸\e[0m\e[38;5;39m⣿\e[0m\e[38;5;32m⣿⣿\e[0m\e[38;5;26m⡇\e[0m \e[38;5;38m⣴\e[0m\e[38;5;31m⡆\e[0m '
+  $'  \e[38;5;25m⣅\e[0m\e[38;5;38m⠈\e[0m\e[38;5;32m⠛⠶\e[0m\e[38;5;39m⢭\e[0m\e[38;5;33m⣟\e[0m\e[38;5;32m⡀\e[0m\e[38;5;25m⢽\e[0m  \e[38;5;33m⣿\e[0m\e[38;5;25m⢐\e[0m\e[38;5;33m⣟\e[0m\e[38;5;32m⣯⠵⠚\e[0m\e[38;5;25m⠋⢸\e[0m\e[38;5;24m⠁\e[0m '
+  $'  \e[38;5;32m⠈\e[0m\e[38;5;25m⠓\e[0m\e[38;5;26m⠄\e[0m  \e[38;5;32m⠈\e[0m\e[38;5;45m⠙\e[0m\e[38;5;38m⠻\e[0m\e[38;5;39m⠶\e[0m\e[38;5;32m⡶\e[0m\e[38;5;39m⠞⠛\e[0m\e[38;5;32m⠉\e[0m  \e[38;5;26m⠤⠚\e[0m\e[38;5;32m⠁\e[0m  '
+  $'                      '
+)
+logo_s_w=22
+logo_m=(
+  $'  \e[38;5;188m⣀⡤⢶⣶⣶⣶⣶⣶⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⣶⣶⣶⣶⣶⣶⣤⡀\e[0m  '
+  $' \e[38;5;188m⠊⠁\e[0m  \e[38;5;188m⠉⠙⠻⣿⣿⣿⣿⣿\e[0m\e[38;5;31m⣿⣿⣿⣿\e[0m\e[38;5;188m⣿⣿⣿⣿⣿⣿⠿⠋⠉\e[0m \e[38;5;188m⠈⠓\e[0m '
+  $'  \e[38;5;188m⢤⣤⣴⣶⣶⣶⣶⣾⣿\e[0m\e[38;5;38m⣿⠏\e[0m\e[38;5;45m⠉\e[0m\e[38;5;38m⢉\e[0m\e[38;5;51m⣉\e[0m\e[38;5;45m⣛\e[0m\e[38;5;188m⠿\e[0m\e[38;5;38m⣿\e[0m\e[38;5;31m⡻\e[0m\e[38;5;188m⣿⣷⣶⣶⣶⣶⣦⡤\e[0m  '
+  $'  \e[38;5;33m⠸\e[0m\e[38;5;32m⣟\e[0m\e[38;5;188m⠛⠛⠛⠛⠛⠛⠻⣿⣇\e[0m  \e[38;5;45m⢙⣻\e[0m\e[38;5;39m⣤⣤\e[0m\e[38;5;45m⣙\e[0m\e[38;5;38m⣾⣽\e[0m\e[38;5;31m⡻\e[0m\e[38;5;188m⠛⠛⠛\e[0m\e[38;5;32m⣿⠂\e[0m  '
+  $'   \e[38;5;51m⠈\e[0m\e[38;5;45m⢻⣶⣦⣤⣤\e[0m\e[38;5;39m⣤⣤⣌\e[0m\e[38;5;188m⠻⣷⣦⡀\e[0m\e[38;5;24m⠈\e[0m\e[38;5;31m⠉\e[0m\e[38;5;39m⠉\e[0m\e[38;5;45m⠙⠛⠿⣿⣶\e[0m\e[38;5;38m⣴\e[0m\e[38;5;45m⠞\e[0m\e[38;5;39m⠁\e[0m   '
+  $'     \e[38;5;32m⠈\e[0m\e[38;5;38m⠉\e[0m\e[38;5;39m⠉⠉\e[0m\e[38;5;38m⠉\e[0m\e[38;5;32m⠉\e[0m\e[38;5;39m⠉⢻\e[0m\e[38;5;25m⡼\e[0m\e[38;5;188m⣿⣿\e[0m\e[38;5;31m⢰\e[0m\e[38;5;39m⡇\e[0m     \e[38;5;45m⠙⢿\e[0m\e[38;5;39m⣦\e[0m    '
+  $'       \e[38;5;32m⢀\e[0m\e[38;5;45m⣠⣤⣶\e[0m\e[38;5;31m⠦\e[0m\e[38;5;38m⢸\e[0m\e[38;5;39m⡇\e[0m\e[38;5;188m⣿⣿\e[0m\e[38;5;39m⢸\e[0m\e[38;5;51m⡇\e[0m       \e[38;5;45m⢻\e[0m\e[38;5;38m⡆\e[0m   '
+  $'      \e[38;5;39m⣾⣿⣿⣿\e[0m\e[38;5;45m⣿\e[0m \e[38;5;38m⢸\e[0m\e[38;5;45m⡇\e[0m\e[38;5;188m⠁⠈\e[0m\e[38;5;45m⢸⡷\e[0m\e[38;5;32m⢸\e[0m\e[38;5;45m⣿⣷⣦\e[0m\e[38;5;39m⣤\e[0m\e[38;5;24m⡀\e[0m \e[38;5;25m⠈\e[0m\e[38;5;38m⠇\e[0m   '
+  $'    \e[38;5;188m⢀\e[0m \e[38;5;33m⣿⠿\e[0m\e[38;5;32m⢿⣿\e[0m\e[38;5;39m⣿\e[0m\e[38;5;25m⡀\e[0m\e[38;5;38m⢸\e[0m\e[38;5;45m⡇\e[0m  \e[38;5;39m⢸\e[0m\e[38;5;51m⡇\e[0m\e[38;5;25m⠈\e[0m\e[38;5;39m⣿⣿\e[0m\e[38;5;33m⣿\e[0m\e[38;5;39m⣿\e[0m\e[38;5;25m⠁\e[0m      '
+  $'  \e[38;5;38m⣴\e[0m\e[38;5;31m⡊\e[0m\e[38;5;24m⠁\e[0m\e[38;5;32m⢰\e[0m\e[38;5;33m⣶\e[0m\e[38;5;32m⣿\e[0m\e[38;5;39m⣿⣿⣿\e[0m \e[38;5;38m⢸\e[0m\e[38;5;45m⡇\e[0m  \e[38;5;39m⢸\e[0m\e[38;5;45m⡇\e[0m\e[38;5;25m⢰\e[0m\e[38;5;45m⣿\e[0m\e[38;5;39m⣿⣭\e[0m\e[38;5;33m⣝\e[0m\e[38;5;31m⣀\e[0m \e[38;5;24m⠤\e[0m\e[38;5;25m⣀\e[0m   '
+  $'  \e[38;5;32m⢿⣿\e[0m\e[38;5;25m⠂\e[0m\e[38;5;26m⠸⢹\e[0m\e[38;5;32m⣹\e[0m\e[38;5;26m⢻⢻\e[0m\e[38;5;32m⣿\e[0m \e[38;5;38m⢸\e[0m\e[38;5;39m⡇\e[0m  \e[38;5;33m⢸\e[0m\e[38;5;39m⡇\e[0m\e[38;5;24m⠈\e[0m\e[38;5;39m⣿\e[0m\e[38;5;32m⣿⣿\e[0m\e[38;5;26m⣿⣿\e[0m\e[38;5;25m⠁\e[0m\e[38;5;31m⢠\e[0m\e[38;5;32m⣶\e[0m\e[38;5;45m⡇\e[0m  '
+  $'  \e[38;5;25m⢸\e[0m \e[38;5;38m⠈\e[0m\e[38;5;32m⠛\e[0m\e[38;5;38m⠶\e[0m\e[38;5;39m⣭⣙\e[0m\e[38;5;32m⡻⢿\e[0m \e[38;5;32m⢸⡇\e[0m  \e[38;5;33m⢸⡇\e[0m\e[38;5;25m⢀\e[0m\e[38;5;33m⣿⠿\e[0m\e[38;5;32m⣟\e[0m\e[38;5;39m⣫\e[0m\e[38;5;32m⡵\e[0m\e[38;5;39m⠖\e[0m\e[38;5;32m⠂\e[0m\e[38;5;24m⠈\e[0m\e[38;5;31m⡇\e[0m  '
+  $'  \e[38;5;32m⠈⠲⣄\e[0m   \e[38;5;32m⠉\e[0m\e[38;5;45m⠛⠷\e[0m\e[38;5;39m⣶⣼⣃\e[0m  \e[38;5;33m⣘\e[0m\e[38;5;45m⣣\e[0m\e[38;5;39m⣴\e[0m\e[38;5;45m⠶⠛\e[0m\e[38;5;39m⠋\e[0m\e[38;5;25m⠁\e[0m  \e[38;5;32m⣠⠔\e[0m\e[38;5;25m⠁\e[0m  '
+  $'     \e[38;5;26m⠙⠢\e[0m     \e[38;5;32m⠈\e[0m\e[38;5;45m⠙⠛\e[0m\e[38;5;39m⠟\e[0m\e[38;5;45m⠋\e[0m\e[38;5;32m⠉\e[0m     \e[38;5;26m⠔\e[0m\e[38;5;32m⠋\e[0m\e[38;5;26m⠁\e[0m    '
+  $'                              '
+)
+logo_m_w=30
+logo_l=(
+  $'        \e[38;5;188m⣀⣠⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣦⣤⣤⣤⣤⣤⣤⣤⣤⣄⣀\e[0m        '
+  $'    \e[38;5;188m⣀⡴⠞⠛⠽⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡷⣦⣀\e[0m    '
+  $'  \e[38;5;188m⡠⠞⠁\e[0m    \e[38;5;188m⠈⠉⠛⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⠉⠁\e[0m  \e[38;5;188m⠉⠳⣄\e[0m  '
+  $'\e[38;5;188m⢀⠞⠁\e[0m           \e[38;5;188m⠘⠛⢿⣿⣿⣿⣿⣿⣿⣿\e[0m\e[38;5;25m⣿⣿\e[0m\e[38;5;31m⣿⣿\e[0m\e[38;5;32m⣿⣿⣿⣿\e[0m\e[38;5;31m⣿\e[0m\e[38;5;25m⣿⣿⣿\e[0m\e[38;5;188m⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⠋\e[0m         \e[38;5;188m⠈⠣⡀\e[0m'
+  $'\e[38;5;188m⠂\e[0m   \e[38;5;188m⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣒⣚⣛⣛⣛⣿\e[0m\e[38;5;25m⣿\e[0m\e[38;5;31m⣿⣿\e[0m\e[38;5;38m⡿\e[0m\e[38;5;45m⠛⠛\e[0m\e[38;5;188m⠉⠉⠉⠛⠻⠿⣿⣿\e[0m\e[38;5;39m⣿\e[0m\e[38;5;31m⣿\e[0m\e[38;5;25m⣿⣿\e[0m\e[38;5;188m⣿⣿⣿⣟⣛⣛⣓⣒⣂⣀⣀⣀⣀⣀⣀⣀⣀\e[0m   \e[38;5;188m⠱\e[0m'
+  $'    \e[38;5;188m⠙⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇\e[0m    \e[38;5;38m⢴\e[0m\e[38;5;45m⣶⣶⣦\e[0m\e[38;5;32m⣄\e[0m\e[38;5;38m⠉\e[0m\e[38;5;188m⠛⢿\e[0m\e[38;5;45m⣷\e[0m\e[38;5;39m⣮\e[0m\e[38;5;45m⡙⢿⣿⣿\e[0m\e[38;5;188m⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠋\e[0m    '
+  $'     \e[38;5;33m⣿\e[0m\e[38;5;25m⡿\e[0m\e[38;5;188m⣟⣟⣟⣛⣻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇\e[0m     \e[38;5;38m⠻\e[0m\e[38;5;45m⠿\e[0m\e[38;5;51m⠿\e[0m\e[38;5;45m⠿\e[0m\e[38;5;32m⠆\e[0m  \e[38;5;188m⠈\e[0m\e[38;5;45m⠛⢿⣦\e[0m\e[38;5;38m⣙⠻\e[0m\e[38;5;32m⣿\e[0m\e[38;5;31m⣿⣿\e[0m\e[38;5;25m⣿\e[0m\e[38;5;188m⣿⣿⣿⣿⣿⣿\e[0m\e[38;5;25m⢿\e[0m\e[38;5;32m⡇\e[0m     '
+  $'     \e[38;5;33m⠙\e[0m\e[38;5;45m⢿\e[0m\e[38;5;51m⣦\e[0m\e[38;5;25m⡉⠉\e[0m\e[38;5;24m⠉\e[0m\e[38;5;188m⠉⠉⠉⠉⠈⠉⠁⠉⠉⠉⠹⣿⣿⣿⣧⡀\e[0m   \e[38;5;188m⢀\e[0m\e[38;5;45m⣠⣴⣶⣶⣶⣶⣶⣶⣶⣭⣛⡿⣦\e[0m\e[38;5;38m⣍\e[0m\e[38;5;25m⡉⠉⠉⠉⠉⠉\e[0m\e[38;5;31m⣉\e[0m\e[38;5;45m⣴\e[0m\e[38;5;39m⡿\e[0m\e[38;5;33m⠁\e[0m     '
+  $'       \e[38;5;45m⠻\e[0m\e[38;5;51m⣿\e[0m\e[38;5;39m⣷\e[0m\e[38;5;32m⣦\e[0m\e[38;5;31m⣤⣀\e[0m\e[38;5;25m⣀⣀⣀⣀⡀\e[0m    \e[38;5;188m⠈⠻⣿⣿⣿⣶⣄\e[0m    \e[38;5;25m⠉\e[0m\e[38;5;38m⠉\e[0m\e[38;5;45m⠉\e[0m\e[38;5;39m⠙\e[0m\e[38;5;45m⠛⠛⠿⢿⣿⣿⣷⣽\e[0m\e[38;5;39m⣿\e[0m\e[38;5;45m⣦\e[0m\e[38;5;32m⣄\e[0m\e[38;5;25m⣠\e[0m\e[38;5;32m⣴\e[0m\e[38;5;39m⣾\e[0m\e[38;5;45m⡿⠋\e[0m       '
+  $'        \e[38;5;31m⠈\e[0m\e[38;5;45m⠻\e[0m\e[38;5;51m⣿⣿\e[0m\e[38;5;45m⣿⣿⣿⣿⣿⣿⣿\e[0m\e[38;5;39m⣿⣿⣶⣾⣦\e[0m\e[38;5;32m⣌\e[0m\e[38;5;188m⠻⢿⣿⣿⣿⣆\e[0m           \e[38;5;45m⠉⠛⠿\e[0m\e[38;5;51m⣿\e[0m\e[38;5;45m⣿⣿⣿\e[0m\e[38;5;32m⣿\e[0m\e[38;5;45m⠋\e[0m         '
+  $'          \e[38;5;24m⠈\e[0m\e[38;5;38m⠉\e[0m\e[38;5;45m⠉⠉⠉⠉⠉⠉\e[0m\e[38;5;39m⠉⠉⠉⠉⠉⠙\e[0m\e[38;5;45m⠻\e[0m\e[38;5;39m⣷\e[0m\e[38;5;33m⡆\e[0m\e[38;5;188m⢹⣿⣿⣿⣷\e[0m \e[38;5;32m⢸⣶\e[0m           \e[38;5;45m⠙⢿\e[0m\e[38;5;51m⣿\e[0m\e[38;5;45m⣿\e[0m\e[38;5;39m⣦\e[0m         '
+  $'                         \e[38;5;45m⢻⡇\e[0m\e[38;5;31m⢸\e[0m\e[38;5;188m⣿⣿⣿⣿\e[0m\e[38;5;31m⡇\e[0m\e[38;5;45m⢸⣿\e[0m             \e[38;5;32m⠙\e[0m\e[38;5;45m⢿\e[0m\e[38;5;51m⣿\e[0m\e[38;5;39m⣧\e[0m        '
+  $'                   \e[38;5;45m⣀⣤⣴\e[0m\e[38;5;32m⣤\e[0m\e[38;5;31m⣀\e[0m \e[38;5;51m⢸⡇\e[0m\e[38;5;31m⢸\e[0m\e[38;5;188m⣿⣿⣿⣿\e[0m\e[38;5;31m⡇\e[0m\e[38;5;45m⣾\e[0m\e[38;5;51m⣿\e[0m               \e[38;5;39m⢻\e[0m\e[38;5;51m⣿\e[0m\e[38;5;32m⡇\e[0m       '
+  $'              \e[38;5;32m⣀\e[0m\e[38;5;45m⣠⣴⣾⢿\e[0m\e[38;5;51m⣿\e[0m\e[38;5;45m⣹\e[0m\e[38;5;51m⣿\e[0m\e[38;5;31m⡏\e[0m\e[38;5;25m⠉⠁\e[0m\e[38;5;45m⣾\e[0m\e[38;5;51m⣇\e[0m\e[38;5;25m⢸\e[0m\e[38;5;188m⣿⣿⣿⡿\e[0m\e[38;5;25m⡇\e[0m\e[38;5;45m⣿\e[0m\e[38;5;51m⣿\e[0m\e[38;5;24m⡀\e[0m \e[38;5;38m⢀\e[0m\e[38;5;45m⣀\e[0m\e[38;5;24m⡀\e[0m           \e[38;5;45m⢻\e[0m\e[38;5;39m⣿\e[0m       '
+  $'            \e[38;5;39m⣶⢿\e[0m\e[38;5;45m⣟⣿\e[0m\e[38;5;32m⣧\e[0m\e[38;5;45m⣿\e[0m\e[38;5;32m⣿\e[0m\e[38;5;45m⣿⢹⣿\e[0m\e[38;5;25m⠁\e[0m  \e[38;5;45m⢻\e[0m\e[38;5;39m⣿\e[0m\e[38;5;24m⣼\e[0m\e[38;5;188m⠉\e[0m   \e[38;5;188m⡇\e[0m\e[38;5;45m⣿\e[0m\e[38;5;51m⣿\e[0m\e[38;5;25m⡗\e[0m\e[38;5;31m⡚\e[0m\e[38;5;38m⢿\e[0m\e[38;5;51m⣿\e[0m\e[38;5;45m⢿⣷⣶⣤⣀\e[0m       \e[38;5;25m⠘\e[0m\e[38;5;39m⣿\e[0m       '
+  $'            \e[38;5;39m⣿\e[0m\e[38;5;33m⣿\e[0m\e[38;5;39m⣿⣿\e[0m\e[38;5;32m⡿\e[0m\e[38;5;45m⣿\e[0m\e[38;5;32m⢸\e[0m\e[38;5;45m⣿⢸⣿\e[0m   \e[38;5;51m⢸\e[0m\e[38;5;45m⣿\e[0m\e[38;5;188m⢸\e[0m    \e[38;5;188m⡇\e[0m\e[38;5;45m⣿\e[0m\e[38;5;51m⣿\e[0m\e[38;5;25m⡇\e[0m \e[38;5;32m⢸\e[0m\e[38;5;51m⣿\e[0m\e[38;5;38m⢿\e[0m\e[38;5;45m⣷⣿\e[0m\e[38;5;38m⣿\e[0m\e[38;5;45m⣟⣿\e[0m\e[38;5;39m⢷\e[0m\e[38;5;32m⡆\e[0m     \e[38;5;31m⠟\e[0m       '
+  $'            \e[38;5;33m⣿⢻⡿⣿⣇\e[0m\e[38;5;39m⣿⣼⣿⣾⡿\e[0m   \e[38;5;51m⢸\e[0m\e[38;5;45m⣿\e[0m\e[38;5;188m⠈\e[0m     \e[38;5;45m⣿\e[0m\e[38;5;51m⣿\e[0m\e[38;5;24m⠁\e[0m \e[38;5;25m⢸\e[0m\e[38;5;45m⣿\e[0m\e[38;5;39m⢸\e[0m\e[38;5;45m⡟⣿\e[0m\e[38;5;32m⣿\e[0m\e[38;5;39m⡿⣿\e[0m\e[38;5;33m⣿\e[0m\e[38;5;39m⡇\e[0m             '
+  $'        \e[38;5;31m⣀\e[0m\e[38;5;25m⡤\e[0m  \e[38;5;33m⢿⠾⠟⠛\e[0m\e[38;5;39m⣋⣩⣭\e[0m\e[38;5;45m⣴⣶⣿\e[0m\e[38;5;25m⠲⠄\e[0m \e[38;5;51m⢸\e[0m\e[38;5;45m⣿\e[0m      \e[38;5;39m⣿\e[0m\e[38;5;45m⣿\e[0m  \e[38;5;25m⠈\e[0m\e[38;5;45m⣿\e[0m\e[38;5;39m⣾⣧⣿\e[0m\e[38;5;26m⣻\e[0m\e[38;5;39m⡇\e[0m\e[38;5;33m⣿⢹⡇\e[0m             '
+  $'    \e[38;5;32m⢀\e[0m\e[38;5;39m⡤\e[0m\e[38;5;32m⠖\e[0m\e[38;5;31m⠋\e[0m\e[38;5;25m⠁\e[0m  \e[38;5;39m⣤⣴⣶⡿⣿⢻⣿⢹⣿\e[0m\e[38;5;45m⢸⣿\e[0m   \e[38;5;51m⢸\e[0m\e[38;5;39m⣿\e[0m      \e[38;5;39m⣿\e[0m\e[38;5;45m⣿\e[0m \e[38;5;31m⠠\e[0m\e[38;5;32m⢶\e[0m\e[38;5;51m⣶\e[0m\e[38;5;45m⣶⣭\e[0m\e[38;5;39m⣍\e[0m\e[38;5;33m⣛⠛⠻⢾\e[0m\e[38;5;32m⠇\e[0m  \e[38;5;25m⢠\e[0m\e[38;5;32m⣀\e[0m\e[38;5;24m⡀\e[0m        '
+  $'    \e[38;5;45m⢸\e[0m\e[38;5;51m⣷\e[0m\e[38;5;45m⣦\e[0m\e[38;5;39m⣀\e[0m   \e[38;5;33m⡇\e[0m\e[38;5;32m⣿\e[0m\e[38;5;33m⢸\e[0m\e[38;5;32m⡇\e[0m\e[38;5;33m⣿\e[0m\e[38;5;32m⢸\e[0m\e[38;5;39m⣿\e[0m\e[38;5;33m⢸\e[0m\e[38;5;39m⣿⢸⣿\e[0m   \e[38;5;51m⢸\e[0m\e[38;5;45m⡿\e[0m      \e[38;5;39m⣿⣿\e[0m  \e[38;5;32m⢸\e[0m\e[38;5;51m⣿\e[0m\e[38;5;25m⣾\e[0m\e[38;5;45m⣿⢹⡟\e[0m\e[38;5;39m⣿\e[0m\e[38;5;38m⡿\e[0m\e[38;5;39m⣶\e[0m\e[38;5;32m⣦⣤\e[0m\e[38;5;39m⡀\e[0m \e[38;5;188m⠈\e[0m\e[38;5;31m⠙⠳⢦\e[0m\e[38;5;32m⣄\e[0m     '
+  $'    \e[38;5;39m⢸\e[0m\e[38;5;45m⣿\e[0m\e[38;5;38m⣿⣿⡇\e[0m  \e[38;5;32m⡇⡇\e[0m\e[38;5;33m⢸\e[0m\e[38;5;25m⡇\e[0m\e[38;5;33m⣿\e[0m\e[38;5;25m⢸\e[0m\e[38;5;33m⣿\e[0m\e[38;5;32m⢸\e[0m\e[38;5;33m⣿⢸\e[0m\e[38;5;39m⣿\e[0m   \e[38;5;51m⢸\e[0m\e[38;5;45m⡇\e[0m      \e[38;5;39m⣿⣿\e[0m  \e[38;5;25m⢸\e[0m\e[38;5;45m⣿\e[0m\e[38;5;25m⢻\e[0m\e[38;5;39m⣿⢸⡇\e[0m\e[38;5;33m⣿\e[0m\e[38;5;32m⡇\e[0m\e[38;5;33m⣿\e[0m\e[38;5;32m⢸\e[0m\e[38;5;26m⡇\e[0m\e[38;5;32m⡇\e[0m  \e[38;5;31m⢀\e[0m\e[38;5;51m⣠\e[0m\e[38;5;45m⣴\e[0m\e[38;5;51m⣿\e[0m\e[38;5;31m⡇\e[0m    '
+  $'    \e[38;5;32m⢸⣿\e[0m\e[38;5;25m⣿\e[0m\e[38;5;24m⠿⡇\e[0m\e[38;5;32m⣀\e[0m \e[38;5;25m⠓\e[0m\e[38;5;26m⠳\e[0m\e[38;5;33m⢼\e[0m\e[38;5;32m⣇\e[0m\e[38;5;33m⣿\e[0m\e[38;5;25m⢠\e[0m\e[38;5;32m⣿⢸⣿\e[0m\e[38;5;33m⢸⣿\e[0m   \e[38;5;45m⢸⡇\e[0m      \e[38;5;33m⣿⣿\e[0m  \e[38;5;25m⠈\e[0m\e[38;5;39m⣿\e[0m \e[38;5;39m⣿\e[0m\e[38;5;33m⢸\e[0m\e[38;5;39m⡇\e[0m\e[38;5;33m⢹\e[0m\e[38;5;26m⡇\e[0m\e[38;5;32m⣿\e[0m\e[38;5;26m⢸\e[0m\e[38;5;25m⣇⠇\e[0m  \e[38;5;31m⢻⣿⣿\e[0m\e[38;5;39m⣿\e[0m\e[38;5;31m⡇\e[0m    '
+  $'    \e[38;5;25m⢸⡿\e[0m\e[38;5;24m⠁\e[0m \e[38;5;25m⠈\e[0m\e[38;5;38m⠙\e[0m\e[38;5;45m⠻\e[0m\e[38;5;39m⢷\e[0m\e[38;5;45m⣶⣤\e[0m\e[38;5;39m⣈\e[0m\e[38;5;33m⠙⠻⢿⣾⣿⣸⣿\e[0m   \e[38;5;45m⢸\e[0m\e[38;5;39m⡇\e[0m      \e[38;5;33m⣿⣿\e[0m   \e[38;5;39m⣿\e[0m \e[38;5;33m⣿⣸⣧⡾⠷\e[0m\e[38;5;32m⠛⣉\e[0m\e[38;5;45m⣠\e[0m\e[38;5;51m⣤\e[0m\e[38;5;45m⡶\e[0m\e[38;5;39m⠖\e[0m\e[38;5;24m⠊\e[0m \e[38;5;24m⠙\e[0m\e[38;5;31m⣿\e[0m\e[38;5;25m⠃\e[0m    '
+  $'    \e[38;5;25m⠘⣇\e[0m       \e[38;5;39m⠉\e[0m\e[38;5;45m⠛⠿⣷⣦⣤\e[0m\e[38;5;33m⣉⠛\e[0m\e[38;5;32m⠿\e[0m   \e[38;5;39m⢸⡇\e[0m      \e[38;5;33m⣿⣿\e[0m  \e[38;5;25m⢰\e[0m\e[38;5;33m⣿⠿⠛⣋\e[0m\e[38;5;45m⣡⣴⣶⠿⠛⠉\e[0m\e[38;5;24m⠁\e[0m     \e[38;5;25m⣸\e[0m     '
+  $'     \e[38;5;32m⠹⢷⣄\e[0m         \e[38;5;32m⠙\e[0m\e[38;5;38m⠿\e[0m\e[38;5;39m⣿\e[0m\e[38;5;45m⣿⣷⣦⣄\e[0m\e[38;5;32m⣀\e[0m\e[38;5;39m⠸⠇\e[0m      \e[38;5;33m⢿⠿\e[0m \e[38;5;38m⣀\e[0m\e[38;5;45m⣤⣴⣶⣿⡿\e[0m\e[38;5;39m⠛\e[0m\e[38;5;32m⠉\e[0m        \e[38;5;25m⣠\e[0m\e[38;5;26m⣼\e[0m\e[38;5;32m⠏\e[0m     '
+  $'       \e[38;5;32m⠉⠻⢦⣀\e[0m         \e[38;5;25m⠉⠙\e[0m\e[38;5;32m⠻\e[0m\e[38;5;45m⠿⣿⣿⣶⣤\e[0m\e[38;5;38m⣄\e[0m  \e[38;5;32m⣀\e[0m\e[38;5;45m⣤\e[0m\e[38;5;51m⣴\e[0m\e[38;5;45m⣾⣿⣿\e[0m\e[38;5;39m⠿\e[0m\e[38;5;32m⠛\e[0m\e[38;5;25m⠋⠁\e[0m        \e[38;5;32m⣀⣴\e[0m\e[38;5;33m⠞⠋\e[0m       '
+  $'          \e[38;5;32m⠉⠓⢦⣀\e[0m           \e[38;5;25m⠉\e[0m\e[38;5;39m⠉\e[0m\e[38;5;45m⠛⠿⢿⣿⠿\e[0m\e[38;5;39m⠟\e[0m\e[38;5;32m⠛\e[0m\e[38;5;25m⠋⠉\e[0m          \e[38;5;32m⣀⡴⠞⠋\e[0m          '
+  $'             \e[38;5;26m⠈⠑\e[0m\e[38;5;25m⠂\e[0m              \e[38;5;24m⠃\e[0m            \e[38;5;25m⠠\e[0m\e[38;5;26m⠐⠋⠁\e[0m             '
+  $'                                                            '
+  $'                                                            '
+)
+logo_l_w=60
+
+# show_logo ART WIDTH LAYOUT START LABEL_WIDTH: print a logo banner with the info.
+show_logo() {
+  local -n art=$1
+  local w=$2 layout=$3 start=$4 lw=$5 i n=${#art[@]} m=$muted j
+  local label_arch='Architecture' label_api='Docker API'
+  if [ "$lw" -lt 12 ]; then label_arch=Arch; label_api=API; fi
+  local info=(
+    "${highlight}${edition}${reset}"
+    "${foreground}ThothTerm Container Runtime${reset}"
+    ""
+    "${m}$(printf '%-*s' "$lw" Guest)${reset}${foreground}${os}${reset}"
+    "${m}$(printf '%-*s' "$lw" "$label_arch")${reset}${foreground}$(clean "$arch" 16)${reset}"
+    "${m}$(printf '%-*s' "$lw" Shell)${reset}${foreground}Bash${reset}"
+    "${m}$(printf '%-*s' "$lw" Engine)${reset}${foreground}${engine}${reset}"
+    "${m}$(printf '%-*s' "$lw" "$label_api")${reset}${foreground}1.41${reset}"
+    "${m}$(printf '%-*s' "$lw" Runtime)${reset}${foreground}Garden PRoot${reset}"
+  )
+  if [ "$layout" = stacked ]; then
+    for ((i = 0; i < n; i++)); do printf '%s\n' "${art[i]}"; done
+    printf '\n%s\n%s\n%s\n' "${info[0]}" "${foreground}${os}${reset}" "${m}Engine ${reset}${foreground}${engine}${reset}"
+    return
+  fi
+  local total=$n
+  [ $((start + ${#info[@]})) -gt "$total" ] && total=$((start + ${#info[@]}))
+  for ((i = 0; i < total; i++)); do
+    if [ "$i" -lt "$n" ]; then printf '%s' "${art[i]}"; else printf '%*s' "$w" ''; fi
+    j=$((i - start))
+    if [ "$j" -ge 0 ] && [ "$j" -lt ${#info[@]} ] && [ -n "${info[j]}" ]; then printf '  %s' "${info[j]}"; fi
+    printf '\n'
+  done
 }
 
-if [ -n "$dock" ] && [ "$cols" -ge 62 ]; then
-  edition=$(clean "$edition" 30)
-  os=$(clean "$os" 28)
-  m=$muted
-  dock_mark
-  pad=' '
-  printf '%s\n' "${mark[0]}${pad}${highlight}${edition}${reset}"
-  printf '%s\n' "${mark[1]}${pad}${foreground}ThothTerm Container Runtime${reset}"
-  printf '%s\n' "${mark[2]}"
-  printf '%s\n' "${mark[3]}${pad}${m}Guest        ${reset}${foreground}${os}${reset}"
-  printf '%s\n' "${mark[4]}${pad}${m}Architecture ${reset}${foreground}$(clean "$arch" 16)${reset}"
-  printf '%s\n' "${mark[5]}${pad}${m}Shell        ${reset}${foreground}Bash${reset}"
-  printf '%s\n' "${mark[6]}${pad}${m}Engine       ${reset}${foreground}${engine}${reset}"
-  printf '%s\n' "${mark[7]}${pad}${m}Docker API   ${reset}${foreground}1.41${reset}"
-  printf '%s\n' "${mark[8]}${pad}${m}Runtime      ${reset}${foreground}Garden PRoot${reset}"
-elif [ -n "$dock" ] && [ "$cols" -ge 20 ] && [ "$cols" -lt 62 ]; then
-  # Narrow screens keep the ThothDock mark above the text.
-  edition=$(clean "$edition" "$cols")
-  os=$(clean "$os" "$cols")
-  dock_mark
-  for i in 0 1 2 3 4 5 6 7 8; do printf '%s\n' "${mark[$i]}"; done
-  printf '\n'
-  printf '%s\n' "${highlight}${edition}${reset}"
-  printf '%s\n' "${foreground}${os}${reset}"
-  printf '%s\n' "${muted}Engine ${reset}${foreground}${engine}${reset}"
+# paint ROW: colours one art row by character role; spaces stay uncoloured.
+paint() {
+  local row=$1 out= c col i
+  if [ -z "$reset" ]; then printf '%s' "$row"; return; fi
+  for ((i = 0; i < ${#row}; i++)); do
+    c=${row:i:1}
+    case $c in
+      ' ') out+=' '; continue ;;
+      '['|']') col=$secondary ;;
+      '^'|'o'|'>'|'('|')'|'V'|'.'|'-'|'D'|'c'|'k') col=$primary ;;
+      [A-Z]) col=$foreground ;;
+      *) col=$muted ;;
+    esac
+    out+="$col$c"
+  done
+  printf '%s' "${out}${reset}"
+}
+
+# show_banner ART_NAME WIDTH LAYOUT: layout side (info beside the art) or stacked.
+show_banner() {
+  local -n art=$1
+  local w=$2 layout=$3 i n=${#art[@]} row info
+  local m=$muted
+  info=(
+    "${highlight}${edition}${reset}"
+    "${foreground}ThothTerm Container Runtime${reset}"
+    ""
+    "${m}Guest         ${reset}${foreground}${os}${reset}"
+    "${m}Architecture  ${reset}${foreground}$(clean "$arch" 16)${reset}"
+    "${m}Shell         ${reset}${foreground}Bash${reset}"
+    "${m}Engine        ${reset}${foreground}${engine}${reset}"
+    "${m}Docker API    ${reset}${foreground}1.41${reset}"
+    "${m}Runtime       ${reset}${foreground}Garden PRoot${reset}"
+  )
+  if [ "$layout" = stacked ]; then
+    for ((i = 0; i < n; i++)); do paint "${art[i]}"; printf '\n'; done
+    printf '\n'
+    printf '%s\n' "${info[0]}"
+    printf '%s\n' "${foreground}${os}${reset}"
+    printf '%s\n' "${m}Engine ${reset}${foreground}${engine}${reset}"
+    return
+  fi
+  local total=$n
+  [ ${#info[@]} -gt "$total" ] && total=${#info[@]}
+  for ((i = 0; i < total; i++)); do
+    if [ "$i" -lt "$n" ]; then
+      row=$(printf '%-*s' "$w" "${art[i]}")
+    else
+      row=$(printf '%*s' "$w" '')
+    fi
+    paint "$row"
+    if [ -n "${info[i]-}" ]; then printf '  %s' "${info[i]}"; fi
+    printf '\n'
+  done
+}
+
+if [ -n "$dock" ] && [ "$cols" -ge 20 ]; then
+  limit=30
+  [ "$cols" -lt 30 ] && limit=$cols
+  edition=$(clean "$edition" "$limit")
+  os=$(clean "$os" "$((limit > 28 ? 28 : limit))")
+  if [ -n "$reset" ] && [ "$cols" -ge 32 ]; then
+    # Colours available: the logo-derived braille banners.
+    if [ "$cols" -ge 110 ]; then show_logo logo_l "$logo_l_w" side 10 14
+    elif [ "$cols" -ge 62 ]; then show_logo logo_s "$logo_s_w" side 1 8
+    else show_logo logo_m "$logo_m_w" stacked 0 13
+    fi
+  elif [ "$cols" -ge 80 ]; then show_banner wide_art "$wide_w" side
+  elif [ "$cols" -ge 62 ]; then show_banner compact_art "$compact_w" side
+  else show_banner compact_art "$compact_w" stacked
+  fi
 elif [ "$cols" -lt 44 ]; then
   edition=$(clean "$edition" "$cols")
   os=$(clean "$os" "$cols")

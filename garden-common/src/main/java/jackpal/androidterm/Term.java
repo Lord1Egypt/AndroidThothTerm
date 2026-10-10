@@ -673,6 +673,8 @@ public class Term extends AppCompatActivity
             doPreferences();
         else if (id == R.id.nav_containers)
             startActivity(new Intent().setClassName(getPackageName(), com.thothterm.dock.ThothDock.CONTAINERS_ACTIVITY));
+        else if (id == R.id.nav_web_panel)
+            startActivity(new Intent().setClassName(getPackageName(), com.thothterm.dock.ThothDock.WEB_PANEL_ACTIVITY));
         else if (id == R.id.nav_action_help)
             doShowAbout();
         else

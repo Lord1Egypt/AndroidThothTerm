@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ * Copyright (C) 2026 ThothTerm.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<!-- The Web Panel page: state, who can open it, and how to connect. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/thothdock_background"
+    android:fitsSystemWindows="@bool/fits_system_windows"
+    android:orientation="vertical">
+
+    <include layout="@layout/appbar"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_splash_mark"/>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/panel_title"
+                        android:textColor="@color/thothdock_text_primary"
+                        android:textSize="20sp"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/panel_tagline"
+                        android:textColor="@color/thothdock_text_secondary"
+                        android:textSize="13sp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- State -->
+            <LinearLayout
+                style="@style/ThothDockCard"
+                android:layout_marginTop="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:id="@+id/panel_dot"
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:background="@drawable/thothdock_dot"/>
+
+                    <TextView
+                        android:id="@+id/panel_state"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:textColor="@color/thothdock_text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold"/>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/panel_state_detail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/thothdock_text_secondary"
+                    android:textSize="13sp"/>
+
+                <TextView
+                    android:id="@+id/panel_problem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textColor="@color/thothdock_error"
+                    android:textSize="13sp"
+                    android:visibility="gone"/>
+
+                <Button
+                    android:id="@+id/panel_toggle"
+                    style="@style/ThothDockPrimaryButton"
+                    android:layout_marginTop="12dp"/>
+            </LinearLayout>
+
+            <!-- Who can open it -->
+            <LinearLayout
+                style="@style/ThothDockCard"
+                android:layout_marginTop="12dp">
+
+                <TextView
+                    style="@style/ThothDockSectionTitle"
+                    android:text="@string/panel_mode_title"/>
+
+                <RadioGroup
+                    android:id="@+id/panel_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/mode_local"
+                        style="@style/ThothDockRadio"
+                        android:text="@string/panel_local"/>
+
+                    <TextView
+                        android:id="@+id/mode_local_detail"
+                        style="@style/ThothDockRadioDetail"
+                        android:text="@string/panel_local_detail"/>
+
+                    <RadioButton
+                        android:id="@+id/mode_wifi"
+                        style="@style/ThothDockRadio"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/panel_lan"/>
+
+                    <TextView
+                        android:id="@+id/mode_wifi_detail"
+                        style="@style/ThothDockRadioDetail"/>
+                </RadioGroup>
+
+                <TextView
+                    android:id="@+id/panel_wifi_warning"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/panel_lan_warning"
+                    android:textColor="@color/thothdock_warning"
+                    android:textSize="13sp"/>
+            </LinearLayout>
+
+            <!-- How to connect (only while running) -->
+            <LinearLayout
+                android:id="@+id/panel_connect"
+                style="@style/ThothDockCard"
+                android:layout_marginTop="12dp"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/ThothDockSectionTitle"
+                    android:text="@string/panel_address_title"/>
+
+                <TextView
+                    android:id="@+id/panel_url"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:textColor="@color/thothdock_primary"
+                    android:textIsSelectable="true"
+                    android:textSize="17sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/panel_address_hint"
+                    android:textColor="@color/thothdock_text_secondary"
+                    android:textSize="13sp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/panel_copy_url"
+                        style="@style/ThothDockAction"
+                        android:text="@string/panel_copy_url"/>
+
+                    <Button
+                        android:id="@+id/panel_open"
+                        style="@style/ThothDockAction"
+                        android:text="@string/panel_open_browser"/>
+                </LinearLayout>
+
+                <TextView
+                    style="@style/ThothDockSectionTitle"
+                    android:layout_marginTop="18dp"
+                    android:text="@string/panel_code_title"/>
+
+                <TextView
+                    android:id="@+id/panel_code"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.12"
+                    android:textColor="@color/thothdock_text_primary"
+                    android:textIsSelectable="true"
+                    android:textSize="38sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/panel_code_state"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/thothdock_text_secondary"
+                    android:textSize="13sp"/>
+
+                <Button
+                    android:id="@+id/panel_new_code"
+                    style="@style/ThothDockAction"
+                    android:layout_width="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/panel_new_code"/>
+
+                <TextView
+                    style="@style/ThothDockSectionTitle"
+                    android:layout_marginTop="18dp"
+                    android:text="@string/panel_fingerprint_title"/>
+
+                <TextView
+                    android:id="@+id/panel_fingerprint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:textColor="@color/thothdock_silver"
+                    android:textIsSelectable="true"
+                    android:textSize="13sp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/panel_fingerprint_hint"
+                    android:textColor="@color/thothdock_text_secondary"
+                    android:textSize="13sp"/>
+
+                <Button
+                    android:id="@+id/panel_copy_fingerprint"
+                    style="@style/ThothDockAction"
+                    android:layout_width="wrap_content"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/panel_copy_fingerprint"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/panel_help"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textColor="@color/thothdock_text_secondary"
+                android:textSize="13sp"/>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

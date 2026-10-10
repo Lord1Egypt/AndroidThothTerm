@@ -132,10 +132,12 @@ public class TermActionBar {
         });
     }
 
-    /** Shows the drawer's Containers row; it is hidden unless the build bundles ThothDock. */
+    /** Shows the drawer's Containers and Web Panel rows; hidden unless the build bundles ThothDock. */
     public void setContainersVisible(boolean visible) {
-        MenuItem item = nav_view.getMenu().findItem(R.id.nav_containers);
-        if (item != null) item.setVisible(visible);
+        for (int id : new int[]{R.id.nav_containers, R.id.nav_web_panel}) {
+            MenuItem item = nav_view.getMenu().findItem(id);
+            if (item != null) item.setVisible(visible);
+        }
     }
 
     /** The trailing Off/Active label of the drawer's LAN Mode row. */
