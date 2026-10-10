@@ -73,6 +73,7 @@ public final class WebPanel {
 
     private final File daemon;
     private final File root;
+    private final File socket;
     private final File pairingFile;
     private final File logFile;
     private final Object lock = new Object();
@@ -83,6 +84,7 @@ public final class WebPanel {
     private WebPanel(ThothDock dock) {
         daemon = dock.daemonBinary();
         root = dock.dataRoot();
+        socket = new File(dock.socketPath());
         pairingFile = new File(root, "panel/pairing.json");
         logFile = new File(root, "panel.log");
     }
@@ -145,6 +147,7 @@ public final class WebPanel {
         pairingFile.delete();
         List<String> argv = Arrays.asList(daemon.getAbsolutePath(), "panel",
                 "--root", root.getAbsolutePath(),
+                "--socket", socket.getAbsolutePath(),
                 "--listen", host + ":" + PORT,
                 "--exit-with-parent");
         ProcessBuilder b = new ProcessBuilder(argv);

@@ -86,19 +86,49 @@ if [ -e "$root/usr/local/bin/docker" ]; then
   [ -S "$root/run/thothdock/thothdock.sock" ] && engine=ThothDock
 fi
 
-if [ -n "$dock" ] && [ "$cols" -ge 44 ]; then
+# The ThothDock mark: the icon's Thoth-bird T over two container stacks and a
+# tray. Every row is padded to 20 columns (ThothfetchTest checks it); info
+# text starts at column 21 and the longest line is 62 columns, so it fits a
+# 63-column phone terminal without wrapping.
+# Colours by role: primary (bird, tray), secondary (containers), muted (T bar).
+dock_mark() {
+  local p=$primary s=$secondary t=$muted r=$reset
+  mark[0]="${t}  ______ ${p}.-'-.${t} _____${r}"
+  mark[1]="${t}  \\____ \\${p}/ (o)\\${t}/___/${r}"
+  mark[2]="${t}        ||${p} \`-.__\`.  ${r}"
+  mark[3]="${s} .---.${t}  ||${p}     \`-'  ${r}"
+  mark[4]="${s} |:::|${t}  ||  ${s}.---.   ${r}"
+  mark[5]="${s} |:::|${t}  ||  ${s}|:::|   ${r}"
+  mark[6]="${p} /${s}:::${p}\\__${t}||${p}__/${s}:::${p}\\   ${r}"
+  mark[7]="${p} \\_____ \\/ _____/   ${r}"
+  mark[8]="${p}   \\____\\/____/     ${r}"
+}
+
+if [ -n "$dock" ] && [ "$cols" -ge 62 ]; then
   edition=$(clean "$edition" 30)
-  os=$(clean "$os" 30)
+  os=$(clean "$os" 28)
   m=$muted
-  printf '%s\n' "${primary}    /\\${reset}        ${highlight}${edition}${reset}"
-  printf '%s\n' "${primary} __/  \\__${reset}     ${foreground}ThothTerm Container Runtime${reset}"
-  printf '%s\n' "${secondary}/  \\  /  \\${reset}"
-  printf '%s\n' "${secondary}\\   \\/   /${reset}    ${m}Guest         ${reset}${foreground}${os}${reset}"
-  printf '%s\n' "${primary} \\  /\\  /${reset}     ${m}Architecture  ${reset}${foreground}$(clean "$arch" 16)${reset}"
-  printf '%s\n' "${primary}    \\/${reset}        ${m}Shell         ${reset}${foreground}Bash${reset}"
-  printf '%s\n' "${secondary}    >_${reset}        ${m}Engine        ${reset}${foreground}${engine}${reset}"
-  printf '%s\n' "              ${m}Docker API    ${reset}${foreground}1.41${reset}"
-  printf '%s\n' "              ${m}Runtime       ${reset}${foreground}Garden PRoot${reset}"
+  dock_mark
+  pad=' '
+  printf '%s\n' "${mark[0]}${pad}${highlight}${edition}${reset}"
+  printf '%s\n' "${mark[1]}${pad}${foreground}ThothTerm Container Runtime${reset}"
+  printf '%s\n' "${mark[2]}"
+  printf '%s\n' "${mark[3]}${pad}${m}Guest        ${reset}${foreground}${os}${reset}"
+  printf '%s\n' "${mark[4]}${pad}${m}Architecture ${reset}${foreground}$(clean "$arch" 16)${reset}"
+  printf '%s\n' "${mark[5]}${pad}${m}Shell        ${reset}${foreground}Bash${reset}"
+  printf '%s\n' "${mark[6]}${pad}${m}Engine       ${reset}${foreground}${engine}${reset}"
+  printf '%s\n' "${mark[7]}${pad}${m}Docker API   ${reset}${foreground}1.41${reset}"
+  printf '%s\n' "${mark[8]}${pad}${m}Runtime      ${reset}${foreground}Garden PRoot${reset}"
+elif [ -n "$dock" ] && [ "$cols" -ge 20 ] && [ "$cols" -lt 62 ]; then
+  # Narrow screens keep the ThothDock mark above the text.
+  edition=$(clean "$edition" "$cols")
+  os=$(clean "$os" "$cols")
+  dock_mark
+  for i in 0 1 2 3 4 5 6 7 8; do printf '%s\n' "${mark[$i]}"; done
+  printf '\n'
+  printf '%s\n' "${highlight}${edition}${reset}"
+  printf '%s\n' "${foreground}${os}${reset}"
+  printf '%s\n' "${muted}Engine ${reset}${foreground}${engine}${reset}"
 elif [ "$cols" -lt 44 ]; then
   edition=$(clean "$edition" "$cols")
   os=$(clean "$os" "$cols")

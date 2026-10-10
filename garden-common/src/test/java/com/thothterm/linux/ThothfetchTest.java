@@ -128,6 +128,51 @@ public class ThothfetchTest {
         return true;
     }
 
+    private static File dockRoot() throws Exception {
+        File root = fakeRoot(EDITION, "NAME=Garden\nPRETTY_NAME=\"" + PRETTY_NAME + "\"\nID=garden\n");
+        File bin = new File(root, "usr/local/bin");
+        assertTrue(bin.mkdirs());
+        assertTrue(new File(bin, "docker").createNewFile());
+        return root;
+    }
+
+    /** The ThothDock layout: the icon's mark, 20 columns wide, info from column 21. */
+    @Test
+    public void thothDockMarkHasFixedGeometry() throws Exception {
+        List<String> lines = render(63, dockRoot(), true);
+        assertEquals("nine mark rows", 9, lines.size());
+        int infoRows = 0;
+        for (String line : lines) {
+            assertFalse("no tabs: " + line, line.contains("\t"));
+            assertTrue("fits a 63-column phone: " + line, line.length() <= 62);
+            if (line.length() > 21) {
+                infoRows++;
+                assertEquals("mark/info gap at column 20 of '" + line + "'", ' ', line.charAt(20));
+                assertTrue("info starts at column 21 of '" + line + "'", line.charAt(21) != ' ');
+            }
+        }
+        assertEquals("eight info rows", 8, infoRows);
+        assertTrue(lines.get(0).contains(EDITION));
+        assertTrue("bird's eye", lines.get(1).contains("(o)"));
+        assertTrue("engine row", lines.stream().anyMatch(l -> l.contains("Engine       Offline")));
+        // Colour sequences never add width.
+        List<String> raw = render(63, dockRoot(), false);
+        assertTrue(raw.stream().anyMatch(l -> ANSI.matcher(l).find()));
+        assertEquals(lines, raw.stream().map(l -> ANSI.matcher(l).replaceAll("")).collect(java.util.stream.Collectors.toList()));
+    }
+
+    @Test
+    public void thothDockMarkSurvivesNarrowScreens() throws Exception {
+        for (int cols : new int[]{20, 30, 61}) {
+            List<String> lines = render(cols, dockRoot(), true);
+            assertTrue("mark then text at " + cols, lines.size() >= 12);
+            assertTrue(lines.get(1).contains("(o)"));
+            assertTrue(lines.contains(EDITION.substring(0, Math.min(EDITION.length(), cols))));
+            assertTrue(lines.contains("Engine Offline"));
+            for (String line : lines) assertTrue("fits " + cols + ": " + line, line.length() <= Math.max(cols, 28));
+        }
+    }
+
     @Test
     public void assetHasNoTabsOrCarriageReturns() throws Exception {
         String raw = new String(Files.readAllBytes(script().toPath()),

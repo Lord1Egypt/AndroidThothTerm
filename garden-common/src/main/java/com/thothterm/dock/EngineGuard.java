@@ -175,6 +175,7 @@ public final class EngineGuard {
         for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
             if (guardInstalled(status, dock.guardVersion(), dock.guardPackageVersion())) {
                 ThothLog.i(LogCategory.RUNTIME, "Engine Guard: protected");
+                ComposeSetup.ensure(rootfs);
                 return;
             }
             try {
@@ -186,6 +187,7 @@ public final class EngineGuard {
             }
             if (guardInstalled(status, dock.guardVersion(), dock.guardPackageVersion())) {
                 ThothLog.i(LogCategory.RUNTIME, "Engine Guard: installed");
+                ComposeSetup.ensure(rootfs);
                 return;
             }
             Thread.sleep(RETRY_MS);
