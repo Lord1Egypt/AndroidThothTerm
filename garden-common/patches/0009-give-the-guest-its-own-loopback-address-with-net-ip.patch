@@ -1,0 +1,448 @@
+Subject: give the guest its own loopback address with --net-ip
+
+ThothDock user-defined networks (ThothDock docs/nextgen/adr/ADR-0002) give
+each container one address in 127.77.0.0/16. With --net-ip=ADDR, PRoot
+rewrites socket addresses at syscall entry:
+
+- bind to 0.0.0.0, 127.0.0.0/8, :: or ::1 binds ADDR instead (dual-stack
+  IPv6 sockets get the v4-mapped ADDR; a V6ONLY wildcard becomes an inert
+  [::1]:0, so "listen [::]:80 ipv6only=on" servers still start);
+- connect/sendto to loopback or 0.0.0.0 reaches ADDR, so localhost is the
+  container's own; 127.77.0.1 reaches the host's 127.0.0.1;
+- ports 1-1023 on 127.77.0.0/16 become port + 30000, because an
+  unprivileged Android app cannot bind them.
+
+The rewritten sockaddr is pushed on the tracee's stack (alloc_mem), never
+written into the application's buffer. bind, connect and sendto are already
+stopped on by PRoot's own seccomp filter, so no new ptrace stop is added.
+Without --net-ip nothing changes.
+
+diff --git a/src/GNUmakefile b/src/GNUmakefile
+index 9d80a96..3041d85 100644
+--- a/src/GNUmakefile
++++ b/src/GNUmakefile
+@@ -63,6 +63,7 @@ OBJECTS += \
+ 	extension/extension.o	\
+ 	extension/ashmem_memfd/ashmem_memfd.o \
+ 	extension/kompat/kompat.o \
++	extension/net_ip/net_ip.o \
+ 	extension/fake_id0/chown.o \
+ 	extension/fake_id0/chroot.o \
+ 	extension/fake_id0/getsockopt.o \
+diff --git a/src/cli/proot.c b/src/cli/proot.c
+index b9a3df2..fb04b55 100644
+--- a/src/cli/proot.c
++++ b/src/cli/proot.c
+@@ -299,6 +299,24 @@ static int handle_option_link2symlink(Tracee *tracee, const Cli *cli UNUSED, con
+ 	return 0;
+ }
+ 
++static int handle_option_net_ip(Tracee *tracee, const Cli *cli UNUSED, const char *value)
++{
++	uint32_t own;
++
++	if (net_ip_parse(value, &own) < 0) {
++		note(tracee, ERROR, USER, "--net-ip=%s: not a container address in 127.77.0.0/16 "
++			"(the network, 127.77.0.1 and the broadcast address are reserved)", value);
++		return -1;
++	}
++
++	if (initialize_extension(tracee, net_ip_callback, value) < 0) {
++		note(tracee, ERROR, INTERNAL, "net_ip not initialized");
++		return -1;
++	}
++
++	return 0;
++}
++
+ #if defined(__ANDROID__) || defined(__BIONIC__)
+ static int handle_option_ashmem_memfd(Tracee *tracee, const Cli *cli UNUSED, const char *value UNUSED)
+ {
+diff --git a/src/cli/proot.h b/src/cli/proot.h
+index 7648c70..2c81eb4 100644
+--- a/src/cli/proot.h
++++ b/src/cli/proot.h
+@@ -61,6 +61,7 @@ static int handle_option_i(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_R(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_S(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_link2symlink(Tracee *tracee, const Cli *cli, const char *value);
++static int handle_option_net_ip(Tracee *tracee, const Cli *cli, const char *value);
+ #if defined(__ANDROID__) || defined(__BIONIC__)
+ static int handle_option_ashmem_memfd(Tracee *tracee, const Cli *cli, const char *value);
+ #endif /* defined(__ANDROID__) || defined(__BIONIC__) */
+@@ -256,6 +257,17 @@ Copyright (C) 2015 STMicroelectronics, licensed under GPL v2 or later.",
+ 	  .description = "Replace hard links with symlinks, pretending they are really hardlinks",
+ 	  .detail = "\tEmulates hard links with symbolic links when SELinux policies\n\
+ \tdo not allow hard links.",
++	},
++	{ .class = "Extension options",
++	  .arguments = {
++		{ .name = "--net-ip", .separator = '=', .value = "string" },
++		{ .name = NULL, .separator = '\0', .value = NULL } },
++	  .handler = handle_option_net_ip,
++	  .description = "Give the guest its own loopback address *string* (127.77.X.Y).",
++	  .detail = "\tbind() to a wildcard or loopback address binds *string* instead,\n\
++\tconnect() and sendto() to loopback reach *string*, 127.77.0.1 reaches\n\
++\tthe host's 127.0.0.1, and ports below 1024 on 127.77.0.0/16 addresses\n\
++\tbecome port + 30000.  Address translation, not isolation.",
+ 	},
+ 	{ .class = "Extension options",
+ 	  .arguments = {
+diff --git a/src/extension/extension.h b/src/extension/extension.h
+index 827d9cf..e86d126 100644
+--- a/src/extension/extension.h
++++ b/src/extension/extension.h
+@@ -213,6 +213,8 @@ extern int fake_id0_callback(Extension *extension, ExtensionEvent event, intptr_
+ extern int hidden_files_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
+ extern int port_switch_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
+ extern int link2symlink_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
++extern int net_ip_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
++extern int net_ip_parse(const char *value, uint32_t *own);
+ extern int fix_symlink_size_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
+ #if defined(__ANDROID__) || defined(__BIONIC__)
+ extern int ashmem_memfd_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
+diff --git a/src/extension/net_ip/net_ip.c b/src/extension/net_ip/net_ip.c
+new file mode 100644
+index 0000000..d48ee75
+--- /dev/null
++++ b/src/extension/net_ip/net_ip.c
+@@ -0,0 +1,339 @@
++/* -*- c-set-style: "K&R"; c-basic-offset: 8 -*-
++ *
++ * This file is part of PRoot.
++ *
++ * net_ip: give the tracee its own loopback address (ThothDock user-defined
++ * networks, docs/nextgen/adr/ADR-0002 in ThothDock).
++ *
++ * With --net-ip=127.77.X.Y the tracee's socket addresses are rewritten at
++ * syscall entry:
++ *
++ *   bind     0.0.0.0 / 127.0.0.0/8 / :: / ::1 -> its own address
++ *            (a V6ONLY IPv6 wildcard becomes an inert [::1]:0)
++ *   connect, 127.77.0.1 (the gateway)         -> the device's 127.0.0.1
++ *   sendto   other loopback / 0.0.0.0 / ::1   -> its own address
++ *            another 127.77.0.0/16 address    -> kept
++ *
++ * and ports 1-1023 on 127.77.0.0/16 addresses become port + 30000, because an
++ * unprivileged Android app may not bind them.  The rewritten socket address
++ * is pushed on the tracee's stack, so the application's own buffer is never
++ * written.  bind, connect and sendto are already stopped on by PRoot itself,
++ * so this extension adds no ptrace stop.
++ *
++ * This is address translation for cooperating workloads, not a security
++ * boundary: system calls PRoot does not see are not rewritten.
++ */
++
++#include <errno.h>        /* E*, */
++#include <stdbool.h>      /* bool, */
++#include <stdint.h>       /* intptr_t, uint*_t, */
++#include <string.h>       /* memset(3), memcpy(3), */
++#include <stdio.h>        /* snprintf(3), */
++#include <stdlib.h>       /* strtol(3), */
++#include <unistd.h>       /* syscall(2), close(2), */
++#include <fcntl.h>        /* open(2), */
++#include <sys/socket.h>   /* sockaddr, getsockopt(2), */
++#include <sys/syscall.h>  /* SYS_*, */
++#include <netinet/in.h>   /* sockaddr_in*, IPPROTO_IPV6, */
++#include <arpa/inet.h>    /* inet_pton(3), htonl(3), */
++#include <talloc.h>       /* talloc_*, */
++
++#include "extension/extension.h"
++#include "syscall/syscall.h"
++#include "syscall/sysnum.h"
++#include "tracee/tracee.h"
++#include "tracee/reg.h"
++#include "tracee/mem.h"
++#include "cli/note.h"
++
++#ifndef SYS_pidfd_open
++#define SYS_pidfd_open 434
++#endif
++#ifndef SYS_pidfd_getfd
++#define SYS_pidfd_getfd 438
++#endif
++
++#define NET_BASE   0x7f4d0000u  /* 127.77.0.0 */
++#define NET_MASK   0xffff0000u
++#define NET_GW     0x7f4d0001u  /* 127.77.0.1 */
++#define NET_BCAST  0x7f4dffffu  /* 127.77.255.255 */
++#define LOOPBACK   0x7f000001u  /* 127.0.0.1 */
++#define LOW_PORT_SHIFT 30000
++
++typedef struct {
++	uint32_t own; /* host byte order */
++} Config;
++
++/**
++ * Parse @value as a container address: 127.77.0.0/16 except the
++ * network, gateway and broadcast addresses.  Returns 0 and the address in
++ * host byte order in @own, or -1.
++ */
++int net_ip_parse(const char *value, uint32_t *own)
++{
++	struct in_addr in;
++
++	if (value == NULL || inet_pton(AF_INET, value, &in) != 1)
++		return -1;
++	*own = ntohl(in.s_addr);
++	if ((*own & NET_MASK) != NET_BASE || *own == NET_BASE || *own == NET_GW || *own == NET_BCAST)
++		return -1;
++	return 0;
++}
++
++static uint16_t shift_port(uint16_t port)
++{
++	return (port >= 1 && port <= 1023) ? port + LOW_PORT_SHIFT : port;
++}
++
++static bool is_loopback4(uint32_t a)
++{
++	return (a >> 24) == 127;
++}
++
++/**
++ * Apply the IPv4 rules to @addr and @port (host byte order).  Returns true
++ * if either changed.
++ */
++static bool rewrite4(uint32_t own, bool is_bind, uint32_t *addr, uint16_t *port)
++{
++	uint32_t a = *addr;
++	uint16_t p = *port;
++
++	if (is_bind) {
++		if (a != INADDR_ANY && !is_loopback4(a))
++			return false;
++		*addr = own;
++		*port = shift_port(p);
++		return true;
++	}
++
++	if (a == NET_GW) {
++		*addr = LOOPBACK;
++		return true;
++	}
++	if ((a & NET_MASK) == NET_BASE) {
++		*port = shift_port(p);
++		return *port != p;
++	}
++	if (a != INADDR_ANY && !is_loopback4(a))
++		return false;
++	*addr = own;
++	*port = shift_port(p);
++	return true;
++}
++
++/**
++ * Thread-group id of @pid, for pidfd_open(2) which wants a process.
++ */
++static pid_t tgid_of(pid_t pid)
++{
++	char path[64];
++	char buffer[512];
++	char *line;
++	ssize_t n;
++	int fd;
++
++	snprintf(path, sizeof(path), "/proc/%d/status", pid);
++	fd = open(path, O_RDONLY | O_CLOEXEC);
++	if (fd < 0)
++		return pid;
++	n = read(fd, buffer, sizeof(buffer) - 1);
++	close(fd);
++	if (n <= 0)
++		return pid;
++	buffer[n] = '\0';
++	line = strstr(buffer, "\nTgid:");
++	if (line == NULL)
++		return pid;
++	return (pid_t) strtol(line + 6, NULL, 10);
++}
++
++/**
++ * Whether the tracee's socket @fd is IPV6_V6ONLY.  The descriptor is
++ * duplicated into PRoot with pidfd_getfd(2) (Linux 5.6+); where that is not
++ * possible the socket is taken as dual-stack, the kernel default.
++ */
++static bool socket_is_v6only(const Tracee *tracee, int fd)
++{
++	int v6only = 0;
++	socklen_t size = sizeof(v6only);
++	int pidfd;
++	int copy;
++
++	pidfd = syscall(SYS_pidfd_open, tracee->pid, 0);
++	if (pidfd < 0 && errno == EINVAL)
++		pidfd = syscall(SYS_pidfd_open, tgid_of(tracee->pid), 0);
++	if (pidfd < 0)
++		return false;
++	copy = syscall(SYS_pidfd_getfd, pidfd, fd, 0);
++	close(pidfd);
++	if (copy < 0)
++		return false;
++	if (getsockopt(copy, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, &size) < 0)
++		v6only = 0;
++	close(copy);
++	return v6only != 0;
++}
++
++static void map_v4(struct in6_addr *a6, uint32_t a)
++{
++	memset(a6, 0, sizeof(*a6));
++	a6->s6_addr[10] = 0xff;
++	a6->s6_addr[11] = 0xff;
++	a6->s6_addr32[3] = htonl(a);
++}
++
++/**
++ * Rewrite the socket address at @sysarg (length at @sizearg) of the
++ * current bind (@is_bind) or connect/sendto.
++ */
++static int rewrite(Tracee *tracee, const Config *config, bool is_bind, Reg sysarg, Reg sizearg)
++{
++	word_t address = peek_reg(tracee, CURRENT, sysarg);
++	word_t size = peek_reg(tracee, CURRENT, sizearg);
++	union {
++		struct sockaddr sa;
++		struct sockaddr_in in;
++		struct sockaddr_in6 in6;
++	} sockaddr;
++	word_t new_size;
++	word_t new_address;
++	int status;
++
++	if (address == 0 || size < sizeof(sa_family_t))
++		return 0;
++
++	memset(&sockaddr, 0, sizeof(sockaddr));
++	status = read_data(tracee, &sockaddr, address, size < sizeof(sockaddr) ? size : sizeof(sockaddr));
++	if (status < 0)
++		return 0; /* Let the kernel report EFAULT.  */
++
++	switch (sockaddr.sa.sa_family) {
++	case AF_INET: {
++		uint32_t a;
++		uint16_t p;
++
++		if (size < sizeof(struct sockaddr_in))
++			return 0;
++		a = ntohl(sockaddr.in.sin_addr.s_addr);
++		p = ntohs(sockaddr.in.sin_port);
++		if (!rewrite4(config->own, is_bind, &a, &p))
++			return 0;
++		sockaddr.in.sin_addr.s_addr = htonl(a);
++		sockaddr.in.sin_port = htons(p);
++		new_size = sizeof(struct sockaddr_in);
++		break;
++	}
++
++	case AF_INET6: {
++		struct in6_addr *a6 = &sockaddr.in6.sin6_addr;
++		uint16_t p;
++
++		if (size < sizeof(struct sockaddr_in6))
++			return 0;
++		p = ntohs(sockaddr.in6.sin6_port);
++
++		if (IN6_IS_ADDR_V4MAPPED(a6)) {
++			uint32_t a = ntohl(a6->s6_addr32[3]);
++
++			if (!rewrite4(config->own, is_bind, &a, &p))
++				return 0;
++			map_v4(a6, a);
++		}
++		else if (IN6_IS_ADDR_UNSPECIFIED(a6) || IN6_IS_ADDR_LOOPBACK(a6)) {
++			if (is_bind && socket_is_v6only(tracee, (int) peek_reg(tracee, CURRENT, SYSARG_1))) {
++				/* A V6ONLY wildcard cannot carry the IPv4
++				 * address: keep the server starting, with an
++				 * IPv6 listener nothing can reach by name.  */
++				memset(a6, 0, sizeof(*a6));
++				a6->s6_addr[15] = 1;
++				p = 0;
++			}
++			else {
++				map_v4(a6, config->own);
++				p = shift_port(p);
++			}
++		}
++		else
++			return 0;
++
++		sockaddr.in6.sin6_port = htons(p);
++		sockaddr.in6.sin6_scope_id = 0;
++		new_size = sizeof(struct sockaddr_in6);
++		break;
++	}
++
++	default:
++		return 0;
++	}
++
++	new_address = alloc_mem(tracee, new_size);
++	if (new_address == 0)
++		return -EFAULT;
++	status = write_data(tracee, new_address, &sockaddr, new_size);
++	if (status < 0)
++		return status;
++	poke_reg(tracee, sysarg, new_address);
++	poke_reg(tracee, sizearg, new_size);
++	return 0;
++}
++
++/**
++ * Handler for this @extension.  It is triggered each time an @event
++ * occurred.  See ExtensionEvent for the meaning of @data1 and @data2.
++ */
++int net_ip_callback(Extension *extension, ExtensionEvent event, intptr_t data1, intptr_t data2 UNUSED)
++{
++	switch (event) {
++	case INITIALIZATION: {
++		/* PRoot stops on these already (Unix path translation and
++		 * the netlink emulation); listed so this extension keeps
++		 * working if that ever changes.  */
++		static FilteredSysnum filtered_sysnums[] = {
++			{ PR_bind,	0 },
++			{ PR_connect,	0 },
++			{ PR_sendto,	0 },
++			FILTERED_SYSNUM_END,
++		};
++		Config *config;
++
++		config = talloc_zero(extension, Config);
++		if (config == NULL)
++			return -1;
++		if (net_ip_parse((const char *) data1, &config->own) < 0)
++			return -1;
++		extension->config = config;
++		extension->filtered_sysnums = filtered_sysnums;
++		return 0;
++	}
++
++	case INHERIT_PARENT:
++		/* The configuration never changes: share it.  */
++		return 0;
++
++	case SYSCALL_ENTER_END: {
++		Tracee *tracee = TRACEE(extension);
++		const Config *config = talloc_get_type_abort(extension->config, Config);
++
++		/* PRoot's own translation failed, or it already turned the
++		 * syscall into a no-op (netlink emulation).  */
++		if ((int) data1 < 0 || get_sysnum(tracee, CURRENT) == PR_void)
++			return 0;
++
++		switch (get_sysnum(tracee, ORIGINAL)) {
++		case PR_bind:
++			return rewrite(tracee, config, true, SYSARG_2, SYSARG_3);
++		case PR_connect:
++			return rewrite(tracee, config, false, SYSARG_2, SYSARG_3);
++		case PR_sendto:
++			return rewrite(tracee, config, false, SYSARG_5, SYSARG_6);
++		default:
++			return 0;
++		}
++	}
++
++	default:
++		return 0;
++	}
++}
