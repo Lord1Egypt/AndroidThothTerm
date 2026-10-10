@@ -267,6 +267,16 @@ public final class ThothDock {
         return java.util.Collections.singletonMap("DOCKER_HOST", GUEST_DOCKER_HOST);
     }
 
+    /** The engine binary in the APK's library directory (also the Web Panel). */
+    File daemonBinary() {
+        return new File(nativeLibDir, DAEMON);
+    }
+
+    /** The engine's data root. */
+    File dataRoot() {
+        return root;
+    }
+
     /** The Docker CLI, bound read-only from the APK's library directory. */
     public String cliPath() {
         return bundled ? new File(nativeLibDir, CLI).getAbsolutePath() : null;
@@ -449,6 +459,12 @@ public final class ThothDock {
      */
     public void stop() {
         if (!bundled) return;
+        WebPanel panel = WebPanel.getIfCreated();
+        if (panel != null && panel.isRunning()) {
+            Thread pt = new Thread(panel::stop, "ThothDock-panel-stop");
+            pt.setDaemon(true);
+            pt.start();
+        }
         final Process p;
         final long start;
         synchronized (lock) {
@@ -554,7 +570,7 @@ public final class ThothDock {
         }
     }
 
-    private static int pidOf(Process p) {
+    static int pidOf(Process p) {
         try {
             java.lang.reflect.Field f = p.getClass().getDeclaredField("pid");
             f.setAccessible(true);

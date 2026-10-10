@@ -45,4 +45,19 @@
     <string name="containers_error_name">This container\'s name cannot be used in a command.</string>
     <string name="containers_logs_title">Logs · %1$s</string>
     <string name="containers_logs_invalid">No such container.</string>
+    <string name="panel_menu">Web Panel</string>
+    <string name="panel_title">ThothDock Web Panel</string>
+    <string name="panel_intro">Manage this phone\'s containers from a browser. The panel uses HTTPS, and a browser must be paired with a one-time code. It is off until you start it, and stops when the app stops.</string>
+    <string name="panel_local">This phone only</string>
+    <string name="panel_lan">Wi-Fi network</string>
+    <string name="panel_lan_warning">Everyone on this Wi-Fi network can reach the panel and try to pair. Use it only on a network you trust, and keep the pairing code private.</string>
+    <string name="panel_lan_start">Start on Wi-Fi</string>
+    <string name="panel_no_lan">No Wi-Fi or Ethernet network. Connect to your home network to use the panel from another device.</string>
+    <string name="panel_starting">Starting the Web Panel…</string>
+    <string name="panel_failed">The Web Panel did not start: %1$s</string>
+    <string name="panel_details">Open in a browser:\n%1$s\n\nPairing code: %2$s (valid until %3$s, one use)\n\nCertificate SHA-256:\n%4$s\n\nThe browser warns that the certificate is self-signed. Continue only if the fingerprint it shows matches the one above.</string>
+    <string name="panel_new_code">New code</string>
+    <string name="panel_stop">Stop panel</string>
+    <string name="panel_close">Close</string>
+    <string name="panel_stopped">Web Panel stopped</string>
 </resources>

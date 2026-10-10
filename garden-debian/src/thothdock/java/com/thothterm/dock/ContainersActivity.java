@@ -174,6 +174,11 @@ public class ContainersActivity extends AppCompatActivity {
             poll();
             return true;
         }
+        if (item.getItemId() == R.id.menu_web_panel) {
+            if (WebPanel.get().isRunning()) showPanel();
+            else choosePanelMode();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -281,6 +286,121 @@ public class ContainersActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.containers_delete, (d, w) ->
                         act(row, "DELETE", "/containers/" + row.id + "?force=1", 30000, R.string.containers_error_delete))
                 .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    // ---- Web Panel -----------------------------------------------------------
+
+    private void choosePanelMode() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.panel_title)
+                .setMessage(R.string.panel_intro)
+                .setPositiveButton(R.string.panel_local, (d, w) -> startPanel("127.0.0.1"))
+                .setNeutralButton(R.string.panel_lan, (d, w) -> {
+                    String lan = WebPanel.lanAddress(this);
+                    if (lan == null) {
+                        Toast.makeText(this, R.string.panel_no_lan, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    new AlertDialog.Builder(this)
+                            .setTitle(R.string.panel_title)
+                            .setMessage(R.string.panel_lan_warning)
+                            .setPositiveButton(R.string.panel_lan_start, (d2, w2) -> startPanel(lan))
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void startPanel(String host) {
+        Toast.makeText(this, R.string.panel_starting, Toast.LENGTH_SHORT).show();
+        runPanelTask(() -> {
+            WebPanel.get().start(host);
+            return waitPanelInfo();
+        });
+    }
+
+    /** The pairing file appears once the panel has its certificate and code. */
+    private static WebPanel.Info waitPanelInfo() throws IOException {
+        for (int i = 0; i < 50; i++) {
+            WebPanel.Info info = WebPanel.get().info();
+            if (info != null) return info;
+            if (!WebPanel.get().isRunning()) throw new IOException("it exited; see thothdock/panel.log");
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        throw new IOException("no answer in 5 seconds");
+    }
+
+    private interface PanelTask {
+        WebPanel.Info run() throws IOException;
+    }
+
+    private void runPanelTask(PanelTask task) {
+        try {
+            actions.execute(() -> {
+                WebPanel.Info info = null;
+                String error = null;
+                try {
+                    info = task.run();
+                } catch (IOException e) {
+                    error = e.getMessage();
+                }
+                final WebPanel.Info shown = info;
+                final String failure = error;
+                ui.post(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    if (failure != null) {
+                        Toast.makeText(this, getString(R.string.panel_failed, failure), Toast.LENGTH_LONG).show();
+                    } else if (shown != null) {
+                        showPanel(shown);
+                    }
+                });
+            });
+        } catch (RuntimeException rejected) {
+            // The activity is going away.
+        }
+    }
+
+    private void showPanel() {
+        WebPanel.Info info = WebPanel.get().info();
+        if (info == null) {
+            runPanelTask(ContainersActivity::waitPanelInfo);
+        } else {
+            showPanel(info);
+        }
+    }
+
+    private void showPanel(WebPanel.Info info) {
+        String code = info.code.length() == 8 ? info.code.substring(0, 4) + " " + info.code.substring(4) : info.code;
+        String until = info.expires;
+        try {
+            until = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                    .format(java.time.Instant.parse(info.expires).atZone(java.time.ZoneId.systemDefault()));
+        } catch (RuntimeException ignored) {
+            // Shown as written.
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.panel_title)
+                .setMessage(getString(R.string.panel_details, String.join("\n", info.urls), code, until, info.fingerprint))
+                .setPositiveButton(R.string.panel_close, null)
+                .setNeutralButton(R.string.panel_new_code, (d, w) -> runPanelTask(() -> {
+                    WebPanel.get().newCode();
+                    return waitPanelInfo();
+                }))
+                .setNegativeButton(R.string.panel_stop, (d, w) -> {
+                    try {
+                        actions.execute(() -> WebPanel.get().stop());
+                        Toast.makeText(this, R.string.panel_stopped, Toast.LENGTH_SHORT).show();
+                    } catch (RuntimeException rejected) {
+                        // The activity is going away.
+                    }
+                })
                 .show();
     }
 
