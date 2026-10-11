@@ -201,6 +201,15 @@
             android:paddingEnd="12dp"
             android:text="@string/panel_new_code"/>
 
+        <Button
+            android:id="@+id/panel_disconnect_all"
+            style="@style/ThothDockAction"
+            android:layout_width="wrap_content"
+            android:layout_marginTop="4dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:text="@string/panel_disconnect_all"/>
+
         <TextView
             style="@style/ThothDockSectionTitle"
             android:layout_marginTop="18dp"

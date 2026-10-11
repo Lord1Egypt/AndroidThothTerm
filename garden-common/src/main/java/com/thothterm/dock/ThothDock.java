@@ -342,6 +342,7 @@ public final class ThothDock {
                 }
                 ThothLog.w(LogCategory.RUNTIME, "ThothDock exited unexpectedly exit=" + code
                         + "; log: " + logFile.getName());
+                recordUnexpectedExit(code);
                 removeStaleSocket();
                 long now = System.currentTimeMillis();
                 if (now - windowStart > RESTART_WINDOW_MS) {
@@ -498,6 +499,20 @@ public final class ThothDock {
     }
 
     /** The socket only exists while a daemon serves it. */
+    /**
+     * Leaves the exit code for the next daemon's recovery report (Process Guard).
+     * The engine itself cannot see how it died; the app can.
+     */
+    private void recordUnexpectedExit(int code) {
+        try {
+            String json = "{\"code\":" + code + ",\"at\":\""
+                    + java.time.Instant.now().toString() + "\"}\n";
+            Files.write(new File(root, "last-exit.json").toPath(), json.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.RUNTIME, "could not record the exit code: " + e.getMessage());
+        }
+    }
+
     private void removeStaleSocket() {
         synchronized (lock) {
             if (process != null && process.isAlive()) return;

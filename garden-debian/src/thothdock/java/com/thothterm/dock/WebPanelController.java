@@ -83,6 +83,7 @@ final class WebPanelController implements WebPanel.Listener {
     private TextView codeState;
     private TextView fingerprint;
     private Button newCode;
+    private Button disconnectAll;
 
     WebPanelController(Activity activity) {
         this.activity = activity;
@@ -111,6 +112,7 @@ final class WebPanelController implements WebPanel.Listener {
         codeState = v.findViewById(R.id.panel_code_state);
         fingerprint = v.findViewById(R.id.panel_fingerprint);
         newCode = v.findViewById(R.id.panel_new_code);
+        disconnectAll = v.findViewById(R.id.panel_disconnect_all);
         ((TextView) v.findViewById(R.id.panel_help)).setText(R.string.panel_help);
 
         rendering = true;
@@ -126,6 +128,7 @@ final class WebPanelController implements WebPanel.Listener {
             else startPanel();
         });
         newCode.setOnClickListener(x -> regenerateCode());
+        disconnectAll.setOnClickListener(x -> disconnectAllDevices());
         v.findViewById(R.id.panel_copy_url).setOnClickListener(x ->
                 copy(R.string.panel_address_title, url.getText(), R.string.panel_url_copied));
         v.findViewById(R.id.panel_copy_fingerprint).setOnClickListener(x -> {
@@ -197,6 +200,16 @@ final class WebPanelController implements WebPanel.Listener {
         run(() -> {
             panel.newCode();
             waitForInfo();
+        });
+    }
+
+    private void disconnectAllDevices() {
+        busy = true;
+        render();
+        run(() -> {
+            panel.revokeAll();
+            waitForInfo();
+            ui.post(() -> Toast.makeText(activity, R.string.panel_disconnected, Toast.LENGTH_LONG).show());
         });
     }
 
@@ -302,6 +315,7 @@ final class WebPanelController implements WebPanel.Listener {
             url.setText(info != null && !info.urls.isEmpty() ? httpsOnly(info.urls.get(0))
                     : WebPanel.httpsUrl(listening == null ? "127.0.0.1" : listening));
             newCode.setEnabled(!busy);
+            disconnectAll.setEnabled(!busy);
             if (info == null) {
                 code.setText("— — — —");
                 codeState.setText(R.string.panel_code_wait);

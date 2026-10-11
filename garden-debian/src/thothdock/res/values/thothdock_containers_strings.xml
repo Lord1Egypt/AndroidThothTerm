@@ -72,12 +72,14 @@
     <string name="panel_code_used">No active code: the last one was used or ran out. Create a new one for the next browser.</string>
     <string name="panel_code_wait">Creating a code…</string>
     <string name="panel_new_code">New code</string>
+    <string name="panel_disconnected">Every paired browser was disconnected. A new pairing code is shown.</string>
+    <string name="panel_disconnect_all">Disconnect all devices</string>
     <string name="panel_fingerprint_title">CERTIFICATE FINGERPRINT (SHA-256)</string>
     <string name="panel_fingerprint_hint">The browser warns that the certificate is self-signed. Open the certificate details and continue only if its SHA-256 fingerprint matches this one.</string>
     <string name="panel_copy_fingerprint">Copy fingerprint</string>
     <string name="panel_fingerprint_copied">Fingerprint copied</string>
     <string name="panel_failed">The Web Panel did not start: %1$s</string>
-    <string name="panel_help">The Web Panel has its own pairing code and certificate and is separate from LAN Mode. Stop it here at any time; it also stops when ThothTerm exits.</string>
+    <string name="panel_help">The Web Panel has its own pairing code and certificate and is separate from LAN Mode. A paired browser stays connected only while this panel runs: Stop (or a restart) disconnects every browser, and each must pair again. \"New code\" only lets one more browser pair; \"Disconnect all devices\" ends every paired browser at once.</string>
     <string name="images_title">Images</string>
     <string name="volumes_title">Volumes</string>
     <string name="images_summary">%1$d images · %2$s on disk</string>

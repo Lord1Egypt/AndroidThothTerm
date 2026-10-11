@@ -342,17 +342,38 @@ public final class WebPanel {
         return sInstance;
     }
 
-    /** Ends every paired browser session; the panel is restarted if it ran. */
+    /**
+     * Disconnects every paired browser. Sessions live only in the running panel's
+     * memory, so a running panel is told (SIGUSR2) to drop them and announce a
+     * new pairing code; it keeps listening and the engine is untouched. With no
+     * panel running there is nothing to revoke beyond a session file an older
+     * version may have left, which the CLI removes.
+     */
     public void revokeAll() throws IOException {
-        String host = listenHost();
-        stop();
+        int pid;
+        long start;
+        synchronized (lock) {
+            pid = process == null ? -1 : ThothDock.pidOf(process);
+            start = processStart;
+        }
+        if (ThothDock.sameProcess(pid, start)) {
+            pairingFile.delete();
+            try {
+                Os.kill(pid, OsConstants.SIGUSR2);
+            } catch (ErrnoException e) {
+                throw new IOException("could not signal the panel: " + e.getMessage());
+            }
+            return;
+        }
         Process p = new ProcessBuilder(daemon.getAbsolutePath(), "panel", "--root", root.getAbsolutePath(), "--revoke-all")
                 .redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.appendTo(logFile)).start();
         try {
-            p.waitFor(10, TimeUnit.SECONDS);
+            if (!p.waitFor(10, TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                throw new IOException("removing old sessions timed out");
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        if (host != null) start(host);
     }
 }

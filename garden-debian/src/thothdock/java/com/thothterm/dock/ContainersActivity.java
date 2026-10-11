@@ -43,6 +43,7 @@ import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -98,6 +99,8 @@ public class ContainersActivity extends AppCompatActivity {
         String version = "";
         String api = "";
         String arch = "";
+        /** Process Guard: the warning to show, or "" (none, or unknown). */
+        String pressure = "";
         int images;
         int volumes = -1;
         ListSources.Result imageList = new ListSources.Result();
@@ -134,6 +137,7 @@ public class ContainersActivity extends AppCompatActivity {
     private TextView statImages;
     private TextView statVolumes;
     private TextView offlineHint;
+    private TextView pressureHint;
     private Button startEngine;
     private TextView emptyView;
     private TextView tabNote;
@@ -174,6 +178,7 @@ public class ContainersActivity extends AppCompatActivity {
             chips[t.ordinal()].setOnClickListener(v -> selectTab(t));
         }
         offlineHint = header.findViewById(R.id.offline_hint);
+        pressureHint = header.findViewById(R.id.pressure_hint);
         startEngine = header.findViewById(R.id.start_engine);
         startEngine.setOnClickListener(v -> {
             ThothDock d = ThothDock.getIfInitialized();
@@ -376,6 +381,12 @@ public class ContainersActivity extends AppCompatActivity {
             s.volumes = volumes == null ? 0 : volumes.length();
             s.volumeList = ListSources.volumes(volumes);
             s.online = true;
+            try {
+                // A ThothDock extension; an older engine answers 404 and shows nothing.
+                s.pressure = api.getObject("/thothdock/process-guard").getJSONObject("guard").optString("message", "");
+            } catch (IOException | JSONException ignored) {
+                s.pressure = "";
+            }
         } catch (IOException e) {
             s.online = false;
             s.error = e.getClass().getSimpleName() + ": " + e.getMessage();
@@ -397,6 +408,8 @@ public class ContainersActivity extends AppCompatActivity {
             statImages.setText(String.valueOf(s.images));
             statVolumes.setText(s.volumes < 0 ? "–" : String.valueOf(s.volumes));
             offlineHint.setVisibility(View.GONE);
+            pressureHint.setText(s.pressure);
+            pressureHint.setVisibility(s.pressure.isEmpty() ? View.GONE : View.VISIBLE);
             startEngine.setVisibility(View.GONE);
             rows.clear();
             rows.addAll(s.containers);
@@ -415,6 +428,7 @@ public class ContainersActivity extends AppCompatActivity {
             offlineHint.setText(getString(R.string.containers_offline_hint)
                     + (s.error == null ? "" : "\n\n" + s.error));
             offlineHint.setVisibility(View.VISIBLE);
+            pressureHint.setVisibility(View.GONE);
             startEngine.setVisibility(View.VISIBLE);
             rows.clear();
             imageItems.clear();
