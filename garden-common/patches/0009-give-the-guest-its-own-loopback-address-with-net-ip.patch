@@ -6,7 +6,10 @@ rewrites socket addresses at syscall entry:
 
 - bind to 0.0.0.0, 127.0.0.0/8, :: or ::1 binds ADDR instead (dual-stack
   IPv6 sockets get the v4-mapped ADDR; a V6ONLY wildcard becomes an inert
-  [::1]:0, so "listen [::]:80 ipv6only=on" servers still start);
+  [::1]:0, so "listen [::]:80 ipv6only=on" servers still start), except a
+  wildcard bind to port 0: that is a client choosing its source port
+  (musl's resolver), and from ADDR its connect() to any outside address
+  would fail with EINVAL, breaking DNS and outbound connections;
 - connect/sendto to loopback or 0.0.0.0 reaches ADDR, so localhost is the
   container's own; 127.77.0.1 reaches the host's 127.0.0.1;
 - ports 1-1023 on 127.77.0.0/16 become port + 30000, because an
@@ -108,7 +111,7 @@ new file mode 100644
 index 0000000..d48ee75
 --- /dev/null
 +++ b/src/extension/net_ip/net_ip.c
-@@ -0,0 +1,339 @@
+@@ -0,0 +1,352 @@
 +/* -*- c-set-style: "K&R"; c-basic-offset: 8 -*-
 + *
 + * This file is part of PRoot.
@@ -120,7 +123,9 @@ index 0000000..d48ee75
 + * syscall entry:
 + *
 + *   bind     0.0.0.0 / 127.0.0.0/8 / :: / ::1 -> its own address
-+ *            (a V6ONLY IPv6 wildcard becomes an inert [::1]:0)
++ *            (a V6ONLY IPv6 wildcard becomes an inert [::1]:0), except a
++ *            wildcard bind to port 0, which is a client choosing its source
++ *            port and is left alone (see rewrite4)
 + *   connect, 127.77.0.1 (the gateway)         -> the device's 127.0.0.1
 + *   sendto   other loopback / 0.0.0.0 / ::1   -> its own address
 + *            another 127.77.0.0/16 address    -> kept
@@ -213,6 +218,14 @@ index 0000000..d48ee75
 +
 +	if (is_bind) {
 +		if (a != INADDR_ANY && !is_loopback4(a))
++			return false;
++		/* bind(0.0.0.0:0) is how a client socket picks its source port
++		 * (musl's resolver, HTTP clients).  Moving it to the container's
++		 * loopback address would make its connect() to any outside
++		 * address fail with EINVAL, because a loopback source cannot
++		 * reach one: outbound DNS and TCP would break.  A server does
++		 * not bind port 0 to be found, so leaving it is harmless.  */
++		if (a == INADDR_ANY && p == 0)
 +			return false;
 +		*addr = own;
 +		*port = shift_port(p);
@@ -351,6 +364,9 @@ index 0000000..d48ee75
 +			if (!rewrite4(config->own, is_bind, &a, &p))
 +				return 0;
 +			map_v4(a6, a);
++		}
++		else if (is_bind && IN6_IS_ADDR_UNSPECIFIED(a6) && p == 0) {
++			return 0; /* A client picking its source port, as for IPv4.  */
 +		}
 +		else if (IN6_IS_ADDR_UNSPECIFIED(a6) || IN6_IS_ADDR_LOOPBACK(a6)) {
 +			if (is_bind && socket_is_v6only(tracee, (int) peek_reg(tracee, CURRENT, SYSARG_1))) {
