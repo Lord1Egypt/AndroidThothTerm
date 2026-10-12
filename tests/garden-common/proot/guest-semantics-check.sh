@@ -1,12 +1,14 @@
 #!/bin/sh
-# Host check of patches 0011 and 0012 with the pinned PRoot and every
+# Host check of patches 0011-0013 with the pinned PRoot and every
 # garden-common patch, as fake root (--root-id):
 #   - setpriv's sequence for the Redis 8 entrypoint (PR_SET_KEEPCAPS,
 #     setresuid, capset, setgroups, bounding-set drop, ambient raise)
 #     succeeds, and without KEEPCAPS setgroups and the bounding-set drop
 #     still fail with EPERM, as on Linux;
 #   - SIGQUIT sent to PRoot's process group (docker stop of nginx) reaches
-#     the guest's handler instead of PRoot killing the guest.
+#     the guest's handler instead of PRoot killing the guest;
+#   - patch 0013: --hostname makes uname report the container's host name,
+#     also with --kernel-release after it (ThothDock's order).
 # Exit 2 when the host cannot run it.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -47,4 +49,13 @@ pg=$(sed -n 's/^waiting pgid=\([0-9]*\)$/\1/p' "$W/quit.log")
 wait $sp
 code=$?
 ok "$([ "$code" = 3 ]; echo $?)" "SIGQUIT to the process group reaches the guest's handler (exit $code, 3 expected)"
+P="$W/proot/src/proot"
+[ "$("$P" -r / --hostname=compat-node uname -n)" = compat-node ]
+ok $? "--hostname: uname -n reports the container's host name"
+[ "$("$P" -r / --hostname=compat-node --kernel-release=6.1.0-thoth uname -nr)" = "compat-node 6.1.0-thoth" ]
+ok $? "--hostname before --kernel-release: both apply"
+[ "$("$P" -r / uname -n)" = "$(uname -n)" ]
+ok $? "without --hostname the node name is the kernel's"
+"$P" -r / --hostname=a/b true 2>/dev/null; [ $? != 0 ]
+ok $? "an invalid host name is refused"
 exit $fail
