@@ -1,0 +1,35 @@
+Subject: let a container reach the host's systemd-resolved stub
+
+A container's /etc/resolv.conf is copied from the host. On hosts that run
+systemd-resolved (Ubuntu, Debian, Fedora, GitHub's runners) it names
+127.0.0.53, and --net-ip (patch 0009) redirected every connect/sendto to a
+loopback address to the container's own address, so on a user-defined
+network every DNS lookup timed out ("connection timed out; no servers could
+be reached"; found by the compatibility suite in CI).
+
+connect() and sendto() to exactly 127.0.0.53 and 127.0.0.54 are now left
+alone, so the query reaches the host's resolver. Nothing is redirected to
+any other server, public or not; a container's own service on those two
+addresses is the only case that changes. Phones have no such stub: Android
+containers use the resolver file the app writes.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0014
+
+diff --git a/src/extension/net_ip/net_ip.c b/src/extension/net_ip/net_ip.c
+index 425369d..4fb9436 100644
+--- a/src/extension/net_ip/net_ip.c
++++ b/src/extension/net_ip/net_ip.c
+@@ -122,6 +122,13 @@ static bool rewrite4(uint32_t own, bool is_bind, uint32_t *addr, uint16_t *port)
+ 		*addr = LOOPBACK;
+ 		return true;
+ 	}
++	/* The host's own systemd-resolved stub addresses (127.0.0.53 and
++	 * 127.0.0.54): a container's resolv.conf copied from such a host names
++	 * one, and it is the host's resolver, not the container's loopback.
++	 * Left alone, the query reaches the resolver the host is configured
++	 * with; nothing is sent to any other server.  */
++	if (a == 0x7f000035 || a == 0x7f000036)
++		return false;
+ 	if ((a & NET_MASK) == NET_BASE) {
+ 		*port = shift_port(p);
+ 		return *port != p;

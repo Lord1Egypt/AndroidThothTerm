@@ -1,5 +1,5 @@
 #!/bin/sh
-# Host check of patches 0011-0014 with the pinned PRoot and every
+# Host check of patches 0011-0015 with the pinned PRoot and every
 # garden-common patch, as fake root (--root-id):
 #   - setpriv's sequence for the Redis 8 entrypoint (PR_SET_KEEPCAPS,
 #     setresuid, capset, setgroups, bounding-set drop, ambient raise)
@@ -84,4 +84,30 @@ ok $? "after unlink the address is gone"
 "$P" -r / -b "$DEEP:/deep" "$W/unix" serve /deep/s.sock < /dev/null > "$W/inuse.log" 2>&1
 grep -q "Address already in use" "$W/inuse.log"
 ok $? "binding over an existing file fails with EADDRINUSE"
+# Patch 0015: the host's resolver stub address stays reachable from a --net-ip guest.
+if command -v python3 >/dev/null 2>&1 && python3 -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.bind(("127.0.0.53", 0))' 2>/dev/null; then
+    cat > "$W/udp-echo.py" <<'PY'
+import socket, sys
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.bind(("127.0.0.53", 25353))
+s.settimeout(10)
+print("up", flush=True)
+data, peer = s.recvfrom(64)
+s.sendto(b"stub:" + data, peer)
+PY
+    python3 "$W/udp-echo.py" > "$W/udp.log" 2>&1 &
+    up=$!
+    for _ in $(seq 50); do grep -q '^up' "$W/udp.log" && break; sleep 0.1; done
+    reply=$("$P" -r / --net-ip=127.77.0.9 python3 -c '
+import socket
+c = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+c.settimeout(5)
+c.sendto(b"q", ("127.0.0.53", 25353))
+print(c.recvfrom(64)[0].decode())' 2>&1)
+    kill $up 2>/dev/null; wait $up 2>/dev/null
+    [ "$reply" = "stub:q" ]
+    ok $? "--net-ip: a query to 127.0.0.53 reaches the host's resolver stub address ($reply)"
+else
+    echo "SKIP 127.0.0.53 is not usable on this host"
+fi
 exit $fail
