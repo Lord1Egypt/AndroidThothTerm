@@ -1,5 +1,5 @@
 #!/bin/sh
-# Host check of patches 0011-0016 with the pinned PRoot and every
+# Host check of patches 0011-0017 with the pinned PRoot and every
 # garden-common patch, as fake root (--root-id):
 #   - setpriv's sequence for the Redis 8 entrypoint (PR_SET_KEEPCAPS,
 #     setresuid, capset, setgroups, bounding-set drop, ambient raise)
@@ -112,6 +112,12 @@ gcc -O2 -static -o "$W/chroot-probe" "$HERE/chroot-probe.c" || exit 2
 mkdir -p "$W/croot/sub"; : > "$W/croot/marker"; : > "$W/croot/sub/inner"
 "$P" -r / -0 "$W/chroot-probe" "$W/croot" marker > "$W/chroot.log" 2>&1
 ok $? "chroot as fake root takes effect, also nested ($(tail -1 "$W/chroot.log"))"
+# With an extra bind mount present (the volume of a container): patch 0017.
+mkdir -p "$W/xbind"
+"$P" -r / -0 -b "$W/xbind:/extra" "$W/chroot-probe" "$W/croot" marker > "$W/chroot2.log" 2>&1
+ok $? "chroot with another bind mount in the container"
+"$P" -r / -0 "$W/chroot-probe" "$W/does-not-exist" marker >/dev/null 2>&1; [ $? != 0 ]
+ok $? "chroot into a missing directory fails cleanly (no abort)"
 # Patch 0015: the host's resolver stub address stays reachable from a --net-ip guest.
 if command -v python3 >/dev/null 2>&1 && python3 -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.bind(("127.0.0.53", 0))' 2>/dev/null; then
     cat > "$W/udp-echo.py" <<'PY'

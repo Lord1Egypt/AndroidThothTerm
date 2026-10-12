@@ -1,0 +1,49 @@
+Subject: use the guest path chroot was given, not an uninitialized buffer
+
+OpenSSH's privilege separation (sshd) calls chroot("/var/empty") as fake
+root. Even with patch 0016 PRoot then aborted on optimized builds:
+
+    path.c:546: compare_paths2: Assertion `length1 > 0' failed.
+
+handle_chroot_exit_end() reads the guest path into `path_guest` only in the
+SIGSYS flow. In the normal flow it read it into `path` (reused for other
+things), and later compared the still uninitialized `path_guest` with every
+non-root binding of the container (any -b or volume: the compare is skipped
+when the only binding is the root one). The buffer is stack garbage; when it
+happened to be empty compare_paths() asserted. It only showed with
+inlining, which is why a debug build worked.
+
+The guest path now goes into path_guest in both flows, and an unresolvable
+chroot target (realpath failed, whose result was ignored) returns its error
+instead of being compared as an empty string.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0016
+
+diff --git a/src/extension/fake_id0/chroot.c b/src/extension/fake_id0/chroot.c
+index 2b065cf..657f8b6 100644
+--- a/src/extension/fake_id0/chroot.c
++++ b/src/extension/fake_id0/chroot.c
+@@ -51,7 +51,10 @@ int handle_chroot_exit_end(Tracee *tracee, Config *config, bool from_sigsys) {
+ 	if (status < 0)
+ 		return status;
+ 
+-	realpath(path, path_host_absolute);
++	/* An unresolvable target must not reach compare_paths() with an
++	 * uninitialized buffer (its empty-path assertion aborted PRoot).  */
++	if (realpath(path, path_host_absolute) == NULL)
++		return -errno;
+ 
+ 	/* Handle "new rootfs == current rootfs" case.  */
+ 	status = compare_paths(get_root(tracee), path_host_absolute);
+@@ -73,9 +76,9 @@ int handle_chroot_exit_end(Tracee *tracee, Config *config, bool from_sigsys) {
+ 	/* Fetch guest path if we didn't already.  */
+ 	if (!from_sigsys) {
+ 		input = peek_reg(tracee, ORIGINAL, SYSARG_1);
+-		status = read_path(tracee, path, input);
++		status = read_path(tracee, path_guest, input);
+ 		if (status < 0)
+-			return -errno;
++			return status;
+ 	}
+ 
+ 	/* Check if chroot target has bind mounts inside.
