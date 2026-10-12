@@ -25,9 +25,10 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
+        // 0.4.1: ThothDock engine 0.2.1 (System V IPC, hostname, long Unix sockets; PRoot patches 0010-0018). (0.4.0 was 400.)
         // 0.4.0: ThothTerm (bullet) ThothDock (package com.thothterm.debian), ThothDock engine 0.2.0 (NextGen). (0.3.1 was 301.)
-        versionCode 400
-        versionName '0.4.0'
+        versionCode 401
+        versionName '0.4.1'
 
         // Device tests (the pinch gesture and garden-common's shared tests);
         // run with `am instrument` against the installed app, never
