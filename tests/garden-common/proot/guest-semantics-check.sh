@@ -1,5 +1,5 @@
 #!/bin/sh
-# Host check of patches 0011-0015 with the pinned PRoot and every
+# Host check of patches 0011-0016 with the pinned PRoot and every
 # garden-common patch, as fake root (--root-id):
 #   - setpriv's sequence for the Redis 8 entrypoint (PR_SET_KEEPCAPS,
 #     setresuid, capset, setgroups, bounding-set drop, ambient raise)
@@ -9,6 +9,8 @@
 #     the guest's handler instead of PRoot killing the guest;
 #   - patch 0013: --hostname makes uname report the container's host name,
 #     also with --kernel-release after it (ThothDock's order);
+#   - patch 0016: chroot(2) by a fake-root process takes effect (also nested)
+#     instead of aborting PRoot (sshd privilege separation);
 #   - patch 0014: a Unix socket whose host path is longer than sun_path,
 #     bound in one PRoot, is a real socket at its path that another PRoot
 #     connects to; both see the guest path; it is gone after unlink.
@@ -105,6 +107,11 @@ ok $? "aliases of dead sockets are swept at the next bind ($before -> $after)"
 "$P" -r / -b "$DEEP:/deep" "$W/unix" serve /deep/s.sock < /dev/null > "$W/inuse.log" 2>&1
 grep -q "Address already in use" "$W/inuse.log"
 ok $? "binding over an existing file fails with EADDRINUSE"
+# Patch 0016: guest chroot.
+gcc -O2 -static -o "$W/chroot-probe" "$HERE/chroot-probe.c" || exit 2
+mkdir -p "$W/croot/sub"; : > "$W/croot/marker"; : > "$W/croot/sub/inner"
+"$P" -r / -0 "$W/chroot-probe" "$W/croot" marker > "$W/chroot.log" 2>&1
+ok $? "chroot as fake root takes effect, also nested ($(tail -1 "$W/chroot.log"))"
 # Patch 0015: the host's resolver stub address stays reachable from a --net-ip guest.
 if command -v python3 >/dev/null 2>&1 && python3 -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.bind(("127.0.0.53", 0))' 2>/dev/null; then
     cat > "$W/udp-echo.py" <<'PY'
