@@ -88,9 +88,9 @@ for n in 1 2; do
 done
 exec 8> "$W/quit"
 for _ in $(seq 50); do grep -q listening "$W/n1.log" && grep -q listening "$W/n2.log" && break; sleep 0.1; done
-set -- $(ls "$W" | grep '^prootsock-b-[0-9a-f]\{32\}$')
+set -- $(ls "$W" | grep '^prootsock-b-[0-9a-f]\{16\}$')
 [ "$#" -ge 2 ] && [ "$1" != "$2" ]
-ok $? "bound sockets get distinct unguessable names (prootsock-b-<32 hex>, $# found)"
+ok $? "bound sockets get distinct unguessable names (prootsock-b-<16 hex>, $# found)"
 "$P" -r / -b "$DEEP:/deep" "$W/unix" connect /deep/n1.sock >/dev/null
 "$P" -r / -b "$DEEP:/deep" "$W/unix" connect /deep/n2.sock >/dev/null
 [ -z "$(ls "$W" | grep '^prootsock-c-')" ]
