@@ -1,5 +1,5 @@
 #!/bin/sh
-# Host check of patches 0011-0017 with the pinned PRoot and every
+# Host check of patches 0011-0018 with the pinned PRoot and every
 # garden-common patch, as fake root (--root-id):
 #   - setpriv's sequence for the Redis 8 entrypoint (PR_SET_KEEPCAPS,
 #     setresuid, capset, setgroups, bounding-set drop, ambient raise)
@@ -107,6 +107,16 @@ ok $? "aliases of dead sockets are swept at the next bind ($before -> $after)"
 "$P" -r / -b "$DEEP:/deep" "$W/unix" serve /deep/s.sock < /dev/null > "$W/inuse.log" 2>&1
 grep -q "Address already in use" "$W/inuse.log"
 ok $? "binding over an existing file fails with EADDRINUSE"
+# Patch 0018: Android refuses PR_SET_KEEPCAPS (SECBIT_KEEP_CAPS_LOCKED, set by
+# zygote); setpriv --reuid (Redis, Valkey) needs it. Reproduced here with a
+# user namespace and the same secure bit.
+gcc -O2 -o "$W/lock-keepcaps" "$HERE/lock-keepcaps.c" || exit 2
+if unshare -rU "$W/lock-keepcaps" true 2>/dev/null; then
+    unshare -rU "$W/lock-keepcaps" "$P" -r / --root-id "$W/probe" keep > "$W/kc.log" 2>&1
+    ok $? "KEEPCAPS refused by the kernel (locked secure bit): setpriv's sequence still succeeds ($(tail -1 "$W/kc.log" | cut -c1-70))"
+else
+    echo "SKIP no user namespace with CAP_SETPCAP"
+fi
 # Patch 0016: guest chroot.
 gcc -O2 -static -o "$W/chroot-probe" "$HERE/chroot-probe.c" || exit 2
 mkdir -p "$W/croot/sub"; : > "$W/croot/marker"; : > "$W/croot/sub/inner"
