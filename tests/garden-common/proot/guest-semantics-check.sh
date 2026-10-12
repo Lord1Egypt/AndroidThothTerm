@@ -1,5 +1,5 @@
 #!/bin/sh
-# Host check of patches 0011-0013 with the pinned PRoot and every
+# Host check of patches 0011-0014 with the pinned PRoot and every
 # garden-common patch, as fake root (--root-id):
 #   - setpriv's sequence for the Redis 8 entrypoint (PR_SET_KEEPCAPS,
 #     setresuid, capset, setgroups, bounding-set drop, ambient raise)
@@ -8,7 +8,10 @@
 #   - SIGQUIT sent to PRoot's process group (docker stop of nginx) reaches
 #     the guest's handler instead of PRoot killing the guest;
 #   - patch 0013: --hostname makes uname report the container's host name,
-#     also with --kernel-release after it (ThothDock's order).
+#     also with --kernel-release after it (ThothDock's order);
+#   - patch 0014: a Unix socket whose host path is longer than sun_path,
+#     bound in one PRoot, is a real socket at its path that another PRoot
+#     connects to; both see the guest path; it is gone after unlink.
 # Exit 2 when the host cannot run it.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -58,4 +61,27 @@ ok $? "--hostname before --kernel-release: both apply"
 ok $? "without --hostname the node name is the kernel's"
 "$P" -r / --hostname=a/b true 2>/dev/null; [ $? != 0 ]
 ok $? "an invalid host name is refused"
+# A guest directory whose host path makes the socket path ~150 bytes.
+DEEP="$W/deep/$(printf '%0100d' 0)"
+mkdir -p "$DEEP"
+gcc -O2 -static -o "$W/unix" "$HERE/unix-probe.c" || exit 2
+mkfifo "$W/quit"
+"$P" -r / -b "$DEEP:/deep" "$W/unix" serve /deep/s.sock < "$W/quit" > "$W/serve.log" 2>&1 &
+sp=$!
+exec 9> "$W/quit"
+for _ in $(seq 50); do grep -q listening "$W/serve.log" && break; sleep 0.1; done
+[ -S "$DEEP/s.sock" ]
+ok $? "the socket is a real socket at its host path"
+grep -q "^listening /deep/s.sock$" "$W/serve.log"
+ok $? "getsockname in the server reports the guest path"
+out=$("$P" -r / -b "$DEEP:/deep" "$W/unix" connect /deep/s.sock)
+[ "$out" = "pong peer=/deep/s.sock" ]
+ok $? "another PRoot connects and sees the guest path ($out)"
+echo quit >&9; exec 9>&-; wait $sp
+"$P" -r / -b "$DEEP:/deep" "$W/unix" connect /deep/s.sock 2>/dev/null; [ $? != 0 ] && [ ! -e "$DEEP/s.sock" ]
+ok $? "after unlink the address is gone"
+"$P" -r / -b "$DEEP:/deep" sh -c ': > /deep/s.sock'
+"$P" -r / -b "$DEEP:/deep" "$W/unix" serve /deep/s.sock < /dev/null > "$W/inuse.log" 2>&1
+grep -q "Address already in use" "$W/inuse.log"
+ok $? "binding over an existing file fails with EADDRINUSE"
 exit $fail
