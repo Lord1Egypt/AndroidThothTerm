@@ -1,0 +1,310 @@
+Subject: keep System V shared memory inside proot
+
+ThothDock passes --sysvipc so that PostgreSQL and other System V IPC users
+work on Android, whose kernel is built without CONFIG_SYSVIPC (shmget and
+friends fail with ENOSYS there). Upstream's extension, in the
+per-proot namespace mode ThothDock selects (PROOT_DONT_SHARE_LIBANDROID_SHMEM),
+has these problems:
+
+- every proot that uses shared memory forks a "proot --shm-helper" process
+  that lives as long as proot: one more process per database container,
+  against Android's phantom-process cap;
+- the helper allocates from /dev/ashmem, which apps targeting API 29+ may
+  not open, so shmget would fail with ENOSPC in the app;
+- a SIGKILL of proot's process group leaves the helper's socket file in
+  PROOT_TMP_DIR;
+- two processes calling shmat at the same moment can receive each other's
+  segment: attaches were serialized only from the connect step, so two
+  connections could queue on the helper's one socket (4 of 20 runs of
+  tests/regression/ipc-probe.c on a desktop host);
+- semtimedop returns EINTR instead of EAGAIN when its timeout expires.
+
+In that mode proot now keeps the segments itself, as memfd_create(2)
+descriptors (/dev/ashmem or a temporary file only where memfd is missing),
+and hands one to the tracee at shmat over a socket that exists only for
+that attach and accepts only the tracee's own thread group (SO_PEERCRED).
+Attaches are serialized from the socket step. No process is forked, nothing
+runs while no IPC call is made, and the memory goes with proot's
+descriptors when the container ends. A new segment of size 0 is refused
+with EINVAL, as Linux does. libandroid-shmem sharing mode is unchanged.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0009
+
+diff --git a/src/extension/sysvipc/sysvipc.c b/src/extension/sysvipc/sysvipc.c
+index 41952bc..95770f1 100644
+--- a/src/extension/sysvipc/sysvipc.c
++++ b/src/extension/sysvipc/sysvipc.c
+@@ -275,6 +275,10 @@ int sysvipc_callback(Extension *extension, ExtensionEvent event, intptr_t data1,
+ 			if (ppoll_status == -EFAULT || ppoll_status == -EINTR) {
+ 				return 1;
+ 			}
++			/* Only semtimedop waits with a timeout: it expired.  */
++			if (ppoll_status == 0) {
++				return -EAGAIN;
++			}
+ 			return -EINTR;
+ 		case WSTATE_SIGNALED_PPOLL:
+ 		case WSTATE_ENTERED_GETPID:
+diff --git a/src/extension/sysvipc/sysvipc_shm.c b/src/extension/sysvipc/sysvipc_shm.c
+index b14eb65..9a198df 100644
+--- a/src/extension/sysvipc/sysvipc_shm.c
++++ b/src/extension/sysvipc/sysvipc_shm.c
+@@ -7,6 +7,7 @@
+ #include "extension/extension.h"
+ #include "path/temp.h"
+ #include "syscall/chain.h"
++#include "syscall/socket.h"
+ 
+ #include <sys/socket.h>
+ #include <sys/un.h>
+@@ -195,6 +196,132 @@ static void sysvipc_shm_send_helper_request(struct SysVIpcShmHelperRequest *requ
+ 	}
+ }
+ 
++static int sysvipc_shm_do_allocate(size_t size, int shmid);
++
++/*
++ * Without libandroid-shmem sharing, segments are kept by this proot process
++ * itself instead of a forked "proot --shm-helper": no extra process per
++ * container, nothing left running or listening once proot is gone, and the
++ * memory is released with proot's descriptors.  Segments come from
++ * memfd_create(2), since apps targeting API 29+ cannot open /dev/ashmem.
++ */
++static int sysvipc_shm_local_alloc(size_t size, int shmid)
++{
++	int fd = syscall(__NR_memfd_create, "sysvshm", 1 /* MFD_CLOEXEC */);
++	if (fd < 0) {
++		fd = sysvipc_shm_do_allocate(size, shmid);
++		if (fd >= 0)
++			fcntl(fd, F_SETFD, FD_CLOEXEC);
++		return fd;
++	}
++	if (ftruncate(fd, size) < 0) {
++		close(fd);
++		return -ENOSPC;
++	}
++	return fd;
++}
++
++/* The listening socket of the one shmat in flight (attaches are serialized),
++ * bound under PROOT_TMP_DIR and removed as soon as the tracee is served.  */
++static int sysvipc_shm_listen_fd = -1;
++
++static void sysvipc_shm_local_unlisten(void)
++{
++	if (sysvipc_shm_listen_fd < 0)
++		return;
++	unlink(sysvipc_shm_helper_addr.sun_path);
++	close(sysvipc_shm_listen_fd);
++	sysvipc_shm_listen_fd = -1;
++}
++
++static int sysvipc_shm_local_listen(void)
++{
++	assert(sysvipc_shm_listen_fd < 0);
++	int fd = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
++	if (fd < 0)
++		return -errno;
++	for (int i = 0; i < 64; i++) {
++		char path[PATH_MAX];
++		bool fits = make_random_temp_name(path, sizeof(path), "prootshm") == 0
++			&& strlen(path) < sizeof(sysvipc_shm_helper_addr.sun_path);
++		if (fits) {
++			memset(&sysvipc_shm_helper_addr, 0, sizeof(sysvipc_shm_helper_addr));
++			sysvipc_shm_helper_addr.sun_family = AF_UNIX;
++			strcpy(sysvipc_shm_helper_addr.sun_path, path);
++		}
++		if (!fits)
++			break;
++		if (bind(fd, (struct sockaddr *) &sysvipc_shm_helper_addr, sizeof(sysvipc_shm_helper_addr)) == 0) {
++			if (listen(fd, 1) == 0) {
++				sysvipc_shm_listen_fd = fd;
++				return 0;
++			}
++			unlink(sysvipc_shm_helper_addr.sun_path);
++			break;
++		}
++		if (errno != EADDRINUSE)
++			break;
++	}
++	close(fd);
++	return -ENOMEM;
++}
++
++static pid_t sysvipc_shm_tgid(pid_t tid)
++{
++	char path[32], line[64];
++	pid_t tgid = tid;
++	snprintf(path, sizeof(path), "/proc/%d/status", tid);
++	FILE *status = fopen(path, "re");
++	if (status == NULL)
++		return tid;
++	while (fgets(line, sizeof(line), status) != NULL)
++		if (sscanf(line, "Tgid: %d", &tgid) == 1)
++			break;
++	fclose(status);
++	return tgid;
++}
++
++/* Send @mem_fd to the tracee that has just connected.  A connection from any
++ * other process is dropped: the segment is only ever handed to its tracee.  */
++static int sysvipc_shm_local_distribute(Tracee *tracee, int mem_fd)
++{
++	pid_t tgid = sysvipc_shm_tgid(tracee->pid);
++	int status = -ECONNREFUSED;
++	for (;;) {
++		int conn = accept4(sysvipc_shm_listen_fd, NULL, NULL, SOCK_CLOEXEC);
++		if (conn < 0)
++			break;
++		struct ucred cred;
++		socklen_t cred_len = sizeof(cred);
++		if (getsockopt(conn, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len) == 0 && cred.pid == tgid) {
++			char nothing = '!';
++			struct iovec iov = { .iov_base = &nothing, .iov_len = 1 };
++			union {
++				struct cmsghdr align;
++				char buf[CMSG_SPACE(sizeof(int))];
++			} control;
++			memset(&control, 0, sizeof(control));
++			struct msghdr message = {
++				.msg_iov = &iov,
++				.msg_iovlen = 1,
++				.msg_control = control.buf,
++				.msg_controllen = sizeof(control.buf),
++			};
++			struct cmsghdr *cmsg = CMSG_FIRSTHDR(&message);
++			cmsg->cmsg_level = SOL_SOCKET;
++			cmsg->cmsg_type = SCM_RIGHTS;
++			cmsg->cmsg_len = CMSG_LEN(sizeof(int));
++			memcpy(CMSG_DATA(cmsg), &mem_fd, sizeof(int));
++			status = sendmsg(conn, &message, MSG_DONTWAIT | MSG_NOSIGNAL) == 1 ? 0 : -errno;
++			close(conn);
++			break;
++		}
++		close(conn);
++	}
++	sysvipc_shm_local_unlisten();
++	return status;
++}
++
+ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
+ {
+ 	word_t shm_key = peek_reg(tracee, CURRENT, SYSARG_1);
+@@ -233,6 +360,9 @@ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
+ 		if (!(shmflg & IPC_CREAT)) {
+ 			return -ENOENT;
+ 		}
++		if (shm_size == 0) {
++			return -EINVAL;
++		}
+ 		if (found_unused_slot) {
+ 			shm_index = unused_slot;
+ 		} else {
+@@ -241,13 +371,7 @@ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
+ 			memset(&shms[shm_index], 0, sizeof(shms[shm_index]));
+ 		}
+ 		shm = &shms[shm_index];
+-		struct SysVIpcShmHelperRequest request = {
+-			.op = SHMHELPER_ALLOC,
+-			.fd = IPC_OBJECT_ID(shm_index, shm),
+-			.size = shm_size
+-		};
+-		shm->fd = -1;
+-		sysvipc_shm_send_helper_request(&request, &shm->fd, sizeof(shm->fd));
++		shm->fd = sysvipc_shm_local_alloc(shm_size, IPC_OBJECT_ID(shm_index, shm));
+ 		if (shm->fd < 0) {
+ 			return -ENOSPC;
+ 		}
+@@ -276,12 +400,7 @@ static void sysvipc_do_rmid(struct SysVIpcSharedMem *shm)
+ {
+ 	assert(LIST_EMPTY(shm->mappings));
+ 
+-	/* Close ashmem fd in helper process  */
+-	struct SysVIpcShmHelperRequest request = {
+-		.op = SHMHELPER_FREE,
+-		.fd = shm->fd,
+-	};
+-	sysvipc_shm_send_helper_request(&request, NULL, 0);
++	close(shm->fd);
+ 
+ 	/* Mark shm as freed  */
+ 	TALLOC_FREE(shm->mappings);
+@@ -408,7 +527,7 @@ int sysvipc_shmat(Tracee *tracee, struct SysVIpcConfig *config)
+ 	Tracee *other_tracee;
+ 	struct SysVIpcConfig *other_config;
+ 	SYSVIPC_FOREACH_TRACEE_ANY_NAMESPACE(other_tracee, other_config) {
+-		if (other_config->chain_state > CSTATE_SHMAT_SOCKET && other_config->chain_state <= CSTATE_SHMAT_MMAP) {
++		if (other_config != config && other_config->chain_state >= CSTATE_SHMAT_SOCKET && other_config->chain_state <= CSTATE_SHMAT_MMAP) {
+ 			config->wait_reason = WR_WAIT_SHMAT_HELPER_BUSY;
+ 			return 0;
+ 		}
+@@ -448,10 +567,13 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
+ 		}
+ 		word_t guest_addr = peek_reg(tracee, CURRENT, STACK_POINTER) - sizeof(struct sockaddr_un);
+ 		if (guest_addr == 0) {
+-			goto fail_dont_close;
++			goto fail_close_socket;
++		}
++		if (!config->ipc_namespace->shm_use_libandroid && sysvipc_shm_local_listen() < 0) {
++			goto fail_close_socket;
+ 		}
+ 		if (write_data(tracee, guest_addr, &sysvipc_shm_helper_addr, sizeof(struct sockaddr_un)) < 0) {
+-			goto fail_dont_close;
++			goto fail_close_socket;
+ 		}
+ 		register_chained_syscall(tracee, PR_connect, config->shmat_socket_fd, guest_addr, sizeof(struct sockaddr_un), 0, 0, 0);
+ 		config->shmat_guest_buf = guest_addr;
+@@ -469,11 +591,17 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
+ 			goto fail_close_socket;
+ 		}
+ 
+-		struct SysVIpcShmHelperRequest request = {
+-			.op = SHMHELPER_DISTRIBUTE,
+-			.fd = shm->fd,
+-		};
+-		sysvipc_shm_send_helper_request(&request, NULL, 0);
++		if (!config->ipc_namespace->shm_use_libandroid) {
++			if (sysvipc_shm_local_distribute(tracee, shm->fd) < 0) {
++				goto fail_close_socket;
++			}
++		} else {
++			struct SysVIpcShmHelperRequest request = {
++				.op = SHMHELPER_DISTRIBUTE,
++				.fd = shm->fd,
++			};
++			sysvipc_shm_send_helper_request(&request, NULL, 0);
++		}
+ 
+ 		register_chained_syscall(tracee, PR_recvmsg, config->shmat_socket_fd, pointers.msghdr_ptr, 0, 0, 0, 0);
+ 		config->chain_state = CSTATE_SHMAT_RECVMSG;
+@@ -539,6 +667,7 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
+ 	assert(!"Switch in sysvipc_shmat_chain has fallen thorugh");
+ 
+ fail_close_socket:
++	sysvipc_shm_local_unlisten();
+ 	register_chained_syscall(tracee, PR_close, config->shmat_socket_fd, 0, 0, 0, 0, 0);
+ 	force_chain_final_result(tracee, -ENOMEM);
+ 	config->chain_state = CSTATE_NOT_CHAINED;
+@@ -546,6 +675,7 @@ fail_close_socket:
+ 	sysvipc_shm_wake_pending_shmat();
+ 	return 1;
+ fail_dont_close:
++	sysvipc_shm_local_unlisten();
+ 	config->chain_state = CSTATE_NOT_CHAINED;
+ 	talloc_free(sysvipc_shm_find_pending_mapping(config->process, config->ipc_namespace, config->waiting_object_index));
+ 	sysvipc_shm_wake_pending_shmat();
+@@ -810,8 +940,12 @@ void sysvipc_shm_helper_main() {
+ 		.sun_family = AF_UNIX
+ 	};
+ 	for (int i = 0;; i++) {
+-		path = create_temp_name(NULL, "prootshm");
+-		(void) mktemp(path);
++		path = talloc_size(NULL, PATH_MAX);
++		if (path == NULL || make_random_temp_name(path, PATH_MAX, "prootshm") < 0) {
++			close(socket_server_fd);
++			fprintf(stderr, "proot-shm-helper: no random name\n");
++			_exit(1);
++		}
+ 
+ 		if (strlen(path) > SYSVIPC_SHMHELPER_SOCKET_LEN) {
+ 			close(socket_server_fd);

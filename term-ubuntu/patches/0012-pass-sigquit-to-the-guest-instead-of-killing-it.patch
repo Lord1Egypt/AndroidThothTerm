@@ -1,0 +1,32 @@
+Subject: pass SIGQUIT to the guest instead of killing it
+
+PRoot handled SIGQUIT like a crash of its own (SIGILL, SIGABRT, SIGFPE,
+SIGSEGV) and killed every tracee. SIGQUIT only ever comes from outside: a
+terminal's Ctrl-\, or "docker stop" for images whose stop signal it is.
+ThothDock delivers a container's signals to its process group, PRoot
+included, so "docker stop" of the official nginx image (STOPSIGNAL
+SIGQUIT) killed nginx with exit 137 instead of its graceful shutdown, and
+"docker kill -s QUIT" (a JVM thread dump, php-fpm's graceful stop) ended
+the whole container.
+
+PRoot now ignores SIGQUIT like SIGTERM, SIGINT and SIGHUP; the tracees in
+the group receive and handle it. The crash signals keep killing the tracees.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0011
+
+diff --git a/src/tracee/event.c b/src/tracee/event.c
+index ea4080d..1c7206a 100644
+--- a/src/tracee/event.c
++++ b/src/tracee/event.c
+@@ -335,7 +335,10 @@ int event_loop()
+ 	/* Handle all signals.  */
+ 	for (signum = 0; signum < SIGRTMAX; signum++) {
+ 		switch (signum) {
+-		case SIGQUIT:
++		/* SIGQUIT is not a crash: it comes from outside (Ctrl-\, or
++		 * a container's stop signal, as in the nginx image).  Like
++		 * SIGTERM it is ignored here and acted on by the tracees
++		 * that receive it, instead of killing every one of them.  */
+ 		case SIGILL:
+ 		case SIGABRT:
+ 		case SIGFPE:

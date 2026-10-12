@@ -1,0 +1,335 @@
+Subject: keep long-path Unix sockets at their real path
+
+"docker exec pg psql -U postgres" failed in ThothDock with "connection to
+server on socket /var/run/postgresql/.s.PGSQL.5432 failed: No such file or
+directory", while TCP worked. A container's rootfs is deep, so the host path
+of a socket in it does not fit sun_path (108 bytes). PRoot then bound the
+socket at a random short name and remembered the guest path in a binding of
+that one PRoot: "docker exec" (another PRoot), a second container sharing
+the volume and test -S never found it, and a connect from another PRoot
+made up a new random name that did not exist.
+
+Such a socket now lives at its real path, reached through short random
+names in PROOT_TMP_DIR (private to the application):
+
+- bind refuses an existing address with EADDRINUSE (like the kernel), binds
+  at a random short name prootsock-b-<64 random bits>, and at the
+  syscall's exit renames the socket to its real path and leaves the name as
+  a symlink to it; if the rename fails, the old per-PRoot binding is kept;
+- connect goes through a private random symlink prootsock-c-<128 random
+  bits> to the real path, removed at the syscall's exit;
+- getsockname, getpeername and accept read the kernel's short name back
+  through the symlink, then translate to the guest path;
+- symlinks whose socket is gone are removed at the next such bind.
+
+Every name comes from getrandom(2) and is created by bind(2) or symlink(2),
+which fail rather than reuse an existing name, so another container cannot
+predict, pre-create or collide with one (an earlier draft derived the name
+from a hash of the path, which a guest choosing its own path could collide
+with). A tracee killed between a connect's entry and exit leaves one
+symlink to a live socket behind. The shared-memory listener of patch 0010
+and the fallback binding use the same names instead of mktemp.
+
+Only binds and connects of long paths add a ptrace stop (at their exit);
+nothing else changes. 32-bit socketcall keeps the old behaviour.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0013
+
+diff --git a/src/syscall/exit.c b/src/syscall/exit.c
+index a710153..70f5856 100644
+--- a/src/syscall/exit.c
++++ b/src/syscall/exit.c
+@@ -61,6 +61,9 @@ void translate_syscall_exit(Tracee *tracee)
+ 	word_t syscall_result;
+ 	int status;
+ 
++	/* Before anything can skip to the end.  */
++	finish_long_socket_path(tracee, (int) peek_reg(tracee, CURRENT, SYSARG_RESULT));
++
+ 	status = notify_extensions(tracee, SYSCALL_EXIT_START, 0, 0);
+ 	if (status < 0) {
+ 		poke_reg(tracee, SYSARG_RESULT, (word_t) status);
+diff --git a/src/syscall/socket.c b/src/syscall/socket.c
+index ec74950..7467c72 100644
+--- a/src/syscall/socket.c
++++ b/src/syscall/socket.c
+@@ -28,6 +28,13 @@
+ #include <sys/socket.h>  /* struct sockaddr_un, AF_UNIX, */
+ #include <sys/un.h>      /* struct sockaddr_un, */
+ #include <sys/param.h>   /* MIN(), MAX(), */
++#include <sys/stat.h>    /* lstat(2), */
++#include <stdio.h>       /* rename(2), snprintf(3), */
++#include <stdint.h>      /* uint64_t, */
++#include <dirent.h>      /* opendir(3), */
++#include <unistd.h>      /* symlink(2), unlink(2), readlink(2), read(2), */
++#include <fcntl.h>       /* open(2), */
++#include <sys/syscall.h> /* SYS_getrandom, */
+ 
+ #include "syscall/socket.h"
+ #include "tracee/tracee.h"
+@@ -35,6 +42,8 @@
+ #include "path/binding.h"
+ #include "path/temp.h"
+ #include "path/path.h"
++#include "syscall/sysnum.h"
++#include "tracee/reg.h"
+ #include "arch.h"
+ 
+ #include "compat.h"
+@@ -83,6 +92,169 @@ static int read_sockaddr_un(Tracee *tracee, struct sockaddr_un *sockaddr, word_t
+ 	return 1;
+ }
+ 
++/*
++ * A Unix socket whose host path does not fit sun_path (a container's
++ * rootfs is deep) must still live at that path and be reachable from every
++ * PRoot: "docker exec psql" or a second container sharing the volume runs
++ * in another PRoot, which a per-PRoot binding to a random short name never
++ * reaches.  Each such path gets a deterministic short name in PRoot's
++ * temporary directory, prootsock-<hash of the host path>:
++ *
++ * - bind: like the kernel, refuse an address that exists (EADDRINUSE);
++ *   bind at the short name, and at the syscall's exit rename the socket to
++ *   its real path and leave the short name as a symlink to it;
++ * - connect: through the short name, (re)created as a symlink to the real
++ *   path by whichever PRoot needs it;
++ * - getsockname, getpeername, accept: the kernel reports the short name;
++ *   it is read back through the symlink to the real path.
++ *
++ * Symlinks whose socket is gone are removed at the next such bind.
++ */
++#define SOCKET_ALIAS_PREFIX "prootsock-"
++
++/**
++ * Put in @name "<temporary directory>/<prefix>-<64 random bits>".  The
++ * name is unguessable (and short: it must fit sun_path) and nothing is
++ * created here: the caller creates it
++ * with an operation that fails if the name exists (bind(2), symlink(2)).
++ * Returns 0, or -1 if no random bytes could be had.
++ */
++int make_random_temp_name(char *name, size_t size, const char *prefix)
++{
++	unsigned char random[8];
++	char hex[2 * sizeof(random) + 1];
++	size_t i;
++
++	if (syscall(SYS_getrandom, random, sizeof(random), 0) != (long) sizeof(random)) {
++		int fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
++		ssize_t n = fd < 0 ? -1 : read(fd, random, sizeof(random));
++		if (fd >= 0)
++			close(fd);
++		if (n != (ssize_t) sizeof(random))
++			return -1;
++	}
++	for (i = 0; i < sizeof(random); i++)
++		snprintf(hex + 2 * i, 3, "%02x", random[i]);
++	return snprintf(name, size, "%s/%s-%s", get_temp_directory(), prefix, hex) < (int) size ? 0 : -1;
++}
++
++/* Remove aliases whose socket is gone.  */
++static void sweep_socket_aliases(void)
++{
++	char path[PATH_MAX];
++	struct dirent *entry;
++	struct stat st;
++	DIR *dir;
++
++	dir = opendir(get_temp_directory());
++	if (dir == NULL)
++		return;
++	while ((entry = readdir(dir)) != NULL) {
++		if (strncmp(entry->d_name, SOCKET_ALIAS_PREFIX, strlen(SOCKET_ALIAS_PREFIX)) != 0)
++			continue;
++		snprintf(path, sizeof(path), "%s/%s", get_temp_directory(), entry->d_name);
++		if (lstat(path, &st) == 0 && S_ISLNK(st.st_mode) && stat(path, &st) < 0)
++			(void) unlink(path);
++	}
++	closedir(dir);
++}
++
++/**
++ * Handle a bind or connect to @host_path, too long for sun_path: put the
++ * short name to use in @host_path.  Returns 1 when handled, 0 to fall back
++ * to a per-PRoot binding, or -errno.
++ *
++ * Every name is random and created by symlink(2) or bind(2), which fail
++ * rather than reuse an existing name, in PROOT_TMP_DIR (private to the
++ * application): another container cannot predict, pre-create or collide
++ * with one, and a connect can only reach the path it asked for.
++ */
++static int long_socket_path(Tracee *tracee, char host_path[PATH_MAX], const char *user_path)
++{
++	word_t sysnum = get_sysnum(tracee, ORIGINAL);
++	char alias[PATH_MAX];
++	struct stat st;
++	int tries;
++
++	if (sysnum != PR_bind && sysnum != PR_connect)
++		return 0;
++
++	if (sysnum == PR_bind && lstat(host_path, &st) == 0)
++		return -EADDRINUSE;
++
++	if (sysnum == PR_connect) {
++		/* A private alias for this one call.  */
++		for (tries = 0; tries < 4; tries++) {
++			if (make_random_temp_name(alias, sizeof(alias), SOCKET_ALIAS_PREFIX "c") < 0
++			    || strlen(alias) >= sizeof_path)
++				return 0;
++			if (symlink(host_path, alias) == 0)
++				break;
++			if (errno != EEXIST)
++				return 0;
++		}
++		if (tries == 4)
++			return 0;
++	}
++	else {
++		/* The name the kernel binds; it stays as a symlink to the
++		 * socket's real path once the bind is done.  */
++		sweep_socket_aliases();
++		if (make_random_temp_name(alias, sizeof(alias), SOCKET_ALIAS_PREFIX "b") < 0
++		    || strlen(alias) >= sizeof_path)
++			return 0;
++	}
++
++	TALLOC_FREE(tracee->socket_short);
++	TALLOC_FREE(tracee->socket_long);
++	TALLOC_FREE(tracee->socket_guest);
++	tracee->socket_short = talloc_strdup(tracee, alias);
++	if (sysnum == PR_bind) {
++		/* The canonical guest path, for the fallback binding.  */
++		char guest[PATH_MAX];
++		strcpy(guest, host_path);
++		tracee->socket_long  = talloc_strdup(tracee, host_path);
++		tracee->socket_guest = talloc_strdup(tracee,
++			detranslate_path(tracee, guest, NULL) < 0 ? user_path : guest);
++	}
++
++	/* Stop at the exit of this syscall too.  */
++	tracee->restart_how = PTRACE_SYSCALL;
++
++	strcpy(host_path, alias);
++	return 1;
++}
++
++/**
++ * At the exit of a bind or connect handled by long_socket_path()
++ * (@result is its result): remove a connect's private alias; move a bound
++ * socket to its real path and leave its name as a symlink to it.  If the
++ * rename fails, the socket stays at its short name and a binding keeps it
++ * reachable from this PRoot, as before.
++ */
++void finish_long_socket_path(Tracee *tracee, int result)
++{
++	if (tracee->socket_short == NULL)
++		return;
++
++	if (tracee->socket_long == NULL)
++		(void) unlink(tracee->socket_short);
++	else if (result == 0) {
++		if (rename(tracee->socket_short, tracee->socket_long) == 0)
++			(void) symlink(tracee->socket_long, tracee->socket_short);
++		else {
++			Binding *binding = insort_binding3(tracee, tracee->ctx,
++					tracee->socket_short, tracee->socket_guest);
++			if (binding != NULL)
++				(void) talloc_reference(binding, tracee->socket_short);
++		}
++	}
++
++	TALLOC_FREE(tracee->socket_short);
++	TALLOC_FREE(tracee->socket_long);
++	TALLOC_FREE(tracee->socket_guest);
++}
++
+ /**
+  * Translate the pathname of the struct sockaddr_un currently stored
+  * in the @tracee memory at the given @address.  See the documentation
+@@ -114,15 +286,18 @@ int translate_socketcall_enter(Tracee *tracee, word_t *address, int size)
+ 		char *shorter_host_path;
+ 		Binding *binding;
+ 
++		status = long_socket_path(tracee, host_path, user_path);
++		if (status < 0)
++			return status;
++		if (status > 0)
++			goto shortened;
++
+ 		/* The translated path is too long to fit the sun_path
+ 		 * array, so let's bind it to a shorter path.  */
+-		shorter_host_path = create_temp_name(tracee->ctx, "proot");
+-		if (shorter_host_path == NULL || strlen(shorter_host_path) > sizeof_path)
+-			return -EINVAL;
+-
+-		(void) mktemp(shorter_host_path);
+-
+-		if (strlen(shorter_host_path) > sizeof_path)
++		shorter_host_path = talloc_size(tracee->ctx, PATH_MAX);
++		if (shorter_host_path == NULL
++		    || make_random_temp_name(shorter_host_path, PATH_MAX, "proot") < 0
++		    || strlen(shorter_host_path) > sizeof_path)
+ 			return -EINVAL;
+ 
+ 		/* Ensure the guest path of this new binding is
+@@ -144,6 +319,7 @@ int translate_socketcall_enter(Tracee *tracee, word_t *address, int size)
+ 		/* Let's use this shorter path now.  */
+ 		strcpy(host_path, shorter_host_path);
+ 	}
++shortened:
+ 	strncpy(sockaddr.sun_path, host_path, sizeof_path);
+ 
+ 	/* Push the updated sockaddr to a newly allocated space.  */
+@@ -185,6 +361,21 @@ int translate_socketcall_exit(Tracee *tracee, word_t sock_addr, word_t size_addr
+ 	if (status <= 0)
+ 		return status;
+ 
++	/* A socket moved to its real path by long_socket_path().  */
++	{
++		const char *dir = get_temp_directory();
++		size_t dir_length = strlen(dir);
++		if (strncmp(path, dir, dir_length) == 0
++		    && strncmp(path + dir_length, "/" SOCKET_ALIAS_PREFIX, strlen(SOCKET_ALIAS_PREFIX) + 1) == 0) {
++			char target[PATH_MAX];
++			ssize_t length = readlink(path, target, sizeof(target) - 1);
++			if (length > 0) {
++				target[length] = '\0';
++				strcpy(path, target);
++			}
++		}
++	}
++
+ 	status = detranslate_path(tracee, path, NULL);
+ 	if (status < 0)
+ 		return status;
+diff --git a/src/syscall/socket.h b/src/syscall/socket.h
+index 8c16cb1..ae2b3f7 100644
+--- a/src/syscall/socket.h
++++ b/src/syscall/socket.h
+@@ -27,6 +27,8 @@
+ #include "tracee/tracee.h"
+ 
+ int translate_socketcall_enter(Tracee *tracee, word_t *sock_addr, int size);
++void finish_long_socket_path(Tracee *tracee, int result);
++int make_random_temp_name(char *name, size_t size, const char *prefix);
+ int translate_socketcall_exit(Tracee *tracee, word_t sock_addr, word_t size_addr, word_t max_size);
+ 
+ #endif /* SOCKET_H */
+diff --git a/src/tracee/tracee.h b/src/tracee/tracee.h
+index 693c915..726e94b 100644
+--- a/src/tracee/tracee.h
++++ b/src/tracee/tracee.h
+@@ -104,6 +104,13 @@ typedef struct tracee {
+ 	 * committed to fs->cwd only if the kernel's own change succeeds.  */
+ 	char *pending_cwd;
+ 
++	/* bind(2) of a Unix socket whose host path is too long for
++	 * sun_path: the short name it was bound at and its real host path
++	 * (see translate_socketcall_enter).  */
++	char *socket_short;
++	char *socket_long;
++	char *socket_guest;
++
+ 	/* Parent of this tracee, NULL if none.  */
+ 	struct tracee *parent;
+ 
