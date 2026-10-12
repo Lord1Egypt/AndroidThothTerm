@@ -46,10 +46,18 @@ index 41952bc..95770f1 100644
  		case WSTATE_SIGNALED_PPOLL:
  		case WSTATE_ENTERED_GETPID:
 diff --git a/src/extension/sysvipc/sysvipc_shm.c b/src/extension/sysvipc/sysvipc_shm.c
-index b14eb65..0839b7c 100644
+index b14eb65..9a198df 100644
 --- a/src/extension/sysvipc/sysvipc_shm.c
 +++ b/src/extension/sysvipc/sysvipc_shm.c
-@@ -195,6 +195,135 @@ static void sysvipc_shm_send_helper_request(struct SysVIpcShmHelperRequest *requ
+@@ -7,6 +7,7 @@
+ #include "extension/extension.h"
+ #include "path/temp.h"
+ #include "syscall/chain.h"
++#include "syscall/socket.h"
+ 
+ #include <sys/socket.h>
+ #include <sys/un.h>
+@@ -195,6 +196,132 @@ static void sysvipc_shm_send_helper_request(struct SysVIpcShmHelperRequest *requ
  	}
  }
  
@@ -98,17 +106,14 @@ index b14eb65..0839b7c 100644
 +	if (fd < 0)
 +		return -errno;
 +	for (int i = 0; i < 64; i++) {
-+		char *path = create_temp_name(NULL, "prootshm");
-+		if (path == NULL)
-+			break;
-+		(void) mktemp(path);
-+		bool fits = path[0] != '\0' && strlen(path) < sizeof(sysvipc_shm_helper_addr.sun_path);
++		char path[PATH_MAX];
++		bool fits = make_random_temp_name(path, sizeof(path), "prootshm") == 0
++			&& strlen(path) < sizeof(sysvipc_shm_helper_addr.sun_path);
 +		if (fits) {
 +			memset(&sysvipc_shm_helper_addr, 0, sizeof(sysvipc_shm_helper_addr));
 +			sysvipc_shm_helper_addr.sun_family = AF_UNIX;
 +			strcpy(sysvipc_shm_helper_addr.sun_path, path);
 +		}
-+		TALLOC_FREE(path);
 +		if (!fits)
 +			break;
 +		if (bind(fd, (struct sockaddr *) &sysvipc_shm_helper_addr, sizeof(sysvipc_shm_helper_addr)) == 0) {
@@ -185,7 +190,7 @@ index b14eb65..0839b7c 100644
  int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
  {
  	word_t shm_key = peek_reg(tracee, CURRENT, SYSARG_1);
-@@ -233,6 +362,9 @@ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
+@@ -233,6 +360,9 @@ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
  		if (!(shmflg & IPC_CREAT)) {
  			return -ENOENT;
  		}
@@ -195,7 +200,7 @@ index b14eb65..0839b7c 100644
  		if (found_unused_slot) {
  			shm_index = unused_slot;
  		} else {
-@@ -241,13 +373,7 @@ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
+@@ -241,13 +371,7 @@ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
  			memset(&shms[shm_index], 0, sizeof(shms[shm_index]));
  		}
  		shm = &shms[shm_index];
@@ -210,7 +215,7 @@ index b14eb65..0839b7c 100644
  		if (shm->fd < 0) {
  			return -ENOSPC;
  		}
-@@ -276,12 +402,7 @@ static void sysvipc_do_rmid(struct SysVIpcSharedMem *shm)
+@@ -276,12 +400,7 @@ static void sysvipc_do_rmid(struct SysVIpcSharedMem *shm)
  {
  	assert(LIST_EMPTY(shm->mappings));
  
@@ -224,7 +229,7 @@ index b14eb65..0839b7c 100644
  
  	/* Mark shm as freed  */
  	TALLOC_FREE(shm->mappings);
-@@ -408,7 +529,7 @@ int sysvipc_shmat(Tracee *tracee, struct SysVIpcConfig *config)
+@@ -408,7 +527,7 @@ int sysvipc_shmat(Tracee *tracee, struct SysVIpcConfig *config)
  	Tracee *other_tracee;
  	struct SysVIpcConfig *other_config;
  	SYSVIPC_FOREACH_TRACEE_ANY_NAMESPACE(other_tracee, other_config) {
@@ -233,7 +238,7 @@ index b14eb65..0839b7c 100644
  			config->wait_reason = WR_WAIT_SHMAT_HELPER_BUSY;
  			return 0;
  		}
-@@ -448,10 +569,13 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
+@@ -448,10 +567,13 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
  		}
  		word_t guest_addr = peek_reg(tracee, CURRENT, STACK_POINTER) - sizeof(struct sockaddr_un);
  		if (guest_addr == 0) {
@@ -249,7 +254,7 @@ index b14eb65..0839b7c 100644
  		}
  		register_chained_syscall(tracee, PR_connect, config->shmat_socket_fd, guest_addr, sizeof(struct sockaddr_un), 0, 0, 0);
  		config->shmat_guest_buf = guest_addr;
-@@ -469,11 +593,17 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
+@@ -469,11 +591,17 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
  			goto fail_close_socket;
  		}
  
@@ -272,7 +277,7 @@ index b14eb65..0839b7c 100644
  
  		register_chained_syscall(tracee, PR_recvmsg, config->shmat_socket_fd, pointers.msghdr_ptr, 0, 0, 0, 0);
  		config->chain_state = CSTATE_SHMAT_RECVMSG;
-@@ -539,6 +669,7 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
+@@ -539,6 +667,7 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
  	assert(!"Switch in sysvipc_shmat_chain has fallen thorugh");
  
  fail_close_socket:
@@ -280,7 +285,7 @@ index b14eb65..0839b7c 100644
  	register_chained_syscall(tracee, PR_close, config->shmat_socket_fd, 0, 0, 0, 0, 0);
  	force_chain_final_result(tracee, -ENOMEM);
  	config->chain_state = CSTATE_NOT_CHAINED;
-@@ -546,6 +677,7 @@ fail_close_socket:
+@@ -546,6 +675,7 @@ fail_close_socket:
  	sysvipc_shm_wake_pending_shmat();
  	return 1;
  fail_dont_close:
@@ -288,3 +293,18 @@ index b14eb65..0839b7c 100644
  	config->chain_state = CSTATE_NOT_CHAINED;
  	talloc_free(sysvipc_shm_find_pending_mapping(config->process, config->ipc_namespace, config->waiting_object_index));
  	sysvipc_shm_wake_pending_shmat();
+@@ -810,8 +940,12 @@ void sysvipc_shm_helper_main() {
+ 		.sun_family = AF_UNIX
+ 	};
+ 	for (int i = 0;; i++) {
+-		path = create_temp_name(NULL, "prootshm");
+-		(void) mktemp(path);
++		path = talloc_size(NULL, PATH_MAX);
++		if (path == NULL || make_random_temp_name(path, PATH_MAX, "prootshm") < 0) {
++			close(socket_server_fd);
++			fprintf(stderr, "proot-shm-helper: no random name\n");
++			_exit(1);
++		}
+ 
+ 		if (strlen(path) > SYSVIPC_SHMHELPER_SOCKET_LEN) {
+ 			close(socket_server_fd);

@@ -80,6 +80,27 @@ ok $? "another PRoot connects and sees the guest path ($out)"
 echo quit >&9; exec 9>&-; wait $sp
 "$P" -r / -b "$DEEP:/deep" "$W/unix" connect /deep/s.sock 2>/dev/null; [ $? != 0 ] && [ ! -e "$DEEP/s.sock" ]
 ok $? "after unlink the address is gone"
+# Security of the aliases (patch 0014): names are random, a connect leaves
+# nothing behind, and a dead socket's alias is swept at the next bind.
+for n in 1 2; do
+    "$P" -r / -b "$DEEP:/deep" "$W/unix" serve /deep/n$n.sock < "$W/quit" > "$W/n$n.log" 2>&1 &
+    eval "sp$n=\$!"
+done
+exec 8> "$W/quit"
+for _ in $(seq 50); do grep -q listening "$W/n1.log" && grep -q listening "$W/n2.log" && break; sleep 0.1; done
+set -- $(ls "$W" | grep '^prootsock-b-[0-9a-f]\{32\}$')
+[ "$#" -ge 2 ] && [ "$1" != "$2" ]
+ok $? "bound sockets get distinct unguessable names (prootsock-b-<32 hex>, $# found)"
+"$P" -r / -b "$DEEP:/deep" "$W/unix" connect /deep/n1.sock >/dev/null
+"$P" -r / -b "$DEEP:/deep" "$W/unix" connect /deep/n2.sock >/dev/null
+[ -z "$(ls "$W" | grep '^prootsock-c-')" ]
+ok $? "a connect leaves no alias behind"
+echo quit >&8; exec 8>&-; wait $sp1 $sp2
+before=$(ls "$W" | grep -c '^prootsock-b-')
+timeout 2 "$P" -r / -b "$DEEP:/deep" "$W/unix" serve /deep/n3.sock < /dev/null > "$W/n3.log" 2>&1
+after=$(ls "$W" | grep -c '^prootsock-b-')
+[ "$after" -lt "$before" ] || [ "$after" -le 1 ]
+ok $? "aliases of dead sockets are swept at the next bind ($before -> $after)"
 "$P" -r / -b "$DEEP:/deep" sh -c ': > /deep/s.sock'
 "$P" -r / -b "$DEEP:/deep" "$W/unix" serve /deep/s.sock < /dev/null > "$W/inuse.log" 2>&1
 grep -q "Address already in use" "$W/inuse.log"
