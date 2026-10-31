@@ -1,0 +1,1 @@
+pacman gets the country mirrors of Arch Linux ARM's own list as fallbacks after the geo-IP redirector, so a slow mirror no longer fails the first upgrade; done only while the mirrorlist is unchanged. The udev hwdb hook, which has nothing to update without udev, is masked, so upgrades no longer end with a false error.

@@ -840,7 +840,10 @@ public final class RootfsManager {
     public synchronized void prepareSession() throws IOException {
         if (!isReady()) throw new IOException("Linux environment is not ready");
         setupRootfs(rootfsDir, false);
-        if (isPacman()) clearStalePacmanLock();
+        if (isPacman()) {
+            clearStalePacmanLock();
+            applyPacmanDefaults();
+        }
         if (sudoState(rootfsDir) == GuestConfig.PackageState.INSTALLED) {
             forceSudoSetuid(rootfsDir);
         }
@@ -875,6 +878,20 @@ public final class RootfsManager {
                     + " check pacman -Dk and pacman -Qk for an interrupted transaction");
         } catch (IOException e) {
             ThothLog.w(LogCategory.ROOTFS, "Cannot remove the stale pacman lock");
+        }
+    }
+
+    /** Fallback mirrors and the masked hwdb hook (PacmanDefaults); never blocks a session. */
+    private void applyPacmanDefaults() {
+        try {
+            if (PacmanDefaults.enableFallbackMirrors(fileOps, rootfsDir)) {
+                ThothLog.i(LogCategory.ROOTFS, "pacman: country mirrors enabled as fallbacks");
+            }
+            if (PacmanDefaults.maskHwdbHook(fileOps, rootfsDir)) {
+                ThothLog.i(LogCategory.ROOTFS, "pacman: udev hwdb hook masked (no udev under PRoot)");
+            }
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.ROOTFS, "pacman defaults not applied: " + e.getMessage());
         }
     }
 
