@@ -187,6 +187,15 @@ class TerminalEmulator {
     private int[] mArgs = new int[MAX_ESCAPE_PARAMETERS];
 
     /**
+     * True for an argument that followed a colon, an ISO 8613-6 sub-parameter
+     * (SGR 38:2::r:g:b), rather than a semicolon.
+     */
+    private boolean[] mArgIsSub = new boolean[MAX_ESCAPE_PARAMETERS];
+
+    /** True once the sequence has more arguments than {@link #mArgs} holds; the rest are dropped. */
+    private boolean mArgsDropped;
+
+    /**
      * Holds OSC arguments, which can be strings.
      */
     private byte[] mOSCArg = new byte[MAX_OSC_STRING_LENGTH];
@@ -781,8 +790,11 @@ class TerminalEmulator {
     private void startSequence() {
         mEscapeState = EscapeProcessingState.START;
         mArgIndex = 0;
-        for (int j = 0; j < MAX_ESCAPE_PARAMETERS; j++)
+        mArgsDropped = false;
+        for (int j = 0; j < MAX_ESCAPE_PARAMETERS; j++) {
             mArgs[j] = -1;
+            mArgIsSub[j] = false;
+        }
     }
 
     private void finishSequence() {
@@ -1447,20 +1459,19 @@ class TerminalEmulator {
                 mEffect &= ~TextStyle.fxInvisible;
             } else if (code >= 30 && code <= 37) { // foreground color
                 mForeColor = code - 30;
-            } else if (code == 38 && (i + 2) <= mArgIndex && mArgs[i + 1] == 5) { // foreground 256 color
-                int color = mArgs[i + 2];
-                if (isValidColorIndex(color))
-                    mForeColor = color;
-                i += 2;
+            } else if (code == 38 || code == 48) { // 256 or 24-bit foreground/background color
+                int used = extendedColor(i);
+                if (used < 0) {
+                    break;
+                }
+                if (mExtendedColor >= 0) {
+                    if (code == 38) mForeColor = mExtendedColor; else mBackColor = mExtendedColor;
+                }
+                i += used;
             } else if (code == 39) { // set default text color
                 mForeColor = mDefaultForeColor;
             } else if (code >= 40 && code <= 47) { // background color
                 mBackColor = code - 40;
-            } else if (code == 48 && (i + 2) <= mArgIndex && mArgs[i + 1] == 5) { // background 256 color
-                int color = mArgs[i + 2];
-                if (isValidColorIndex(color))
-                    mBackColor = color;
-                i += 2;
             } else if (code == 49) { // set default background color
                 mBackColor = mDefaultBackColor;
             } else if (code >= 90 && code <= 97) { // bright foreground color
@@ -1473,6 +1484,71 @@ class TerminalEmulator {
                 }
             }
         }
+    }
+
+    /** Result of {@link #extendedColor}: a palette index, or -1 to leave the color alone. */
+    private int mExtendedColor;
+
+    /**
+     * Read the color of an SGR 38 or 48 at {@code mArgs[i]}: "5;n" picks an xterm-256 index,
+     * "2;r;g;b" a 24-bit color, which is mapped to the nearest xterm-256 color because a style
+     * holds a palette index. The colon form ("38:2::r:g:b", "38:2:r:g:b", "38:5:n") is read
+     * from its own sub-parameters only.
+     *
+     * @return how many arguments after {@code mArgs[i]} belong to the color, or -1 if the
+     *         sequence ends before the color is complete (the rest of the SGR is then ignored)
+     */
+    private int extendedColor(int i) {
+        mExtendedColor = -1;
+        boolean colon = i + 1 <= mArgIndex && mArgIsSub[i + 1];
+        int subs = 0;
+        if (colon) {
+            while (i + subs + 1 <= mArgIndex && mArgIsSub[i + subs + 1]) subs++;
+        }
+        int mode = i + 1 <= mArgIndex ? mArgs[i + 1] : -1;
+        if (mode == 5) {
+            int last = colon ? subs : 2;
+            if (i + 2 > mArgIndex || last < 2) return colon ? subs : -1;
+            int color = mArgs[i + 2];
+            if (isValidColorIndex(color)) mExtendedColor = color;
+            return last;
+        }
+        if (mode == 2) {
+            // Colon form with a color-space id has 5 sub-parameters after 38: 2, id, r, g, b.
+            int first = colon && subs >= 5 ? i + 3 : i + 2;
+            int last = colon ? subs : 4;
+            if (first + 2 > mArgIndex || (colon && subs < 4)) return colon ? subs : -1;
+            mExtendedColor = rgbToXterm256(Math.max(0, mArgs[first]),
+                    Math.max(0, mArgs[first + 1]), Math.max(0, mArgs[first + 2]));
+            return last;
+        }
+        return colon ? subs : (mode < 0 ? -1 : 1);
+    }
+
+    /** Nearest xterm-256 color (6x6x6 cube or grey ramp) to an RGB color, as tmux picks it. */
+    static int rgbToXterm256(int r, int g, int b) {
+        r = Math.min(r, 255);
+        g = Math.min(g, 255);
+        b = Math.min(b, 255);
+        int qr = toCube(r), qg = toCube(g), qb = toCube(b);
+        int cr = CUBE_LEVELS[qr], cg = CUBE_LEVELS[qg], cb = CUBE_LEVELS[qb];
+        int cube = 16 + 36 * qr + 6 * qg + qb;
+        if (cr == r && cg == g && cb == b) return cube;
+        int greyAverage = (r + g + b) / 3;
+        int greyIndex = greyAverage > 238 ? 23 : Math.max(0, (greyAverage - 3) / 10);
+        int grey = 8 + 10 * greyIndex;
+        return distance(grey, grey, grey, r, g, b) < distance(cr, cg, cb, r, g, b)
+                ? 232 + greyIndex : cube;
+    }
+
+    private static final int[] CUBE_LEVELS = {0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff};
+
+    private static int toCube(int v) {
+        return v < 48 ? 0 : v < 114 ? 1 : (v - 35) / 40;
+    }
+
+    private static int distance(int r1, int g1, int b1, int r2, int g2, int b2) {
+        return (r1 - r2) * (r1 - r2) + (g1 - g2) * (g1 - g2) + (b1 - b2) * (b1 - b2);
     }
 
     private boolean isValidColorIndex(int color) {
@@ -1627,7 +1703,7 @@ class TerminalEmulator {
      */
     private void parseArg(byte b) {
         if (b >= '0' && b <= '9') {
-            if (mArgIndex < mArgs.length) {
+            if (!mArgsDropped) {
                 int oldValue = mArgs[mArgIndex];
                 int thisDigit = b - '0';
                 int value;
@@ -1639,9 +1715,13 @@ class TerminalEmulator {
                 mArgs[mArgIndex] = value;
             }
             continueSequence();
-        } else if (b == ';') {
-            if (mArgIndex < mArgs.length) {
+        } else if (b == ';' || b == ':') {
+            // Arguments past the last slot are dropped; the index never leaves the array.
+            if (mArgIndex < mArgs.length - 1) {
                 mArgIndex++;
+                mArgIsSub[mArgIndex] = b == ':';
+            } else {
+                mArgsDropped = true;
             }
             continueSequence();
         } else {
