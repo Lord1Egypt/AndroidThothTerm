@@ -1,54 +1,50 @@
 ThothTerm • ThothDock is an independent Android application. It provides a terminal, a Debian
 GNU/Linux 13 (trixie) environment to work in under PRoot, and ThothDock, a
-Docker-compatible container engine for phones without root.
-There is no root, no virtual machine and no server somewhere else: the Debian
-GNU/Linux 13 (trixie) environment runs on the phone itself, inside the app.
+Docker-compatible container engine for phones without root. There is no root,
+no virtual machine and no remote server: everything runs on the phone, in the app.
 
 The Debian side is ordinary Debian. apt and dpkg install from Debian's own
 archives (trixie, trixie-updates and trixie-security), sudo is Debian's sudo,
-and what you install stays installed across app updates, as does everything
-in your home directory.
+and what you install stays installed across app updates, as does your home.
 
 What you get
 
 * Debian 13 "trixie", arm64, set up on first launch
 * apt, dpkg and passwordless sudo for the user thoth
-* Several terminal windows at once, with a window list
-* Pinch-to-zoom and Zoom in / Zoom out / Reset
-* An extra keys row: Esc, Ctrl, Alt, Tab, Home, End and the arrows
-* Copy and paste, selection and scrollback
+* Several terminal windows, pinch-to-zoom, an extra keys row, copy and paste
 * Correct display of Arabic and other right-to-left text
-* A welcome banner that shows the Debian release actually installed
 * ThothDock: the Docker command line, working on the phone, with no root
-* A Containers screen to start, stop, restart, read the logs of and delete containers
+* Docker Compose, user networks with container names, restart policies
+* Containers, Images and Volumes screens: start, stop, logs, shell, delete
+* A Web Panel to manage containers from a browser, over HTTPS with a pairing code
 * LAN Mode, to use the same Debian from a web browser on another computer
 
 ThothDock
 
 ThothDock is a Docker-compatible container engine written for unrooted
 Android. The unmodified Docker command line talks to it over a private socket
-that only this app can open, so docker pull, run, exec, logs, stop, volumes and
--p port publishing work from the terminal. There is no dockerd, no containerd
-and no runc: containers run through the same PRoot that runs Debian.
+that only this app can open, so docker pull, run, exec, logs, stop, volumes,
+-p port publishing and docker compose work from the terminal. There is no
+dockerd, no containerd and no runc: containers run through the same PRoot that
+runs Debian. Containers on a user network get a private loopback address and
+reach each other by name.
 
 These containers are userspace environments, not a security boundary: there are
-no namespaces, no resource limits and no CPU or memory figures. A published
-port is a loopback listener that every app on the phone can reach, and UDP
-publishing is not supported. Containers stop when the app is closed. Images are
-downloaded only when you run docker pull or docker run, never in the
-background. Engine Guard stops apt from installing a real Docker engine over
-ThothDock; the Docker command line itself stays updatable.
+no namespaces and no resource limits. A published port is a loopback listener
+that every app on the phone can reach; UDP publishing is not supported.
+Containers stop when the app is closed. Images are downloaded only when you run
+docker pull or docker run, never in the background. Android may end the engine
+when an app runs too many processes; the Containers screen warns first. Engine
+Guard stops apt from installing a real Docker engine over ThothDock.
 
-LAN Mode
+Web Panel and LAN Mode
 
-LAN Mode is off until you turn it on, and it is off again whenever the app
-restarts. It is in the menu, above Windows. While it is on, the app shows an
-address and a one-time PIN; a browser on the same Wi-Fi or Ethernet network
-must pair with that PIN before it gets anything. Every browser gets its own
-terminal, and the windows on the phone are never shared. It does not listen on
-mobile data or the Internet. Turning it off ends every browser's access. The
-connection is plain HTTP, which is not encrypted: use it only on networks you
-trust.
+Both are off until you turn them on and never listen on mobile data. The Web
+Panel serves HTTPS only, on the phone itself or on Wi-Fi or Ethernet; a browser
+must enter the pairing code shown on the phone, and its sessions end when the
+panel stops.
+LAN Mode gives each paired browser its own terminal after a one-time PIN. Its
+connection is plain HTTP, not encrypted: use it only on networks you trust.
 
 First run
 
@@ -56,15 +52,11 @@ The F-Droid build does not include Debian, so the first launch offers to
 download it: about 60 MB from the project's GitHub release. Nothing is
 downloaded until you agree. The download is checked against a size and a
 SHA-256 checksum written into the app, and refused if either differs. The
-archive holds only unmodified Debian packages; it is built reproducibly from
-Debian's archive by a script in the app's source, so anyone can rebuild it
-byte for byte.
+archive holds only unmodified Debian packages, built reproducibly from Debian's
+archive by a script in the app's source.
 
-Requirements
-
-* A 64-bit ARM phone (arm64-v8a), Android 8.0 or newer
-* About 185 MB for Debian right after setup (measured on a phone), plus
-  what apt's package lists and the software you install add
+Requirements: a 64-bit ARM phone (arm64-v8a) with Android 8.0 or newer, and
+about 185 MB for Debian after setup, plus what you install.
 
 ThothTerm • ThothDock is an independent application and is not affiliated with or
 endorsed by the Debian Project. Debian is a registered trademark owned by
@@ -72,5 +64,5 @@ Software in the Public Interest, Inc.
 
 ThothTerm is free software under the Apache License 2.0, a fork of TermOne
 Plus, which derives from Terminal Emulator for Android and the Android Open
-Source Project. The PRoot runtime is built from source during the build. Its
-licence and those of the Debian packages are listed in THIRD_PARTY_NOTICES.md.
+Source Project. The PRoot runtime is built from source during the build.
+Licences are listed in THIRD_PARTY_NOTICES.md.

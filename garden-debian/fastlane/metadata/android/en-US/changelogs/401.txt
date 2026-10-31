@@ -1,0 +1,1 @@
+ThothDock 0.2.1 engine, a compatibility release: PostgreSQL and other System V shared memory users now run, as do RabbitMQ (container host names), Redis and Valkey, sshd, php-fpm and nginx graceful stop; long Unix socket paths work. MongoDB 8 cannot run on Android's 39-bit address space: use MongoDB 7.0.
