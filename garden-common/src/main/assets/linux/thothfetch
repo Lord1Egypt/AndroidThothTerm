@@ -66,7 +66,17 @@ fi
 
 cols=
 size=$(stty size 2>/dev/null)
+# A new window's shell can start before the app has given the terminal its
+# size, and the kernel then reports "0 0". Wait up to a second for the size.
+if [ "$size" = "0 0" ]; then
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    sleep 0.05 2>/dev/null || break
+    size=$(stty size 2>/dev/null)
+    [ "$size" = "0 0" ] || break
+  done
+fi
 cols=${size##* }
+[ "$cols" = 0 ] && cols=
 case "${cols:-}" in
   ''|*[!0-9]*) cols=${COLUMNS:-80} ;;
 esac
@@ -76,15 +86,14 @@ esac
 
 arch=${HOSTTYPE:-aarch64}
 
-# Full-size logo: `thothfetch --logo`, or automatically on a terminal of at
-# least 100 columns by 64 rows. The art is 95x52 characters in which '@' is the
+# Full-size logo: `thothfetch --logo` only. It used to appear by itself on 100x64
+# terminals, which on a phone depended on whether the keyboard was showing when a
+# window opened. The art is 95x52 characters in which '@' is the
 # dark background and a space is the brightest glow, so each character is drawn
 # as one coloured cell (graphite, grey T, blues, cyan). Without colours the
 # characters are printed as they are.
 logo=
 [ "${1-}" = --logo ] && logo=1
-rows=${size%% *}
-case "${rows:-}" in ''|*[!0-9]*) rows=24 ;; esac
 
 logo_art() {
   cat <<'THOTHDOCK_LOGO'
@@ -170,9 +179,6 @@ if [ -e "$root/usr/local/bin/docker" ]; then
   [ -S "$root/run/thothdock/thothdock.sock" ] && engine=ThothDock
 fi
 
-if [ -n "$dock" ] && [ -z "$logo" ] && [ "$cols" -ge 100 ] && [ "$rows" -ge 64 ]; then
-  logo=1
-fi
 if [ -n "$logo" ]; then
   edition=$(clean "$edition" 30)
   os=$(clean "$os" 40)
@@ -191,7 +197,7 @@ fi
 #   cols < 62   compact art stacked above the info
 #   62..79      compact art beside the info (a 63-column phone terminal)
 #   >= 80       wide art beside the info
-# The full 95x52 logo (--logo, or >= 100x64) never goes below those sizes.
+# The full 95x52 logo (--logo) is never chosen by size.
 compact_art=(
   '      .-^-.'
   ' _____(o> )_____'
