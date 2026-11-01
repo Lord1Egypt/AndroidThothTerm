@@ -34,6 +34,7 @@ package com.thothterm.linux;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.SystemClock;
 import android.os.storage.StorageManager;
 
 import androidx.preference.PreferenceManager;
@@ -44,6 +45,7 @@ import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -133,6 +135,8 @@ public final class RootfsManager {
     private final File stateFile;
     private final String prootRootfsPath;
     private final File runtimeDir;
+    /** Stand-ins for the /proc files Android denies to apps (ProcOverrides). */
+    private final File procOverrideDir;
     private final File runtimeLibDir;
     private final File prootTmpDir;
     private final File nativeLibDir;
@@ -174,6 +178,7 @@ public final class RootfsManager {
         this.runtimeDir = new File(new File(filesDir, LINUX_ROOT), "runtime");
         this.runtimeLibDir = new File(runtimeDir, "lib");
         this.prootTmpDir = new File(runtimeDir, "tmp");
+        this.procOverrideDir = new File(runtimeDir, "proc");
         this.nativeLibDir = new File(appContext.getApplicationInfo().nativeLibraryDir);
     }
 
@@ -730,6 +735,40 @@ public final class RootfsManager {
             forceSudoSetuid(rootfsDir);
         }
         if (needsAdminTools()) scheduleAdminTools("session start", null);
+        refreshProcOverrides();
+    }
+
+    /**
+     * Writes the stand-ins for /proc/stat and /proc/uptime when the real
+     * files cannot be read, and removes them when they can. A failure only
+     * leaves the guest without them, as before.
+     */
+    private void refreshProcOverrides() {
+        try {
+            ProcOverrides.refresh(fileOps, runtimeDir, procOverrideDir, System.currentTimeMillis(),
+                    SystemClock.elapsedRealtime(), Runtime.getRuntime().availableProcessors(),
+                    readable("/proc/stat"), readable("/proc/uptime"));
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.PROOT, "Cannot write the /proc stand-ins: " + e.getMessage());
+        }
+    }
+
+    private static boolean readable(String path) {
+        try (InputStream in = new FileInputStream(path)) {
+            return in.read() >= 0;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /** PRoot binds for the /proc stand-ins that exist. */
+    List<String> procBinds() {
+        try {
+            return ProcOverrides.binds(fileOps, procOverrideDir);
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.PROOT, "Cannot check the /proc stand-ins: " + e.getMessage());
+            return new ArrayList<>();
+        }
     }
 
     // ---- managed guest configuration ---------------------------------------

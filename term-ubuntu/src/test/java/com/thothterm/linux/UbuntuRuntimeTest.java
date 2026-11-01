@@ -105,4 +105,21 @@ public class UbuntuRuntimeTest {
         }
         assertTrue(found);
     }
+
+    /** The /proc stand-ins are bound in windows and in provisioning alike. */
+    @Test
+    public void procStandInsAreBound() {
+        List<String> binds = java.util.Arrays.asList(
+                "--bind=/data/user/0/com.thothterm.ubuntu/files/linux/runtime/proc/stat:/proc/stat");
+        UbuntuRuntime r = new UbuntuRuntime(
+                "/data/app/com.thothterm.ubuntu/lib/arm64/libproot.so",
+                "/data/app/com.thothterm.ubuntu/lib/arm64/libproot_loader.so",
+                "/data/user/0/com.thothterm.ubuntu/files/linux/ubuntu-26.04/rootfs",
+                "/data/user/0/com.thothterm.ubuntu/files/linux/runtime/lib",
+                "/data/user/0/com.thothterm.ubuntu/files/linux/runtime/tmp",
+                null, "xterm-256color", binds);
+        assertTrue(r.buildArgv().contains(binds.get(0)));
+        assertTrue(r.buildProvisioningArgv(java.util.Arrays.asList("/bin/true")).contains(binds.get(0)));
+        assertFalse(runtime().buildArgv().stream().anyMatch(a -> a.endsWith(":/proc/stat")));
+    }
 }

@@ -12,7 +12,17 @@ white=$'\033[38;5;252m'; muted=$'\033[38;5;246m'; reset=$'\033[0m'
 
 cols=
 size=$(stty size 2>/dev/null)
+# A new window's shell can start before the app has given the terminal its
+# size, and the kernel then reports "0 0". Wait up to a second for the size.
+if [ "$size" = "0 0" ]; then
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    sleep 0.05 2>/dev/null || break
+    size=$(stty size 2>/dev/null)
+    [ "$size" = "0 0" ] || break
+  done
+fi
 cols=${size##* }
+[ "$cols" = 0 ] && cols=
 case "${cols:-}" in
   ''|*[!0-9]*) cols=${COLUMNS:-80} ;;
 esac

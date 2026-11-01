@@ -845,7 +845,10 @@ public final class RootfsManager {
     public synchronized void prepareSession() throws IOException {
         if (!isReady()) throw new IOException("Linux environment is not ready");
         setupRootfs(rootfsDir, false);
-        if (isPacman()) clearStalePacmanLock();
+        if (isPacman()) {
+            clearStalePacmanLock();
+            applyPacmanDefaults();
+        }
         if (sudoState(rootfsDir) == GuestConfig.PackageState.INSTALLED) {
             forceSudoSetuid(rootfsDir);
         }
@@ -859,26 +862,10 @@ public final class RootfsManager {
      * leaves the guest without them, as before.
      */
     private void refreshProcOverrides() {
-        int cpus = Runtime.getRuntime().availableProcessors();
-        long uptimeMillis = SystemClock.elapsedRealtime();
-        File stat = new File(procOverrideDir, "stat");
-        File uptime = new File(procOverrideDir, "uptime");
         try {
-            if (readable("/proc/stat")) {
-                if (fileOps.type(stat) != FileOps.Type.NONE) fileOps.unlink(stat);
-            } else {
-                long computed = (System.currentTimeMillis() - uptimeMillis) / 1000;
-                long written = fileOps.type(stat) == FileOps.Type.REGULAR
-                        ? ProcOverrides.bootTime(ManagedFiles.read(fileOps, runtimeDir, stat)) : -1;
-                ManagedFiles.writeIfChanged(fileOps, runtimeDir, stat, ProcOverrides.statText(
-                        ProcOverrides.stableBootTime(written, computed), cpus, uptimeMillis / 1000), 0444);
-            }
-            if (readable("/proc/uptime")) {
-                if (fileOps.type(uptime) != FileOps.Type.NONE) fileOps.unlink(uptime);
-            } else {
-                ManagedFiles.writeIfChanged(fileOps, runtimeDir, uptime,
-                        ProcOverrides.uptimeText(uptimeMillis, cpus), 0444);
-            }
+            ProcOverrides.refresh(fileOps, runtimeDir, procOverrideDir, System.currentTimeMillis(),
+                    SystemClock.elapsedRealtime(), Runtime.getRuntime().availableProcessors(),
+                    readable("/proc/stat"), readable("/proc/uptime"));
         } catch (IOException e) {
             ThothLog.w(LogCategory.PROOT, "Cannot write the /proc stand-ins: " + e.getMessage());
         }
@@ -894,18 +881,12 @@ public final class RootfsManager {
 
     /** PRoot binds for the /proc stand-ins that exist. */
     List<String> procBinds() {
-        List<String> binds = new ArrayList<>();
-        for (String name : new String[]{"stat", "uptime"}) {
-            File file = new File(procOverrideDir, name);
-            try {
-                if (fileOps.type(file) == FileOps.Type.REGULAR) {
-                    binds.add("--bind=" + file.getAbsolutePath() + ":/proc/" + name);
-                }
-            } catch (IOException e) {
-                ThothLog.w(LogCategory.PROOT, "Cannot check " + file + ": " + e.getMessage());
-            }
+        try {
+            return ProcOverrides.binds(fileOps, procOverrideDir);
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.PROOT, "Cannot check the /proc stand-ins: " + e.getMessage());
+            return new ArrayList<>();
         }
-        return binds;
     }
 
     private boolean isPacman() {
@@ -936,6 +917,20 @@ public final class RootfsManager {
                     + " check pacman -Dk and pacman -Qk for an interrupted transaction");
         } catch (IOException e) {
             ThothLog.w(LogCategory.ROOTFS, "Cannot remove the stale pacman lock");
+        }
+    }
+
+    /** Fallback mirrors and the masked hwdb hook (PacmanDefaults); never blocks a session. */
+    private void applyPacmanDefaults() {
+        try {
+            if (PacmanDefaults.enableFallbackMirrors(fileOps, rootfsDir)) {
+                ThothLog.i(LogCategory.ROOTFS, "pacman: country mirrors enabled as fallbacks");
+            }
+            if (PacmanDefaults.maskHwdbHook(fileOps, rootfsDir)) {
+                ThothLog.i(LogCategory.ROOTFS, "pacman: udev hwdb hook masked (no udev under PRoot)");
+            }
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.ROOTFS, "pacman defaults not applied: " + e.getMessage());
         }
     }
 

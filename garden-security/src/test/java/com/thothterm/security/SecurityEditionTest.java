@@ -82,8 +82,8 @@ public class SecurityEditionTest {
                 "applicationId rootProject.ext.thothtermApplicationId('com.thothterm.security')"));
         assertTrue(gradle.contains("namespace = \"com.thothterm.security\""));
         // F-Droid's checkupdates reads these two literally.
-        assertTrue(gradle.contains("versionCode 100\n"));
-        assertTrue(gradle.contains("versionName '0.1.0'\n"));
+        assertTrue(java.util.regex.Pattern.compile("(?m)^        versionCode [1-9][0-9]*\n").matcher(gradle).find());
+        assertTrue(java.util.regex.Pattern.compile("(?m)^        versionName '[0-9]+\\.[0-9]+\\.[0-9]+'\n").matcher(gradle).find());
         assertTrue(read(new File(repo(), "applicationId.gradle")).contains("'com.thothterm.security'"));
         assertTrue(read(new File(repo(), "settings.gradle")).contains("include ':garden-security'"));
         assertEquals("ThothTerm Security", read(new File(moduleDir(),

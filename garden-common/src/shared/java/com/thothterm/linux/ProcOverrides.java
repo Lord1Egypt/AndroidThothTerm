@@ -16,6 +16,10 @@
 
 package com.thothterm.linux;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -34,6 +38,8 @@ import java.util.Locale;
 final class ProcOverrides {
     /** Clock ticks per second of every Android kernel (USER_HZ). */
     static final int USER_HZ = 100;
+    /** The /proc files this class stands in for, by their names under /proc. */
+    private static final String[] NAMES = {"stat", "uptime"};
 
     private ProcOverrides() {
     }
@@ -76,6 +82,45 @@ final class ProcOverrides {
             }
         }
         return -1;
+    }
+
+    /**
+     * Writes the stand-in for each file that cannot be read and removes the
+     * one for each file that can, in {@code dir} below {@code root}.
+     *
+     * @param statReadable   whether the real /proc/stat can be read
+     * @param uptimeReadable whether the real /proc/uptime can be read
+     */
+    static void refresh(FileOps ops, File root, File dir, long nowMillis, long uptimeMillis, int cpus,
+                        boolean statReadable, boolean uptimeReadable) throws IOException {
+        File stat = new File(dir, "stat");
+        File uptime = new File(dir, "uptime");
+        if (statReadable) {
+            if (ops.type(stat) != FileOps.Type.NONE) ops.unlink(stat);
+        } else {
+            long computed = (nowMillis - uptimeMillis) / 1000;
+            long written = ops.type(stat) == FileOps.Type.REGULAR
+                    ? bootTime(ManagedFiles.read(ops, root, stat)) : -1;
+            ManagedFiles.writeIfChanged(ops, root, stat,
+                    statText(stableBootTime(written, computed), cpus, uptimeMillis / 1000), 0444);
+        }
+        if (uptimeReadable) {
+            if (ops.type(uptime) != FileOps.Type.NONE) ops.unlink(uptime);
+        } else {
+            ManagedFiles.writeIfChanged(ops, root, uptime, uptimeText(uptimeMillis, cpus), 0444);
+        }
+    }
+
+    /** PRoot binds for the stand-ins present in {@code dir}. */
+    static List<String> binds(FileOps ops, File dir) throws IOException {
+        List<String> binds = new ArrayList<>();
+        for (String name : NAMES) {
+            File file = new File(dir, name);
+            if (ops.type(file) == FileOps.Type.REGULAR) {
+                binds.add("--bind=" + file.getAbsolutePath() + ":/proc/" + name);
+            }
+        }
+        return binds;
     }
 
     /**
