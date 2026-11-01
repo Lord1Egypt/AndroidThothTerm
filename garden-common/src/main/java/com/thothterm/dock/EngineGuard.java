@@ -66,6 +66,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class EngineGuard {
     static final String[] PROTECTED = {
             "docker.io", "docker-ce", "docker-engine", "moby-engine", "containerd", "containerd.io", "runc",
+            // ThothDock provides the snap command; the real snapd cannot run in a PRoot guest.
+            "snapd",
     };
     static final String GUARD_PACKAGE = "thothdock-engine-guard";
     private static final String ASSET_DIR = "thothdock/engine-guard";

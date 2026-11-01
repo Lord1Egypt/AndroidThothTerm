@@ -12,8 +12,8 @@
    <string name="pref_color_default" translatable="false">11</string>
    <bool name="pref_utf8_by_default_default">true</bool>
    <string name="pref_backaction_default" translatable="false">2</string>
-   <string name="pref_controlkey_default" translatable="false">5</string>
-   <string name="pref_fnkey_default" translatable="false">4</string>
+   <string name="pref_controlkey_default" translatable="false">7</string>
+   <string name="pref_fnkey_default" translatable="false">7</string>
    <string name="pref_ime_default" translatable="false">0</string>
    <bool name="pref_alt_sends_esc_default">false</bool>
    <string name="pref_shell_default" translatable="false">/system/bin/sh -</string>
