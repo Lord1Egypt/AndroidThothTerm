@@ -75,10 +75,10 @@ public class ContainersActivity extends AppCompatActivity {
     private static final String STATE_SCROLL_POS = "scrollPos";
     private static final String STATE_SCROLL_TOP = "scrollTop";
 
-    /** The four tabs, in chip order. */
+    /** The tabs, in chip order. */
     enum Tab {
         CONTAINERS(ThothDock.TAB_CONTAINERS), IMAGES(ThothDock.TAB_IMAGES),
-        VOLUMES(ThothDock.TAB_VOLUMES), PANEL(ThothDock.TAB_PANEL);
+        VOLUMES(ThothDock.TAB_VOLUMES), APPS(ThothDock.TAB_APPS), PANEL(ThothDock.TAB_PANEL);
 
         final String key;
 
@@ -106,6 +106,10 @@ public class ContainersActivity extends AppCompatActivity {
         ListSources.Result imageList = new ListSources.Result();
         ListSources.Result volumeList = new ListSources.Result();
         List<ContainerRow> containers = new ArrayList<>();
+        /** Fetched only while the Apps tab is visible; null otherwise. */
+        List<AppRow> apps;
+        int runtimes;
+        boolean appsSupported = true;
     }
 
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -116,6 +120,7 @@ public class ContainersActivity extends AppCompatActivity {
     private final List<ContainerRow> rows = new ArrayList<>();
     private final List<ListSources.Item> imageItems = new ArrayList<>();
     private final List<ListSources.Item> volumeItems = new ArrayList<>();
+    private final List<AppRow> appRows = new ArrayList<>();
     private final int[] scrollPos = new int[Tab.values().length];
     private final int[] scrollTop = new int[Tab.values().length];
 
@@ -127,6 +132,7 @@ public class ContainersActivity extends AppCompatActivity {
     private RowAdapter adapter;
     private ItemAdapter imageAdapter;
     private ItemAdapter volumeAdapter;
+    private AppAdapter appAdapter;
     private PanelAdapter panelAdapter;
     private WebPanelController panelController;
     private View header;
@@ -173,6 +179,7 @@ public class ContainersActivity extends AppCompatActivity {
         chips[Tab.CONTAINERS.ordinal()] = header.findViewById(R.id.chip_containers);
         chips[Tab.IMAGES.ordinal()] = header.findViewById(R.id.chip_images);
         chips[Tab.VOLUMES.ordinal()] = header.findViewById(R.id.chip_volumes);
+        chips[Tab.APPS.ordinal()] = header.findViewById(R.id.chip_apps);
         chips[Tab.PANEL.ordinal()] = header.findViewById(R.id.chip_panel);
         for (Tab t : Tab.values()) {
             chips[t.ordinal()].setOnClickListener(v -> selectTab(t));
@@ -192,6 +199,7 @@ public class ContainersActivity extends AppCompatActivity {
         adapter = new RowAdapter();
         imageAdapter = new ItemAdapter(imageItems);
         volumeAdapter = new ItemAdapter(volumeItems);
+        appAdapter = new AppAdapter();
         panelAdapter = new PanelAdapter();
 
         Tab initial = Tab.of(getIntent().getStringExtra(ThothDock.EXTRA_TAB));
@@ -299,6 +307,10 @@ public class ContainersActivity extends AppCompatActivity {
             case VOLUMES:
                 list.setAdapter(volumeAdapter);
                 break;
+            case APPS:
+                list.setAdapter(appAdapter);
+                if (last != null && last.apps == null) poll(); // fetch the apps now, not at the next tick
+                break;
             case PANEL:
                 list.setAdapter(panelAdapter);
                 break;
@@ -315,6 +327,8 @@ public class ContainersActivity extends AppCompatActivity {
                 return R.string.images_title;
             case VOLUMES:
                 return R.string.volumes_title;
+            case APPS:
+                return R.string.apps_title;
             case PANEL:
                 return com.thothterm.R.string.web_panel;
             default:
@@ -343,6 +357,21 @@ public class ContainersActivity extends AppCompatActivity {
                 emptyView.setText(R.string.volumes_empty);
                 emptyView.setVisibility(volumeItems.isEmpty() ? View.VISIBLE : View.GONE);
                 break;
+            case APPS:
+                if (last.apps == null) break; // not fetched yet
+                if (!last.appsSupported) {
+                    emptyView.setText(R.string.apps_unsupported);
+                    emptyView.setVisibility(View.VISIBLE);
+                    break;
+                }
+                int running = 0;
+                for (AppRow a : appRows) if (a.isRunning()) running++;
+                tabNote.setText(getString(R.string.apps_summary, appRows.size(), last.runtimes, running)
+                        + (appRows.isEmpty() ? "" : "\n" + getString(R.string.apps_hint)));
+                tabNote.setVisibility(View.VISIBLE);
+                emptyView.setText(R.string.apps_empty);
+                emptyView.setVisibility(appRows.isEmpty() ? View.VISIBLE : View.GONE);
+                break;
             default:
                 emptyView.setText(R.string.containers_empty);
                 emptyView.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
@@ -354,8 +383,9 @@ public class ContainersActivity extends AppCompatActivity {
     private void poll() {
         if (!polling.compareAndSet(false, true)) return;
         try {
+            final boolean withApps = tab == Tab.APPS;
             poller.execute(() -> {
-                Snapshot s = fetch();
+                Snapshot s = fetch(withApps);
                 ui.post(() -> {
                     polling.set(false);
                     if (!isFinishing() && !isDestroyed()) render(s);
@@ -366,7 +396,7 @@ public class ContainersActivity extends AppCompatActivity {
         }
     }
 
-    private Snapshot fetch() {
+    private Snapshot fetch(boolean withApps) {
         Snapshot s = new Snapshot();
         try {
             JSONObject v = api.getObject("/version");
@@ -386,6 +416,17 @@ public class ContainersActivity extends AppCompatActivity {
                 s.pressure = api.getObject("/thothdock/process-guard").getJSONObject("guard").optString("message", "");
             } catch (IOException | JSONException ignored) {
                 s.pressure = "";
+            }
+            if (withApps) {
+                try {
+                    // ThothDock 0.3 and later; an older engine answers 404.
+                    JSONObject view = api.getObject("/thothdock/apps");
+                    s.apps = AppRow.parse(view);
+                    s.runtimes = view.optInt("Runtimes");
+                } catch (IOException e) {
+                    s.apps = new ArrayList<>();
+                    s.appsSupported = false;
+                }
             }
         } catch (IOException e) {
             s.online = false;
@@ -417,6 +458,10 @@ public class ContainersActivity extends AppCompatActivity {
             imageItems.addAll(s.imageList.items);
             volumeItems.clear();
             volumeItems.addAll(s.volumeList.items);
+            if (s.apps != null) {
+                appRows.clear();
+                appRows.addAll(s.apps);
+            }
         } else {
             engineState.setText(R.string.containers_engine_offline);
             engineState.setTextColor(getColor(R.color.thothdock_error));
@@ -433,6 +478,7 @@ public class ContainersActivity extends AppCompatActivity {
             rows.clear();
             imageItems.clear();
             volumeItems.clear();
+            appRows.clear();
         }
         // Only the visible tab is redrawn; the Web Panel tab has no engine data.
         showContentNote();
@@ -446,8 +492,64 @@ public class ContainersActivity extends AppCompatActivity {
             case VOLUMES:
                 volumeAdapter.notifyDataSetChanged();
                 break;
+            case APPS:
+                appAdapter.notifyDataSetChanged();
+                break;
             default:
         }
+    }
+
+    // ---- apps ------------------------------------------------------------------
+
+    /** Types a flatpak command into the terminal, as the Shell button does for containers. */
+    private void typeInTerminal(String command) {
+        if (command == null) {
+            Toast.makeText(this, R.string.apps_error_name, Toast.LENGTH_LONG).show();
+            return;
+        }
+        startActivity(new Intent().setClassName(getPackageName(), "com.thothterm.TermActivity")
+                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .putExtra(com.thothterm.dock.ThothDock.EXTRA_TERMINAL_INPUT, command));
+    }
+
+    /** Stops every running sandbox of the app through the engine. */
+    private void stopApp(AppRow app) {
+        String key = "app:" + app.id + ":" + app.installation;
+        if (!busy.add(key)) return;
+        appAdapter.notifyDataSetChanged();
+        List<String> ids = new ArrayList<>(app.sandboxes);
+        try {
+            actions.execute(() -> {
+                String failure = null;
+                for (String id : ids) {
+                    try {
+                        api.act("POST", "/thothdock/sandboxes/" + id + "/kill", 15000);
+                    } catch (IOException e) {
+                        failure = e.getMessage();
+                        ThothLog.w(LogCategory.RUNTIME, "Apps: stopping a sandbox failed: " + failure);
+                    }
+                }
+                final String message = failure;
+                ui.post(() -> {
+                    busy.remove(key);
+                    if (message != null && !isDestroyed()) {
+                        Toast.makeText(this, getString(R.string.apps_error_stop, message), Toast.LENGTH_LONG).show();
+                    }
+                    poll();
+                });
+            });
+        } catch (RuntimeException rejected) {
+            busy.remove(key);
+        }
+    }
+
+    private void confirmRemoveApp(AppRow app) {
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.apps_remove_title, app.name))
+                .setMessage(getString(R.string.apps_remove_message, app.name))
+                .setPositiveButton(R.string.apps_remove, (d, w) -> typeInTerminal(app.removeCommand()))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     // ---- actions ---------------------------------------------------------------
@@ -559,14 +661,17 @@ public class ContainersActivity extends AppCompatActivity {
                 }
             });
             Button restart = v.findViewById(R.id.btn_restart);
+            restart.setVisibility(View.VISIBLE); // the Apps tab hides it in the same layout
             restart.setEnabled(!working);
             restart.setOnClickListener(x ->
                     act(r, "POST", "/containers/" + r.id + "/restart?t=10", 40000, R.string.containers_error_restart));
+            v.findViewById(R.id.btn_logs).setVisibility(View.VISIBLE);
             v.findViewById(R.id.btn_logs).setOnClickListener(x -> openLogs(r));
             Button shell = v.findViewById(R.id.btn_shell);
             shell.setVisibility(r.isRunning() ? View.VISIBLE : View.GONE);
             shell.setOnClickListener(x -> openShell(r));
             Button delete = v.findViewById(R.id.btn_delete);
+            delete.setText(R.string.containers_delete);
             delete.setEnabled(!working);
             delete.setOnClickListener(x -> confirmDelete(r));
             return v;
@@ -605,6 +710,62 @@ public class ContainersActivity extends AppCompatActivity {
             ((TextView) v.findViewById(R.id.simple_badge)).setText(it.badge);
             ((TextView) v.findViewById(R.id.simple_sub)).setText(it.sub);
             ((TextView) v.findViewById(R.id.simple_meta)).setText(it.meta);
+            return v;
+        }
+    }
+
+    /** Rows of the Apps tab, drawn like container cards. */
+    private final class AppAdapter extends BaseAdapter {
+        @Override
+        public int getCount() {
+            return appRows.size();
+        }
+
+        @Override
+        public AppRow getItem(int position) {
+            return appRows.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return (appRows.get(position).id + appRows.get(position).installation).hashCode();
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            View v = convertView != null ? convertView
+                    : LayoutInflater.from(ContainersActivity.this).inflate(R.layout.item_container, parent, false);
+            AppRow a = appRows.get(position);
+            ((TextView) v.findViewById(R.id.item_name)).setText(a.name);
+            ((TextView) v.findViewById(R.id.item_image)).setText(a.id + (a.branch.isEmpty() ? "" : " · " + a.branch));
+            ((TextView) v.findViewById(R.id.item_status)).setText(ListSources.megabytes(a.sizeBytes)
+                    + " · " + a.kind + " · " + a.installation + (a.runtime.isEmpty() ? "" : "\n" + a.runtime));
+            TextView state = v.findViewById(R.id.item_state);
+            state.setText(a.isRunning() ? R.string.apps_running : R.string.apps_installed);
+            int color = a.isRunning() ? stateColor("running") : stateColor("created");
+            state.setTextColor(color);
+            View dot = v.findViewById(R.id.item_dot);
+            Drawable bg = dot.getBackground().mutate();
+            bg.setColorFilter(color, PorterDuff.Mode.SRC_IN);
+            dot.setBackground(bg);
+            TextView ports = v.findViewById(R.id.item_ports);
+            ports.setVisibility(a.isRunning() ? View.VISIBLE : View.GONE);
+            ports.setText(android.text.TextUtils.join("   ", a.runningDetail));
+            boolean working = busy.contains("app:" + a.id + ":" + a.installation);
+            Button toggle = v.findViewById(R.id.btn_toggle);
+            toggle.setText(a.isRunning() ? R.string.apps_stop : R.string.apps_run);
+            toggle.setEnabled(!working);
+            toggle.setOnClickListener(x -> {
+                if (a.isRunning()) stopApp(a);
+                else typeInTerminal(a.runCommand());
+            });
+            v.findViewById(R.id.btn_restart).setVisibility(View.GONE);
+            v.findViewById(R.id.btn_logs).setVisibility(View.GONE);
+            v.findViewById(R.id.btn_shell).setVisibility(View.GONE);
+            Button remove = v.findViewById(R.id.btn_delete);
+            remove.setText(R.string.apps_remove);
+            remove.setEnabled(!working);
+            remove.setOnClickListener(x -> confirmRemoveApp(a));
             return v;
         }
     }

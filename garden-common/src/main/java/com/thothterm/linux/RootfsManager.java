@@ -958,6 +958,12 @@ public final class RootfsManager {
         File binDir = guestDir(root, "/usr/local/bin");
         copyManagedAsset(root, "linux/thothfetch", new File(binDir, "thothfetch"), 0755);
         copyManagedAsset(root, "linux/fastfetch-fit", new File(binDir, "fastfetch-fit"), 0755);
+        // Flatpak needs a system D-Bus a PRoot guest does not run by itself;
+        // only builds whose ThothDock runs Flatpak sandboxes get the wrapper.
+        com.thothterm.dock.ThothDock dock = com.thothterm.dock.ThothDock.getIfInitialized();
+        if (dock != null && dock.bundlesBwrap()) {
+            copyManagedAsset(root, "linux/flatpak", new File(binDir, "flatpak"), 0755);
+        }
 
         // Read by thothfetch; the edition name is validated metadata, one line.
         managed("edition", () -> writeGuest(root, new File(managedDir, "edition"),

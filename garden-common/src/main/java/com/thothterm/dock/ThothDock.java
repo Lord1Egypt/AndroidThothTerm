@@ -81,6 +81,8 @@ public final class ThothDock {
     public static final String TAB_IMAGES = "images";
     public static final String TAB_VOLUMES = "volumes";
     public static final String TAB_PANEL = "panel";
+    /** Installed Flatpak apps and their running sandboxes. */
+    public static final String TAB_APPS = "apps";
 
     /** ThothDock's own binary inside the guest, for `thothdock doctor --guard`. */
     public static final String GUEST_TOOL = "/usr/local/bin/thothdock";
@@ -272,8 +274,7 @@ public final class ThothDock {
                 "--bind=" + dir + ":" + GUEST_SOCKET_DIR,
                 "--bind=" + cliPath() + ":" + GUEST_CLI,
                 "--bind=" + new File(nativeLibDir, DAEMON).getAbsolutePath() + ":" + GUEST_TOOL));
-        File bwrap = new File(nativeLibDir, BWRAP);
-        if (bwrap.isFile()) binds.add("--bind=" + bwrap.getAbsolutePath() + ":" + GUEST_BWRAP);
+        if (bundlesBwrap()) binds.add("--bind=" + new File(nativeLibDir, BWRAP).getAbsolutePath() + ":" + GUEST_BWRAP);
         return binds;
     }
 
@@ -283,8 +284,13 @@ public final class ThothDock {
         java.util.Map<String, String> env = new java.util.LinkedHashMap<>();
         env.put("DOCKER_HOST", GUEST_DOCKER_HOST);
         // flatpak runs apps through $FLATPAK_BWRAP: the engine builds the sandbox.
-        if (new File(nativeLibDir, BWRAP).isFile()) env.put("FLATPAK_BWRAP", GUEST_BWRAP);
+        if (bundlesBwrap()) env.put("FLATPAK_BWRAP", GUEST_BWRAP);
         return env;
+    }
+
+    /** True when this APK carries Flatpak's bwrap stand-in (ThothDock 0.3 and later). */
+    public boolean bundlesBwrap() {
+        return bundled && new File(nativeLibDir, BWRAP).isFile();
     }
 
     /** The engine binary in the APK's library directory (also the Web Panel). */

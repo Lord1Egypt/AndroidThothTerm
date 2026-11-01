@@ -122,15 +122,17 @@ public class PageAlignmentTest {
         List<File> elfs = shippedElfs();
         // preBuild runs garden-common/tools/build-proot.sh before any test
         // compiles, so the runtime must be there.
-        // A ThothDock build ships two more, libthothdock.so and libdocker.so,
-        // both or neither; each is checked below like every other file.
+        // A ThothDock build ships three more, libthothdock.so, libdocker.so and
+        // libthothdockbwrap.so (Flatpak's bwrap stand-in), all or none; each is
+        // checked below like every other file.
         int thothdock = 0;
         for (File elf : elfs) {
-            if (elf.getName().equals("libthothdock.so") || elf.getName().equals("libdocker.so")) thothdock++;
+            String n = elf.getName();
+            if (n.equals("libthothdock.so") || n.equals("libdocker.so") || n.equals("libthothdockbwrap.so")) thothdock++;
         }
-        assertTrue("libthothdock.so and libdocker.so come together", thothdock == 0 || thothdock == 2);
+        assertTrue("libthothdock.so, libdocker.so and libthothdockbwrap.so come together", thothdock == 0 || thothdock == 3);
         assertEquals("libproot.so, libproot_loader.so, libtalloc.so.2, libandroid-shmem.so"
-                + (thothdock == 2 ? ", libthothdock.so, libdocker.so" : ""),
+                + (thothdock == 3 ? ", libthothdock.so, libdocker.so, libthothdockbwrap.so" : ""),
                 4 + thothdock, elfs.size());
 
         for (File elf : elfs) {

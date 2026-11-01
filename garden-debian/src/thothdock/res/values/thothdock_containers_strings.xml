@@ -93,5 +93,20 @@
     <string name="nav_chip_images">Images</string>
     <string name="nav_chip_volumes">Volumes</string>
     <string name="nav_chip_panel">Web Panel</string>
+    <string name="nav_chip_apps">Apps</string>
+    <string name="apps_title">Apps</string>
+    <string name="apps_empty">No Flatpak apps yet. Install one in the terminal, for example: flatpak --user install flathub org.gnome.Calculator</string>
+    <string name="apps_summary">%1$d apps · %2$d runtimes · %3$d running</string>
+    <string name="apps_hint">Run and Remove type the flatpak command into the terminal; Stop ends a running app.</string>
+    <string name="apps_unsupported">This engine cannot list apps yet (ThothDock 0.3 or later is needed).</string>
+    <string name="apps_run">Run</string>
+    <string name="apps_stop">Stop</string>
+    <string name="apps_remove">Remove</string>
+    <string name="apps_installed">installed</string>
+    <string name="apps_running">running</string>
+    <string name="apps_remove_title">Remove %1$s?</string>
+    <string name="apps_remove_message">This types “flatpak uninstall” into the terminal, where flatpak asks once more before removing %1$s. Its data in ~/.var/app stays.</string>
+    <string name="apps_error_name">This app’s ID is not a valid Flatpak ID, so nothing is typed into the terminal.</string>
+    <string name="apps_error_stop">Could not stop the app: %1$s</string>
     <string name="containers_volumes">Volumes</string>
 </resources>
