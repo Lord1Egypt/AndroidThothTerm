@@ -1,0 +1,1 @@
+Codex and other programs that read a process's start time now work: Android denies apps /proc/stat and /proc/uptime, so ps could not find the boot time ("Unable to get system boot time") and codex needed --no-daemon. The guest now gets stand-ins for both files with the real boot time. Same ThothDock 0.3.0 engine as 0.5.0.

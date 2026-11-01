@@ -94,7 +94,7 @@ public class ProductNameTest {
         assertTrue(read(dir + "title.txt").trim().length() <= 50);
         assertTrue(read(dir + "short_description.txt").trim().length() <= 80);
         assertTrue(read(dir + "full_description.txt").length() <= 4000);
-        for (String code : new String[]{"301", "400", "401", "402", "500"}) {
+        for (String code : new String[]{"301", "400", "401", "402", "500", "501"}) {
             assertTrue(code, read(dir + "changelogs/" + code + ".txt").length() <= 500);
         }
     }
