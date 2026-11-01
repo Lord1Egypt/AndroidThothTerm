@@ -1,0 +1,1 @@
+Swiping now scrolls full-screen terminal programs such as OpenCode, so a long conversation can be scrolled back to its start. Programs that ask for mouse reports get swipes as wheel events (taps become clicks only with "Send mouse events" on), in the SGR format modern programs request. Several terminal modes set in one sequence now all take effect.

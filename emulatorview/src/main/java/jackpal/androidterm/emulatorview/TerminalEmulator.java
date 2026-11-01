@@ -254,6 +254,9 @@ class TerminalEmulator {
      */
     private int mMouseTrackingMode;
 
+    /** DECSET 1006: mouse reports in the SGR form ESC [ < b ; x ; y M/m. */
+    private boolean mMouseSgr;
+
     /**
      * True if insert mode (as opposed to replace mode) is active. In insert
      * mode new characters are inserted, pushing existing text to the right.
@@ -607,6 +610,10 @@ class TerminalEmulator {
         return mMouseTrackingMode;
     }
 
+    public final boolean isMouseSgrMode() {
+        return mMouseSgr;
+    }
+
     private void setDefaultTabStops() {
         for (int i = 0; i < mColumns; i++) {
             mTabStop[i] = (i & 7) == 0 && i != 0;
@@ -915,7 +922,18 @@ class TerminalEmulator {
     }
 
     private void doEscLSBQuest(byte b) {
-        int arg = getArg0(0);
+        if (b != 'h' && b != 'l' && b != 'r' && b != 's') {
+            parseArg(b);
+            return;
+        }
+        // Every mode of ESC [ ? Pn ; Pn ... h: TUIs set several at once
+        // (ESC [ ? 1000 ; 1006 h), and only the first used to take effect.
+        for (int i = 0; i <= mArgIndex; i++) {
+            doDecPrivateMode(b, getArg(i, 0, true));
+        }
+    }
+
+    private void doDecPrivateMode(byte b, int arg) {
         int mask = getDecFlagsMask(arg);
         int oldFlags = mDecFlags;
         switch (b) {
@@ -935,6 +953,8 @@ class TerminalEmulator {
             }
             if (arg >= 1000 && arg <= 1003) {
                 mMouseTrackingMode = arg;
+            } else if (arg == 1006) {
+                mMouseSgr = true;
             }
             break;
 
@@ -952,6 +972,8 @@ class TerminalEmulator {
             }
             if (arg >= 1000 && arg <= 1003) {
                 mMouseTrackingMode = 0;
+            } else if (arg == 1006) {
+                mMouseSgr = false;
             }
             break;
 
@@ -961,10 +983,6 @@ class TerminalEmulator {
 
         case 's': // Esc [ ? Pn s - save
             mSavedDecFlags = (mSavedDecFlags & ~mask) | (mDecFlags & mask);
-            break;
-
-        default:
-            parseArg(b);
             break;
         }
 
@@ -2019,6 +2037,10 @@ class TerminalEmulator {
         }
         mDecFlags |= K_SHOW_CURSOR_MASK;
         mSavedDecFlags = 0;
+        // A TUI killed before it turned mouse reporting off must not leave
+        // swipes sent as mouse events after "Restart terminal".
+        mMouseTrackingMode = 0;
+        mMouseSgr = false;
         mInsertMode = false;
         mTopMargin = 0;
         mBottomMargin = mRows;

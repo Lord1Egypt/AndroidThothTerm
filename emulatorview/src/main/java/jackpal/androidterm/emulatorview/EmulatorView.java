@@ -282,7 +282,7 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
                 return;
             }
             // Check whether mouse tracking was turned on during fling.
-            if (isMouseTrackingActive()) {
+            if (programWantsWheel()) {
                 return;
             }
 
@@ -1227,29 +1227,23 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     }
 
     /**
-     * Send a single mouse event code to the terminal.
+     * True while the program asked for mouse reports (DECSET 1000-1003).
+     * Swipes then go to it as wheel events whatever the "send mouse events"
+     * setting says: a full-screen program on the alternate screen has no
+     * scrollback here and scrolls only itself (OpenCode's conversation).
+     * Taps become clicks only when the setting is on.
      */
-    private void sendMouseEventCode(MotionEvent e, int button_code) {
+    private boolean programWantsWheel() {
+        return mEmulator != null && mEmulator.getMouseTrackingMode() != 0;
+    }
+
+    /** Sends one mouse report for the cell under {@code e}, if it can be encoded. */
+    private void sendMouseEvent(MotionEvent e, int button, boolean release) {
         int x = (int) ((e.getX() - mLeftPadding) / mCharacterWidth) + 1;
         int y = (int) ((e.getY() - mTopOfScreenMargin) / mCharacterHeight) + 1;
-        // Clip to screen, and clip to the limits of 8-bit data.
-        boolean out_of_bounds =
-            x < 1 || y < 1 ||
-            x > mColumns || y > mRows ||
-            x > (255 - 32) || y > (255 - 32);
-        //Log.d(TAG, "mouse button "+x+","+y+","+button_code+",oob="+out_of_bounds);
-        if (button_code < 0 || button_code > (255 - 32)) {
-            Log.e(TAG, "mouse button_code out of range: " + button_code);
-            return;
-        }
-        if (!out_of_bounds) {
-            byte[] data = {
-                '\033', '[', 'M',
-                (byte)(32 + button_code),
-                (byte)(32 + x),
-                (byte)(32 + y) };
-            mTermSession.write(data, 0, data.length);
-        }
+        if (x > mColumns || y > mRows) return;
+        byte[] data = MouseReport.encode(button, release, x, y, mEmulator.isMouseSgrMode());
+        if (data != null) mTermSession.write(data, 0, data.length);
     }
 
     // Begin GestureDetector.OnGestureListener methods
@@ -1260,8 +1254,8 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         }
 
         if (isMouseTrackingActive()) {
-            sendMouseEventCode(e, 0); // BTN1 press
-            sendMouseEventCode(e, 3); // release
+            sendMouseEvent(e, MouseReport.BUTTON_LEFT, false);
+            sendMouseEvent(e, MouseReport.BUTTON_LEFT, true);
         }
 
         requestFocus();
@@ -1282,13 +1276,12 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         int deltaRows = (int) (distanceY / mCharacterHeight);
         mScrollRemainder = distanceY - deltaRows * mCharacterHeight;
 
-        if (isMouseTrackingActive()) {
-            // Send mouse wheel events to terminal.
+        if (programWantsWheel()) {
             for (; deltaRows > 0; deltaRows--) {
-                sendMouseEventCode(e1, 65);
+                sendMouseEvent(e1, MouseReport.WHEEL_DOWN, false);
             }
             for (; deltaRows < 0; deltaRows++) {
-                sendMouseEventCode(e1, 64);
+                sendMouseEvent(e1, MouseReport.WHEEL_UP, false);
             }
             return true;
         }
@@ -1326,7 +1319,7 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         }
 
         mScrollRemainder = 0.0f;
-        if (isMouseTrackingActive()) {
+        if (programWantsWheel()) {
             mMouseTrackingFlingRunner.fling(e1, velocityX, velocityY);
         } else {
             float SCALE = 0.25f;
@@ -2367,17 +2360,17 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
                 return;
             }
             // Check whether mouse tracking was turned off during fling.
-            if (!isMouseTrackingActive()) {
+            if (!programWantsWheel()) {
                 return;
             }
 
             boolean more = mScroller.computeScrollOffset();
             int newY = mScroller.getCurrY();
             for (; mLastY < newY; mLastY++) {
-                sendMouseEventCode(mMotionEvent, 65);
+                sendMouseEvent(mMotionEvent, MouseReport.WHEEL_DOWN, false);
             }
             for (; mLastY > newY; mLastY--) {
-                sendMouseEventCode(mMotionEvent, 64);
+                sendMouseEvent(mMotionEvent, MouseReport.WHEEL_UP, false);
             }
 
             if (more) {
