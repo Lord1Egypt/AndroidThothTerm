@@ -1,0 +1,66 @@
+Subject: do not abort when a fake-root process calls chroot
+
+Under --root-id, chroot(2) is emulated by replacing the tracee's file system
+namespace (tracee->fs) with one rooted at the new directory. The old
+namespace is freed at that point, and its lists of bindings are destroyed by
+remove_bindings(), which found "its" tracee as the grandparent of the list
+(talloc_parent twice). A namespace being freed is already detached from the
+tracee, so the lookup hit NULL and talloc aborted:
+
+    ./path/binding.c:438: Type mismatch: name[NULL] expected[Tracee]
+
+and every process of the container died. The macro also unlinked from
+tracee->fs, which after the swap is the *new* namespace. Any program that
+calls chroot() while it is fake root triggers it: OpenSSH's privilege
+separation (sshd), debootstrap-style scripts. It is present in the pinned
+termux/proot and in the series up to 0015.
+
+remove_bindings() now uses the list's own parent, the FileSystemNameSpace
+that owns it, for both the lookup and the unlinking.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0015
+
+diff --git a/src/path/binding.c b/src/path/binding.c
+index 12d6505..ba6088f 100644
+--- a/src/path/binding.c
++++ b/src/path/binding.c
+@@ -422,25 +422,33 @@ Binding *insort_binding3(const Tracee *tracee, const TALLOC_CTX *context,
+ static int remove_bindings(Bindings *bindings)
+ {
+ 	Binding *binding;
+-	Tracee *tracee;
++	FileSystemNameSpace *fs;
++
++	/* The namespace owning this list, not "the tracee's current one": a
++	 * chroot(2) replaces tracee->fs and frees the old namespace, whose
++	 * lists are then destroyed while it is already detached from the
++	 * tracee.  */
++	fs = talloc_get_type_abort(talloc_parent(bindings), FileSystemNameSpace);
+ 
+ 	/* Unlink all bindings from the @link list.  */
+ #define CIRCLEQ_REMOVE_ALL(name) do {				\
+ 	binding = CIRCLEQ_FIRST(bindings);			\
+ 	while (binding != (void *) bindings) {			\
+ 		Binding *next = CIRCLEQ_NEXT(binding, link.name);\
+-		CIRCLEQ_REMOVE_(tracee, binding, name);		\
++		CIRCLEQ_REMOVE(fs->bindings.name, binding, link.name);\
++		binding->link.name.cqe_next = NULL;		\
++		binding->link.name.cqe_prev = NULL;		\
++		talloc_unlink(fs->bindings.name, binding);	\
+ 		binding = next;					\
+ 	}							\
+ } while (0)
+ 
+ 	/* Search which link is used by this list.  */
+-	tracee = TRACEE(bindings);
+-	if (bindings == tracee->fs->bindings.pending)
++	if (bindings == fs->bindings.pending)
+ 		CIRCLEQ_REMOVE_ALL(pending);
+-	else if (bindings == tracee->fs->bindings.guest)
++	else if (bindings == fs->bindings.guest)
+ 		CIRCLEQ_REMOVE_ALL(guest);
+-	else if (bindings == tracee->fs->bindings.host)
++	else if (bindings == fs->bindings.host)
+ 		CIRCLEQ_REMOVE_ALL(host);
+ 
+ 	bzero(bindings, sizeof(Bindings));

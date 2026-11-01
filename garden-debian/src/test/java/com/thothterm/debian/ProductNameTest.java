@@ -93,6 +93,9 @@ public class ProductNameTest {
         String dir = "garden-debian/fastlane/metadata/android/en-US/";
         assertTrue(read(dir + "title.txt").trim().length() <= 50);
         assertTrue(read(dir + "short_description.txt").trim().length() <= 80);
-        assertTrue(read(dir + "changelogs/301.txt").length() <= 500);
+        assertTrue(read(dir + "full_description.txt").length() <= 4000);
+        for (String code : new String[]{"301", "400", "401", "402"}) {
+            assertTrue(code, read(dir + "changelogs/" + code + ".txt").length() <= 500);
+        }
     }
 }

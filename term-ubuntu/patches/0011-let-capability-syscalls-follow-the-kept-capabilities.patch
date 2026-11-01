@@ -1,0 +1,66 @@
+Subject: let capability syscalls follow the kept capabilities
+
+Redis 7.4+, Redis 8 and Valkey images start the server with
+"setpriv --reuid redis --regid redis --clear-groups", and Redis 8 adds
+"--nnp --inh-caps=... --ambient-caps=... --bounding-set=...". setpriv keeps
+its capabilities across the UID change (PR_SET_KEEPCAPS) and then calls
+setgroups, capset and prctl(PR_CAPBSET_DROP / PR_CAP_AMBIENT). Under
+--root-id the real kernel refuses them to the unprivileged app (EPERM), and
+fake_id0 forgave that only while the fake effective UID was 0 (setgroups,
+capset) or not at all (prctl), so the entrypoints exited 127 with
+"setpriv: setgroups failed" / "setpriv: apply capabilities: Operation not
+permitted".
+
+fake_id0 already models CAP_SETUID/CAP_SETGID across a UID drop
+(caps_active, kept by PR_SET_KEEPCAPS) for setuid and setgid; setgroups,
+capset and the bounding/ambient prctl operations now use the same model,
+and only a refusal (EPERM) is turned into success. Nothing is granted for
+real: group membership and capabilities are not emulated, and the kernel
+credentials stay the app's.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0010
+
+diff --git a/src/extension/fake_id0/fake_id0.c b/src/extension/fake_id0/fake_id0.c
+index e4e55b2..cb98641 100644
+--- a/src/extension/fake_id0/fake_id0.c
++++ b/src/extension/fake_id0/fake_id0.c
+@@ -973,6 +973,12 @@ static int handle_sysexit_end(Tracee *tracee, Config *config)
+ 			word_t arg = peek_reg(tracee, ORIGINAL, SYSARG_2);
+ 			config->keep_caps = (arg != 0);
+ 		}
++		/* Bounding and ambient set changes need capabilities the
++		 * app never has; a fake root keeps them (setpriv
++		 * --bounding-set/--ambient-caps in the Redis 8 entrypoint).  */
++		if (result == -EPERM && (op == PR_CAPBSET_DROP || op == PR_CAP_AMBIENT)
++		    && (config->euid == 0 || config->caps_active))
++			poke_reg(tracee, SYSARG_RESULT, 0);
+ 		return 0;
+ 	}
+ 
+@@ -1019,15 +1025,23 @@ static int handle_sysexit_end(Tracee *tracee, Config *config)
+ 		return 0;
+ #endif
+ 
+-	case PR_setdomainname:
+-	case PR_sethostname:
+ #ifndef USERLAND
++	/* setgroups needs CAP_SETGID and capset CAP_SETPCAP, which a process
++	 * keeps across a UID drop with PR_SET_KEEPCAPS: setpriv --reuid=...
++	 * --regid=... --clear-groups does exactly that (Redis and Valkey
++	 * entrypoints).  */
+ 	case PR_setgroups:
+ 	case PR_setgroups32:
++		return handle_perm_err_exit_end(tracee, config, config->caps_active);
+ #endif
++
++	case PR_capset:
++		return handle_perm_err_exit_end(tracee, config, config->caps_active);
++
++	case PR_setdomainname:
++	case PR_sethostname:
+ 	case PR_mknod:
+ 	case PR_mknodat:
+-	case PR_capset:
+ 	case PR_chmod:
+ 	case PR_chown:
+ 	case PR_fchmod:

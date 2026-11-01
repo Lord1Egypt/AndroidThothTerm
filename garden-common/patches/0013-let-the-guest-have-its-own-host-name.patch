@@ -1,0 +1,177 @@
+Subject: let the guest have its own host name with --hostname
+
+RabbitMQ failed to boot in ThothDock with "epmd error for host
+DESKTOP-...: address": Erlang names its node after uname(2)'s node name,
+which under PRoot is the device's (or desktop's) own, while the container's
+/etc/hosts names the container. Docker gives each container its own UTS
+namespace, so hostname, gethostname() and uname -n report the container's
+host name there.
+
+--hostname=NAME makes uname report NAME as the node name. Only uname is
+intercepted, at its exit, and only the nodename field is rewritten; the
+release, machine and hwcap stay the kernel's, sethostname is left alone.
+PRoot's kompat extension (--kernel-release) rewrites the whole utsname, and
+extensions run newest first, so --hostname must come before
+--kernel-release on the command line (ThothDock passes them in that order).
+kompat itself was not used for this: it adds ptrace stops on epoll_pwait,
+accept4, dup3 and eventfd2, which every event-loop server would pay for.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0012
+
+diff --git a/src/GNUmakefile b/src/GNUmakefile
+index 3041d85..37ee66d 100644
+--- a/src/GNUmakefile
++++ b/src/GNUmakefile
+@@ -64,6 +64,7 @@ OBJECTS += \
+ 	extension/ashmem_memfd/ashmem_memfd.o \
+ 	extension/kompat/kompat.o \
+ 	extension/net_ip/net_ip.o \
++	extension/hostname/hostname.o \
+ 	extension/fake_id0/chown.o \
+ 	extension/fake_id0/chroot.o \
+ 	extension/fake_id0/getsockopt.o \
+diff --git a/src/cli/proot.c b/src/cli/proot.c
+index fb04b55..57b3b25 100644
+--- a/src/cli/proot.c
++++ b/src/cli/proot.c
+@@ -317,6 +317,21 @@ static int handle_option_net_ip(Tracee *tracee, const Cli *cli UNUSED, const cha
+ 	return 0;
+ }
+ 
++static int handle_option_hostname(Tracee *tracee, const Cli *cli UNUSED, const char *value)
++{
++	if (!hostname_valid(value)) {
++		note(tracee, ERROR, USER, "--hostname=%s: 1 to 64 characters, no '/'", value);
++		return -1;
++	}
++
++	if (initialize_extension(tracee, hostname_callback, value) < 0) {
++		note(tracee, ERROR, INTERNAL, "hostname not initialized");
++		return -1;
++	}
++
++	return 0;
++}
++
+ #if defined(__ANDROID__) || defined(__BIONIC__)
+ static int handle_option_ashmem_memfd(Tracee *tracee, const Cli *cli UNUSED, const char *value UNUSED)
+ {
+diff --git a/src/cli/proot.h b/src/cli/proot.h
+index 2c81eb4..d6caf98 100644
+--- a/src/cli/proot.h
++++ b/src/cli/proot.h
+@@ -62,6 +62,7 @@ static int handle_option_R(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_S(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_link2symlink(Tracee *tracee, const Cli *cli, const char *value);
+ static int handle_option_net_ip(Tracee *tracee, const Cli *cli, const char *value);
++static int handle_option_hostname(Tracee *tracee, const Cli *cli, const char *value);
+ #if defined(__ANDROID__) || defined(__BIONIC__)
+ static int handle_option_ashmem_memfd(Tracee *tracee, const Cli *cli, const char *value);
+ #endif /* defined(__ANDROID__) || defined(__BIONIC__) */
+@@ -268,6 +269,15 @@ Copyright (C) 2015 STMicroelectronics, licensed under GPL v2 or later.",
+ \tconnect() and sendto() to loopback reach *string*, 127.77.0.1 reaches\n\
+ \tthe host's 127.0.0.1, and ports below 1024 on 127.77.0.0/16 addresses\n\
+ \tbecome port + 30000.  Address translation, not isolation.",
++	},
++	{ .class = "Extension options",
++	  .arguments = {
++		{ .name = "--hostname", .separator = '=', .value = "string" },
++		{ .name = NULL, .separator = '\0', .value = NULL } },
++	  .handler = handle_option_hostname,
++	  .description = "Make uname report *string* as the node name.",
++	  .detail = "\tThe guest's gethostname() and hostname see *string*;\n\
++\tthe kernel's own host name is unchanged.",
+ 	},
+ 	{ .class = "Extension options",
+ 	  .arguments = {
+diff --git a/src/extension/extension.h b/src/extension/extension.h
+index e86d126..7b5e0b1 100644
+--- a/src/extension/extension.h
++++ b/src/extension/extension.h
+@@ -215,6 +215,8 @@ extern int port_switch_callback(Extension *extension, ExtensionEvent event, intp
+ extern int link2symlink_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
+ extern int net_ip_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
+ extern int net_ip_parse(const char *value, uint32_t *own);
++extern int hostname_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
++extern int hostname_valid(const char *value);
+ extern int fix_symlink_size_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
+ #if defined(__ANDROID__) || defined(__BIONIC__)
+ extern int ashmem_memfd_callback(Extension *extension, ExtensionEvent event, intptr_t d1, intptr_t d2);
+diff --git a/src/extension/hostname/hostname.c b/src/extension/hostname/hostname.c
+new file mode 100644
+index 0000000..f1460b3
+--- /dev/null
++++ b/src/extension/hostname/hostname.c
+@@ -0,0 +1,72 @@
++/* -*- c-set-style: "K&R"; c-basic-offset: 8 -*-
++ *
++ * --hostname=NAME: uname(2) reports NAME as the node name, so a guest sees
++ * the host name its container was given (Docker gives each container its
++ * own UTS namespace).  Only uname is intercepted, at its exit; the other
++ * fields, sethostname and everything else are left to the kernel.
++ */
++
++#include <stddef.h>      /* offsetof, */
++#include <string.h>      /* strlen, strcpy, */
++#include <sys/utsname.h> /* struct utsname, */
++
++#include "extension/extension.h"
++#include "tracee/tracee.h"
++#include "tracee/reg.h"
++#include "tracee/mem.h"
++#include "syscall/sysnum.h"
++
++typedef struct {
++	char nodename[sizeof(((struct utsname *) 0)->nodename)];
++} Config;
++
++/* A node name fits struct utsname and has no NUL or '/'.  */
++int hostname_valid(const char *value)
++{
++	size_t length = strlen(value);
++	return length > 0 && length < sizeof(((Config *) 0)->nodename) && strchr(value, '/') == NULL;
++}
++
++int hostname_callback(Extension *extension, ExtensionEvent event, intptr_t data1, intptr_t data2 UNUSED)
++{
++	switch (event) {
++	case INITIALIZATION: {
++		static FilteredSysnum filtered_sysnums[] = {
++			{ PR_uname,	FILTER_SYSEXIT },
++			FILTERED_SYSNUM_END,
++		};
++		Config *config;
++
++		if (!hostname_valid((const char *) data1))
++			return -1;
++		config = talloc_zero(extension, Config);
++		if (config == NULL)
++			return -1;
++		strcpy(config->nodename, (const char *) data1);
++		extension->config = config;
++		extension->filtered_sysnums = filtered_sysnums;
++		return 0;
++	}
++
++	case INHERIT_PARENT:
++		/* The configuration never changes: share it.  */
++		return 0;
++
++	case SYSCALL_EXIT_END: {
++		Tracee *tracee = TRACEE(extension);
++		const Config *config = talloc_get_type_abort(extension->config, Config);
++		word_t address;
++
++		if (get_sysnum(tracee, ORIGINAL) != PR_uname
++		    || (int) peek_reg(tracee, CURRENT, SYSARG_RESULT) < 0)
++			return 0;
++
++		address = peek_reg(tracee, ORIGINAL, SYSARG_1);
++		return write_data(tracee, address + offsetof(struct utsname, nodename),
++				config->nodename, sizeof(config->nodename));
++	}
++
++	default:
++		return 0;
++	}
++}

@@ -1,0 +1,40 @@
+Subject: let a fake root keep its capabilities when the kernel locks KEEPCAPS
+
+Redis 8 and Valkey exit on the phone with "setpriv: keep process
+capabilities failed: Operation not permitted". Android's zygote starts apps
+with SECBIT_KEEP_CAPS_LOCKED (securebits 0x2f, read on the device), so the
+kernel answers prctl(PR_SET_KEEPCAPS) with EPERM, set or clear. setpriv
+--reuid ... --clear-groups (Redis 7.4+, Redis 8, Valkey entrypoints) calls it
+first; patch 0011 only forgave the later setgroups/capset/bounding/ambient
+calls, which the host cannot show because a Linux host does not lock the bit.
+
+fake_id0 now answers PR_SET_KEEPCAPS for a fake root (euid 0 or the kept
+capability flag) as the kernel would without the lock: it records the keep
+flag it already uses for setuid/setgid/setgroups and turns that one EPERM
+into success. Nothing real is granted: the secure bits and the kernel's
+credentials are unchanged, and a process that is not fake root still gets
+the refusal.
+
+Upstream: termux/proot @ 7266fb3e8516535682f5a9c8f3a7e70f6506eddb (v5.1.107.92), after patches 0001-0017
+
+diff --git a/src/extension/fake_id0/fake_id0.c b/src/extension/fake_id0/fake_id0.c
+index cb98641..63d7f62 100644
+--- a/src/extension/fake_id0/fake_id0.c
++++ b/src/extension/fake_id0/fake_id0.c
+@@ -969,9 +969,15 @@ static int handle_sysexit_end(Tracee *tracee, Config *config)
+ 		 * directly and needs no intercept). */
+ 		int op = (int) peek_reg(tracee, ORIGINAL, SYSARG_1);
+ 		int result = (int) peek_reg(tracee, CURRENT, SYSARG_RESULT);
+-		if (result == 0 && op == PR_SET_KEEPCAPS) {
++		if (op == PR_SET_KEEPCAPS && (result == 0
++		    /* Android's app sandbox refuses PR_SET_KEEPCAPS with EPERM,
++		     * yet setpriv --reuid ... (Redis, Valkey) needs it.  A fake
++		     * root keeps its fake capabilities: only the refusal turns
++		     * into success, nothing real is granted.  */
++		    || (result == -EPERM && (config->euid == 0 || config->caps_active)))) {
+ 			word_t arg = peek_reg(tracee, ORIGINAL, SYSARG_2);
+ 			config->keep_caps = (arg != 0);
++			poke_reg(tracee, SYSARG_RESULT, 0);
+ 		}
+ 		/* Bounding and ambient set changes need capabilities the
+ 		 * app never has; a fake root keeps them (setpriv

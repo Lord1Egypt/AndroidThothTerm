@@ -1,0 +1,1 @@
+Store listing update: the ThothDock icon and current screenshots (Containers, Web Panel, Docker Compose) replace the old ThothTerm Trixie artwork, and the description now lists the features added in 0.4.0. The app itself is unchanged from 0.4.1: same Debian 13 environment, same ThothDock 0.2.1 engine.
