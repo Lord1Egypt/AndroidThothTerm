@@ -1,21 +1,22 @@
 ThothTerm • ThothDock is an independent Android application. It provides a terminal, a Debian
 GNU/Linux 13 (trixie) environment to work in under PRoot, and ThothDock, a
-Docker-compatible container engine for phones without root. There is no root,
-no virtual machine and no remote server: everything runs on the phone, in the app.
+Docker-compatible container engine for phones without root. No root, no virtual
+machine, no remote server: everything runs on the phone, in the app.
 
 The Debian side is ordinary Debian. apt and dpkg install from Debian's own
 archives (trixie, trixie-updates and trixie-security), sudo is Debian's sudo,
-and what you install stays installed across app updates, as does your home.
+and what you install, like your home, survives app updates.
 
 What you get
 
 * Debian 13 "trixie", arm64, set up on first launch
 * apt, dpkg and passwordless sudo for the user thoth
 * Several terminal windows, pinch-to-zoom, an extra keys row, copy and paste
-* Correct display of Arabic and other right-to-left text
+* Correct Arabic and other right-to-left text
 * ThothDock: the Docker command line, working on the phone, with no root
 * Docker Compose, user networks with container names, restart policies
 * Containers, Images and Volumes screens: start, stop, logs, shell, delete
+* Flatpak apps and snaps, run by ThothDock and listed in an Apps screen
 * A Web Panel to manage containers from a browser, over HTTPS with a pairing code
 * LAN Mode, to use the same Debian from a web browser on another computer
 
@@ -25,17 +26,23 @@ ThothDock is a Docker-compatible container engine written for unrooted
 Android. The unmodified Docker command line talks to it over a private socket
 that only this app can open, so docker pull, run, exec, logs, stop, volumes,
 -p port publishing and docker compose work from the terminal. There is no
-dockerd, no containerd and no runc: containers run through the same PRoot that
-runs Debian. Containers on a user network get a private loopback address and
-reach each other by name.
+dockerd: containers run through the same PRoot that runs Debian. Containers
+on a user network get a private loopback address and reach each other by name.
 
-These containers are userspace environments, not a security boundary: there are
-no namespaces and no resource limits. A published port is a loopback listener
+Containers are userspace environments, not a security boundary: there are no
+namespaces and no resource limits. A published port is a loopback listener
 that every app on the phone can reach; UDP publishing is not supported.
 Containers stop when the app is closed. Images are downloaded only when you run
 docker pull or docker run, never in the background. Android may end the engine
-when an app runs too many processes; the Containers screen warns first. Engine
-Guard stops apt from installing a real Docker engine over ThothDock.
+when too many processes run; the Containers screen warns first. Engine
+Guard stops apt replacing ThothDock with a real Docker engine.
+
+Flatpak and snap
+
+Debian's flatpak works: ThothDock runs its sandboxes, as bubblewrap needs root.
+The snap command installs from the Snap Store and runs apps and services; it
+contacts the store only when you run snap find, info or install. Each app or service gets its own loopback address. Snap confinement
+and Flatpak sandboxing are not enforced, as with containers.
 
 Web Panel and LAN Mode
 
@@ -44,7 +51,7 @@ Panel serves HTTPS only, on the phone itself or on Wi-Fi or Ethernet; a browser
 must enter the pairing code shown on the phone, and its sessions end when the
 panel stops.
 LAN Mode gives each paired browser its own terminal after a one-time PIN. Its
-connection is plain HTTP, not encrypted: use it only on networks you trust.
+connection is plain, unencrypted HTTP: use it only on networks you trust.
 
 First run
 
@@ -52,11 +59,11 @@ The F-Droid build does not include Debian, so the first launch offers to
 download it: about 60 MB from the project's GitHub release. Nothing is
 downloaded until you agree. The download is checked against a size and a
 SHA-256 checksum written into the app, and refused if either differs. The
-archive holds only unmodified Debian packages, built reproducibly from Debian's
-archive by a script in the app's source.
+archive holds only unmodified Debian packages, built reproducibly by a script in
+the app's source.
 
 Requirements: a 64-bit ARM phone (arm64-v8a) with Android 8.0 or newer, and
-about 185 MB for Debian after setup, plus what you install.
+about 185 MB for Debian after setup.
 
 ThothTerm • ThothDock is an independent application and is not affiliated with or
 endorsed by the Debian Project. Debian is a registered trademark owned by
