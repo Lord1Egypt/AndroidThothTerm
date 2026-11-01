@@ -189,6 +189,11 @@
                 android:text="@string/nav_chip_volumes"/>
 
             <TextView
+                android:id="@+id/chip_apps"
+                style="@style/ThothDockChip"
+                android:text="@string/nav_chip_apps"/>
+
+            <TextView
                 android:id="@+id/chip_panel"
                 style="@style/ThothDockChip"
                 android:text="@string/nav_chip_panel"/>

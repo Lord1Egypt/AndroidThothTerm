@@ -1,0 +1,17 @@
+#!/bin/sh
+# Managed by ThothTerm (rewritten on every window; do not edit).
+# Debian's flatpak asks the system D-Bus about parental controls before it
+# installs an app, and a PRoot guest runs no system bus by itself ("Could not
+# connect: No such file or directory"). Start one when none answers, then run
+# the real flatpak. Its sandboxes go to ThothDock through $FLATPAK_BWRAP.
+if [ ! -x /usr/bin/flatpak ]; then
+    echo "flatpak is not installed. Install it with: sudo apt install flatpak" >&2
+    exit 127
+fi
+if ! dbus-send --system --dest=org.freedesktop.DBus --type=method_call --print-reply \
+        /org/freedesktop/DBus org.freedesktop.DBus.GetId >/dev/null 2>&1; then
+    # A socket and pid file left by a bus that ended with the last window.
+    sudo -n sh -c 'mkdir -p /run/dbus && rm -f /run/dbus/pid /run/dbus/system_bus_socket && dbus-daemon --system --fork' \
+        >/dev/null 2>&1 || echo "flatpak (ThothTerm): could not start the system D-Bus; app installs may fail" >&2
+fi
+exec /usr/bin/flatpak "$@"

@@ -60,10 +60,18 @@ public final class ThothDock {
 
     static final String DAEMON = "libthothdock.so";
     static final String CLI = "libdocker.so";
+    /** Flatpak's bubblewrap stand-in (ThothDock 0.3.0 and later); optional. */
+    static final String BWRAP = "libthothdockbwrap.so";
+    /** The guest's snap command (ThothDock 0.3 and later), shipped with the bwrap stand-in. */
+    static final String SNAP = "libthothdocksnap.so";
     /** Where the guest sees the socket directory, and the CLI. */
     public static final String GUEST_SOCKET_DIR = "/run/thothdock";
     public static final String GUEST_DOCKER_HOST = "unix:///run/thothdock/thothdock.sock";
     public static final String GUEST_CLI = "/usr/local/bin/docker";
+    /** Where the guest sees the bwrap stand-in; FLATPAK_BWRAP names it. */
+    public static final String GUEST_BWRAP = "/usr/libexec/thothdock/bwrap";
+    /** Where the guest sees the snap command (before /usr/bin on PATH). */
+    public static final String GUEST_SNAP = "/usr/local/bin/snap";
     /** Intent extra: text the Containers screen wants typed into the current terminal window. */
     public static final String EXTRA_TERMINAL_INPUT = "com.thothterm.dock.TERMINAL_INPUT";
 
@@ -77,6 +85,8 @@ public final class ThothDock {
     public static final String TAB_IMAGES = "images";
     public static final String TAB_VOLUMES = "volumes";
     public static final String TAB_PANEL = "panel";
+    /** Installed Flatpak apps and their running sandboxes. */
+    public static final String TAB_APPS = "apps";
 
     /** ThothDock's own binary inside the guest, for `thothdock doctor --guard`. */
     public static final String GUEST_TOOL = "/usr/local/bin/thothdock";
@@ -264,15 +274,29 @@ public final class ThothDock {
     public java.util.List<String> guestBinds() {
         String dir = socketDirForGuest();
         if (dir == null) return java.util.Collections.emptyList();
-        return Arrays.asList("--bind=" + dir + ":" + GUEST_SOCKET_DIR,
+        java.util.List<String> binds = new java.util.ArrayList<>(Arrays.asList(
+                "--bind=" + dir + ":" + GUEST_SOCKET_DIR,
                 "--bind=" + cliPath() + ":" + GUEST_CLI,
-                "--bind=" + new File(nativeLibDir, DAEMON).getAbsolutePath() + ":" + GUEST_TOOL);
+                "--bind=" + new File(nativeLibDir, DAEMON).getAbsolutePath() + ":" + GUEST_TOOL));
+        if (bundlesBwrap()) binds.add("--bind=" + new File(nativeLibDir, BWRAP).getAbsolutePath() + ":" + GUEST_BWRAP);
+        File snap = new File(nativeLibDir, SNAP);
+        if (bundled && snap.isFile()) binds.add("--bind=" + snap.getAbsolutePath() + ":" + GUEST_SNAP);
+        return binds;
     }
 
     /** The guest environment that points the stock Docker CLI at the socket. */
     public java.util.Map<String, String> guestEnvironment() {
         if (!bundled) return java.util.Collections.emptyMap();
-        return java.util.Collections.singletonMap("DOCKER_HOST", GUEST_DOCKER_HOST);
+        java.util.Map<String, String> env = new java.util.LinkedHashMap<>();
+        env.put("DOCKER_HOST", GUEST_DOCKER_HOST);
+        // flatpak runs apps through $FLATPAK_BWRAP: the engine builds the sandbox.
+        if (bundlesBwrap()) env.put("FLATPAK_BWRAP", GUEST_BWRAP);
+        return env;
+    }
+
+    /** True when this APK carries Flatpak's bwrap stand-in (ThothDock 0.3 and later). */
+    public boolean bundlesBwrap() {
+        return bundled && new File(nativeLibDir, BWRAP).isFile();
     }
 
     /** The engine binary in the APK's library directory (also the Web Panel). */
@@ -386,6 +410,7 @@ public final class ThothDock {
                 "--proot-loader", rootfs.loaderPath(),
                 "--proot-lib-dir", rootfs.runtimeLibDir().getAbsolutePath(),
                 "--resolv-conf", resolver.getAbsolutePath(),
+                "--guest-root", rootfs.prootRootfsPath(),
                 "--shutdown-timeout", String.valueOf(SHUTDOWN_TIMEOUT_SECONDS),
                 "--exit-with-parent");
         rotateLog();

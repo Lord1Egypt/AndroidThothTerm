@@ -164,6 +164,52 @@ public class ThothfetchTest {
                 raw.stream().map(l -> ANSI.matcher(l).replaceAll("")).collect(java.util.stream.Collectors.toList()));
     }
 
+    /** Run the banner with a stub {@code stty} that reports {@code size} ("rows cols"). */
+    private static List<String> renderWithTerminalSize(String size, int columns) throws Exception {
+        assumeTrue("bash is required to exercise the banner", new File("/bin/bash").canExecute());
+        File bin = Files.createTempDirectory("stty-stub").toFile();
+        File stty = new File(bin, "stty");
+        Files.write(stty.toPath(), ("#!/bin/sh\necho '" + size + "'\n").getBytes(StandardCharsets.UTF_8));
+        assertTrue(stty.setExecutable(true));
+        ProcessBuilder builder = new ProcessBuilder("bash", script().getAbsolutePath());
+        builder.environment().put("PATH", bin.getAbsolutePath() + File.pathSeparator + System.getenv("PATH"));
+        builder.environment().put("COLUMNS", Integer.toString(columns));
+        builder.environment().put("THOTHTERM_GUEST_ROOT", dockRoot().getAbsolutePath());
+        builder.environment().remove("NO_COLOR");
+        builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        List<String> lines = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) lines.add(ANSI.matcher(line).replaceAll(""));
+        }
+        assertEquals("thothfetch exit code", 0, process.waitFor());
+        return lines;
+    }
+
+    /**
+     * A new window's shell can run before the app sizes the terminal ("0 0"). The banner waits
+     * briefly, then uses $COLUMNS instead of laying out for a zero-width terminal.
+     */
+    @Test
+    public void anUnsizedTerminalFallsBackInsteadOfUsingWidthZero() throws Exception {
+        long start = System.nanoTime();
+        List<String> lines = renderWithTerminalSize("0 0", 63);
+        assertTrue("waits about a second at most", System.nanoTime() - start < 5_000_000_000L);
+        assertEquals(render(63, dockRoot(), true), lines);
+    }
+
+    /**
+     * The full-size logo is only drawn on request: a phone with the keyboard hidden reaches
+     * 100x64 cells, and the banner must not depend on the keyboard when a window opens.
+     */
+    @Test
+    public void aTallTerminalDoesNotGetTheFullSizeLogo() throws Exception {
+        List<String> lines = renderWithTerminalSize("70 108", 108);
+        assertEquals("phone banner, not the 52-row logo", 11, lines.size());
+    }
+
     /** 110+ columns: the 60x30 logo beside the info. */
     @Test
     public void largeLogoOnDesktopTerminals() throws Exception {
