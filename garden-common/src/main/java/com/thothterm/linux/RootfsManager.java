@@ -18,6 +18,7 @@ package com.thothterm.linux;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.SystemClock;
 import android.os.storage.StorageManager;
 
 import androidx.preference.PreferenceManager;
@@ -28,6 +29,7 @@ import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.ThothLog;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -115,6 +117,8 @@ public final class RootfsManager {
     private final File runtimeDir;
     private final File runtimeLibDir;
     private final File prootTmpDir;
+    /** Stand-ins for the /proc files Android denies to apps (ProcOverrides). */
+    private final File procOverrideDir;
     private final File nativeLibDir;
     private final FileOps fileOps = new AndroidFileOps();
 
@@ -162,6 +166,7 @@ public final class RootfsManager {
         this.runtimeDir = new File(new File(filesDir, LINUX_ROOT), "runtime");
         this.runtimeLibDir = new File(runtimeDir, "lib");
         this.prootTmpDir = new File(runtimeDir, "tmp");
+        this.procOverrideDir = new File(runtimeDir, "proc");
         this.nativeLibDir = new File(appContext.getApplicationInfo().nativeLibraryDir);
     }
 
@@ -845,6 +850,62 @@ public final class RootfsManager {
             forceSudoSetuid(rootfsDir);
         }
         if (needsAdminTools()) scheduleAdminTools("session start", null);
+        refreshProcOverrides();
+    }
+
+    /**
+     * Writes the stand-ins for /proc/stat and /proc/uptime when the real
+     * files cannot be read, and removes them when they can. A failure only
+     * leaves the guest without them, as before.
+     */
+    private void refreshProcOverrides() {
+        int cpus = Runtime.getRuntime().availableProcessors();
+        long uptimeMillis = SystemClock.elapsedRealtime();
+        File stat = new File(procOverrideDir, "stat");
+        File uptime = new File(procOverrideDir, "uptime");
+        try {
+            if (readable("/proc/stat")) {
+                if (fileOps.type(stat) != FileOps.Type.NONE) fileOps.unlink(stat);
+            } else {
+                long computed = (System.currentTimeMillis() - uptimeMillis) / 1000;
+                long written = fileOps.type(stat) == FileOps.Type.REGULAR
+                        ? ProcOverrides.bootTime(ManagedFiles.read(fileOps, runtimeDir, stat)) : -1;
+                ManagedFiles.writeIfChanged(fileOps, runtimeDir, stat, ProcOverrides.statText(
+                        ProcOverrides.stableBootTime(written, computed), cpus, uptimeMillis / 1000), 0444);
+            }
+            if (readable("/proc/uptime")) {
+                if (fileOps.type(uptime) != FileOps.Type.NONE) fileOps.unlink(uptime);
+            } else {
+                ManagedFiles.writeIfChanged(fileOps, runtimeDir, uptime,
+                        ProcOverrides.uptimeText(uptimeMillis, cpus), 0444);
+            }
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.PROOT, "Cannot write the /proc stand-ins: " + e.getMessage());
+        }
+    }
+
+    private static boolean readable(String path) {
+        try (InputStream in = new FileInputStream(path)) {
+            return in.read() >= 0;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /** PRoot binds for the /proc stand-ins that exist. */
+    List<String> procBinds() {
+        List<String> binds = new ArrayList<>();
+        for (String name : new String[]{"stat", "uptime"}) {
+            File file = new File(procOverrideDir, name);
+            try {
+                if (fileOps.type(file) == FileOps.Type.REGULAR) {
+                    binds.add("--bind=" + file.getAbsolutePath() + ":/proc/" + name);
+                }
+            } catch (IOException e) {
+                ThothLog.w(LogCategory.PROOT, "Cannot check " + file + ": " + e.getMessage());
+            }
+        }
+        return binds;
     }
 
     private boolean isPacman() {
