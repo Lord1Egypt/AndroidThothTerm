@@ -60,6 +60,18 @@ public class AppRowTest {
     }
 
     @Test
+    public void snapsUseTheSnapCommand() throws Exception {
+        AppRow a = parse("{\"Apps\":[{\"Kind\":\"snap\",\"ID\":\"hello\",\"Branch\":\"latest/stable\",\"Installation\":\"system\"}]}").get(0);
+        assertEquals("snap run hello\n", a.runCommand());
+        assertEquals("sudo snap remove hello\n", a.removeCommand());
+        for (String bad : new String[]{"Hello", "a--b", "x;id", "-v", "a".repeat(41)}) {
+            AppRow b = AppRow.parse(new JSONObject().put("Apps", new org.json.JSONArray().put(
+                    new JSONObject().put("Kind", "snap").put("ID", bad)))).get(0);
+            assertNull(bad, b.runCommand());
+        }
+    }
+
+    @Test
     public void anOlderEnginesEmptyViewIsNoApps() throws Exception {
         assertTrue(AppRow.parse(new JSONObject("{}")).isEmpty());
         assertTrue(AppRow.parse(null).isEmpty());

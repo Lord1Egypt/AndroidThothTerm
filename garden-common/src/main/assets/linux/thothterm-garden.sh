@@ -31,6 +31,7 @@ for thothterm_dir in \
     "$HOME/.foundry/bin" \
     "$HOME/.cargo/bin" \
     "$HOME/bin" \
+    "/snap/bin" \
     "$HOME/.local/bin"; do
   thothterm_prepend_path "$thothterm_dir"
 done

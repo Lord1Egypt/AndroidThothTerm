@@ -112,7 +112,7 @@ android {
             keepDebugSymbols += ["**/libproot.so", "**/libproot_loader.so"]
             // ThothDock: the Docker CLI and the daemon are built stripped; they
             // must reach nativeLibraryDir exactly as built.
-            keepDebugSymbols += ["**/libthothdock.so", "**/libdocker.so", "**/libthothdockbwrap.so"]
+            keepDebugSymbols += ["**/libthothdock.so", "**/libdocker.so", "**/libthothdockbwrap.so", "**/libthothdocksnap.so"]
         }
     }
 }
@@ -258,7 +258,7 @@ def stageThothDock = tasks.register('stageThothDock') {
     outputs.upToDateWhen { false }
     doLast {
         def staged = [new File(jniOut, 'arm64-v8a/libthothdock.so'), new File(jniOut, 'arm64-v8a/libdocker.so'),
-                      new File(jniOut, 'arm64-v8a/libthothdockbwrap.so'),
+                      new File(jniOut, 'arm64-v8a/libthothdockbwrap.so'), new File(jniOut, 'arm64-v8a/libthothdocksnap.so'),
                       new File(assetsOut, 'thothdock/components.properties')]
         if (!thothDockEnabled) {
             staged.each { it.delete() }

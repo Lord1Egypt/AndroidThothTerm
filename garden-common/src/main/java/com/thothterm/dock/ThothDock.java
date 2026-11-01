@@ -62,12 +62,16 @@ public final class ThothDock {
     static final String CLI = "libdocker.so";
     /** Flatpak's bubblewrap stand-in (ThothDock 0.3.0 and later); optional. */
     static final String BWRAP = "libthothdockbwrap.so";
+    /** The guest's snap command (ThothDock 0.3 and later), shipped with the bwrap stand-in. */
+    static final String SNAP = "libthothdocksnap.so";
     /** Where the guest sees the socket directory, and the CLI. */
     public static final String GUEST_SOCKET_DIR = "/run/thothdock";
     public static final String GUEST_DOCKER_HOST = "unix:///run/thothdock/thothdock.sock";
     public static final String GUEST_CLI = "/usr/local/bin/docker";
     /** Where the guest sees the bwrap stand-in; FLATPAK_BWRAP names it. */
     public static final String GUEST_BWRAP = "/usr/libexec/thothdock/bwrap";
+    /** Where the guest sees the snap command (before /usr/bin on PATH). */
+    public static final String GUEST_SNAP = "/usr/local/bin/snap";
     /** Intent extra: text the Containers screen wants typed into the current terminal window. */
     public static final String EXTRA_TERMINAL_INPUT = "com.thothterm.dock.TERMINAL_INPUT";
 
@@ -275,6 +279,8 @@ public final class ThothDock {
                 "--bind=" + cliPath() + ":" + GUEST_CLI,
                 "--bind=" + new File(nativeLibDir, DAEMON).getAbsolutePath() + ":" + GUEST_TOOL));
         if (bundlesBwrap()) binds.add("--bind=" + new File(nativeLibDir, BWRAP).getAbsolutePath() + ":" + GUEST_BWRAP);
+        File snap = new File(nativeLibDir, SNAP);
+        if (bundled && snap.isFile()) binds.add("--bind=" + snap.getAbsolutePath() + ":" + GUEST_SNAP);
         return binds;
     }
 

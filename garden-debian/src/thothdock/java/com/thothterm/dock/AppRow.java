@@ -38,6 +38,8 @@ final class AppRow {
             Pattern.compile("[A-Za-z_][A-Za-z0-9_-]*(\\.[A-Za-z_][A-Za-z0-9_-]*){2,}");
     private static final Pattern BRANCH = Pattern.compile("[A-Za-z0-9_][A-Za-z0-9_.-]*");
     private static final Pattern SANDBOX_ID = Pattern.compile("[0-9a-f]{32}");
+    /** Snap names: lower-case letters, digits and single hyphens, at most 40. */
+    private static final Pattern SNAP_NAME = Pattern.compile("[a-z0-9](-?[a-z0-9])*");
 
     final String kind;
     final String id;
@@ -85,8 +87,13 @@ final class AppRow {
         return !sandboxes.isEmpty();
     }
 
-    /** True when the ID and branch are safe to type into a shell. */
+    boolean isSnap() {
+        return "snap".equals(kind);
+    }
+
+    /** True when the ID (and, for Flatpak, the branch) is safe to type into a shell. */
     boolean hasSafeRef() {
+        if (isSnap()) return id.length() <= 40 && SNAP_NAME.matcher(id).matches();
         return APP_ID.matcher(id).matches() && (branch.isEmpty() || BRANCH.matcher(branch).matches());
     }
 
@@ -100,11 +107,13 @@ final class AppRow {
 
     /** What Run types, or null when the reference is not safe to type. */
     String runCommand() {
-        return hasSafeRef() ? "flatpak run " + installFlag() + ref() + "\n" : null;
+        if (!hasSafeRef()) return null;
+        return isSnap() ? "snap run " + id + "\n" : "flatpak run " + installFlag() + ref() + "\n";
     }
 
     /** What Remove types, or null when the reference is not safe to type. */
     String removeCommand() {
-        return hasSafeRef() ? "flatpak uninstall " + installFlag() + ref() + "\n" : null;
+        if (!hasSafeRef()) return null;
+        return isSnap() ? "sudo snap remove " + id + "\n" : "flatpak uninstall " + installFlag() + ref() + "\n";
     }
 }

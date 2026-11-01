@@ -55,6 +55,13 @@ chmod 755 "$JNI/libthothdock.so"
     -o "$WORK/libthothdockbwrap.so" ./cmd/thothdock-bwrap ) || die "thothdock-bwrap build failed"
 cp "$WORK/libthothdockbwrap.so" "$JNI/libthothdockbwrap.so"
 chmod 755 "$JNI/libthothdockbwrap.so"
+# The guest's `snap` command, from the same commit and flags.
+( cd "$WORK/thothdock-src" && \
+  CGO_ENABLED=0 GOOS=linux GOARCH=arm64 GOFLAGS=-mod=vendor \
+  go build -trimpath -buildvcs=false -ldflags "-s -w -buildid=" \
+    -o "$WORK/libthothdocksnap.so" ./cmd/thothdock-snap ) || die "thothdock-snap build failed"
+cp "$WORK/libthothdocksnap.so" "$JNI/libthothdocksnap.so"
+chmod 755 "$JNI/libthothdocksnap.so"
 
 # ---- Engine Guard packages (Debian-family guests), built from the same commit ----
 command -v dpkg-deb >/dev/null || die "dpkg-deb not found (needed to build the Engine Guard packages)"
@@ -86,6 +93,8 @@ thothdockSha256=$(sha "$JNI/libthothdock.so")
 thothdockSize=$(stat -c %s "$JNI/libthothdock.so")
 thothdockBwrapSha256=$(sha "$JNI/libthothdockbwrap.so")
 thothdockBwrapSize=$(stat -c %s "$JNI/libthothdockbwrap.so")
+thothdockSnapSha256=$(sha "$JNI/libthothdocksnap.so")
+thothdockSnapSize=$(stat -c %s "$JNI/libthothdocksnap.so")
 dockerCliVersion=$CLI_VERSION
 dockerCliCommit=$CLI_FULL
 dockerCliSha256=$(sha "$JNI/libdocker.so")
