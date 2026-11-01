@@ -214,4 +214,33 @@ public class ThothfetchTest {
         assertEquals(render(80), raw.stream().map(l -> ANSI.matcher(l).replaceAll(""))
                 .collect(java.util.stream.Collectors.toList()));
     }
+
+    /**
+     * A new window's shell can run before the app sizes the terminal ("0 0"). The banner waits
+     * briefly, then uses $COLUMNS instead of laying out for a zero-width terminal.
+     */
+    @Test
+    public void anUnsizedTerminalFallsBackInsteadOfUsingWidthZero() throws Exception {
+        assumeTrue("bash is required to exercise the banner", new File("/bin/bash").canExecute());
+        File bin = Files.createTempDirectory("stty-stub").toFile();
+        File stty = new File(bin, "stty");
+        Files.write(stty.toPath(), "#!/bin/sh\necho '0 0'\n".getBytes(StandardCharsets.UTF_8));
+        assertTrue(stty.setExecutable(true));
+        ProcessBuilder builder = new ProcessBuilder("bash", script().getAbsolutePath());
+        builder.environment().put("PATH", bin.getAbsolutePath() + File.pathSeparator + System.getenv("PATH"));
+        builder.environment().put("COLUMNS", "80");
+        builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
+        builder.redirectErrorStream(true);
+        long start = System.nanoTime();
+        Process process = builder.start();
+        List<String> lines = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) lines.add(ANSI.matcher(line).replaceAll(""));
+        }
+        assertEquals("thothfetch exit code", 0, process.waitFor());
+        assertTrue("waits about a second at most", System.nanoTime() - start < 5_000_000_000L);
+        assertEquals("the 80-column layout, not the narrow one", render(80), lines);
+    }
 }

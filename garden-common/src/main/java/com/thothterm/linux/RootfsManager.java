@@ -862,26 +862,10 @@ public final class RootfsManager {
      * leaves the guest without them, as before.
      */
     private void refreshProcOverrides() {
-        int cpus = Runtime.getRuntime().availableProcessors();
-        long uptimeMillis = SystemClock.elapsedRealtime();
-        File stat = new File(procOverrideDir, "stat");
-        File uptime = new File(procOverrideDir, "uptime");
         try {
-            if (readable("/proc/stat")) {
-                if (fileOps.type(stat) != FileOps.Type.NONE) fileOps.unlink(stat);
-            } else {
-                long computed = (System.currentTimeMillis() - uptimeMillis) / 1000;
-                long written = fileOps.type(stat) == FileOps.Type.REGULAR
-                        ? ProcOverrides.bootTime(ManagedFiles.read(fileOps, runtimeDir, stat)) : -1;
-                ManagedFiles.writeIfChanged(fileOps, runtimeDir, stat, ProcOverrides.statText(
-                        ProcOverrides.stableBootTime(written, computed), cpus, uptimeMillis / 1000), 0444);
-            }
-            if (readable("/proc/uptime")) {
-                if (fileOps.type(uptime) != FileOps.Type.NONE) fileOps.unlink(uptime);
-            } else {
-                ManagedFiles.writeIfChanged(fileOps, runtimeDir, uptime,
-                        ProcOverrides.uptimeText(uptimeMillis, cpus), 0444);
-            }
+            ProcOverrides.refresh(fileOps, runtimeDir, procOverrideDir, System.currentTimeMillis(),
+                    SystemClock.elapsedRealtime(), Runtime.getRuntime().availableProcessors(),
+                    readable("/proc/stat"), readable("/proc/uptime"));
         } catch (IOException e) {
             ThothLog.w(LogCategory.PROOT, "Cannot write the /proc stand-ins: " + e.getMessage());
         }
@@ -897,18 +881,12 @@ public final class RootfsManager {
 
     /** PRoot binds for the /proc stand-ins that exist. */
     List<String> procBinds() {
-        List<String> binds = new ArrayList<>();
-        for (String name : new String[]{"stat", "uptime"}) {
-            File file = new File(procOverrideDir, name);
-            try {
-                if (fileOps.type(file) == FileOps.Type.REGULAR) {
-                    binds.add("--bind=" + file.getAbsolutePath() + ":/proc/" + name);
-                }
-            } catch (IOException e) {
-                ThothLog.w(LogCategory.PROOT, "Cannot check " + file + ": " + e.getMessage());
-            }
+        try {
+            return ProcOverrides.binds(fileOps, procOverrideDir);
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.PROOT, "Cannot check the /proc stand-ins: " + e.getMessage());
+            return new ArrayList<>();
         }
-        return binds;
     }
 
     private boolean isPacman() {

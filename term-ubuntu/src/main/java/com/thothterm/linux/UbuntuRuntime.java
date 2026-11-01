@@ -52,10 +52,20 @@ public final class UbuntuRuntime {
     private final String prootTmpDir;
     private final String resolverFile;
     private final String terminalType;
+    /** Extra {@code --bind} arguments: the /proc stand-ins. */
+    private final List<String> extraBinds;
 
     public UbuntuRuntime(String prootPath, String loaderPath, String rootfsDir,
                          String runtimeLibDir, String prootTmpDir, String resolverFile,
                          String terminalType) {
+        this(prootPath, loaderPath, rootfsDir, runtimeLibDir, prootTmpDir, resolverFile,
+                terminalType, Collections.<String>emptyList());
+    }
+
+    public UbuntuRuntime(String prootPath, String loaderPath, String rootfsDir,
+                         String runtimeLibDir, String prootTmpDir, String resolverFile,
+                         String terminalType, List<String> extraBinds) {
+        this.extraBinds = extraBinds;
         this.prootPath = prootPath;
         this.loaderPath = loaderPath;
         this.rootfsDir = rootfsDir;
@@ -73,7 +83,7 @@ public final class UbuntuRuntime {
                 manager.runtimeLibDir().getAbsolutePath(),
                 manager.prootTmpDir().getAbsolutePath(),
                 AndroidNetworkResolver.get().resolverFile().getAbsolutePath(),
-                terminalType);
+                terminalType, manager.procBinds());
     }
 
     public List<String> buildArgv() {
@@ -133,6 +143,7 @@ public final class UbuntuRuntime {
         if (bindResolver) {
             argv.add("--bind=" + resolverFile + ":/etc/resolv.conf");
         }
+        argv.addAll(extraBinds);
         return argv;
     }
 
