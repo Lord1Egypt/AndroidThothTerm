@@ -42,9 +42,10 @@ if [ -z "${FLATPAK_BWRAP-}" ] && [ -x "$BWRAP" ]; then
 fi
 if [ ! -x /usr/bin/flatpak ] || ! command -v dbus-daemon >/dev/null 2>&1; then
     echo "Installing flatpak (first use)..." >&2
+    # A new guest runs apt itself for a while: wait for its lock (5 minutes).
     if ! sudo sh -c 'export DEBIAN_FRONTEND=noninteractive
-        apt-get install -y --no-install-recommends flatpak dbus ||
-        { apt-get update && apt-get install -y --no-install-recommends flatpak dbus; }' >&2; then
+        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends flatpak dbus ||
+        { apt-get -o DPkg::Lock::Timeout=300 update && apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends flatpak dbus; }' >&2; then
         echo "flatpak could not be installed. Try: sudo apt install flatpak dbus" >&2
         exit 127
     fi

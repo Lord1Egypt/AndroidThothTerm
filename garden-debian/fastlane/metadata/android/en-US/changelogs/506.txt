@@ -1,0 +1,1 @@
+flatpak: LibreOffice starts (a command that is a symlink into /app is found), Inkscape finds its own libraries (apps started through a shell keep their own path), the first flatpak install waits for apt's lock in a new guest. Engine 0.4.2. Tested with 14 apps.
