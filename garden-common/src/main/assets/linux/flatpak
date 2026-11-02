@@ -9,6 +9,32 @@
 #   not connect: No such file or directory"). Start one when none answers.
 # * On first use it installs flatpak and dbus (only Recommended by flatpak,
 #   but needed for that bus) and adds the Flathub remote.
+# * A large install or update ends on "The connection is closed" now and then
+#   (LibreOffice, after 2.6 GB). OSTree keeps what it fetched, so the command
+#   is run again, up to five times, and goes on where it stopped.
+# retry-begin
+# flatpak_retry REAL ARGS...: run REAL; when it ends on a network error, run it
+# again (five runs at most). stderr is shown when a run ends: the progress bar
+# and the questions are stdout's.
+flatpak_retry() {
+    real=$1; shift
+    n=1
+    while :; do
+        err=$(mktemp "${TMPDIR:-/tmp}/flatpak-err.XXXXXX") || { "$real" "$@"; return $?; }
+        "$real" "$@" 2>"$err"
+        rc=$?
+        cat "$err" >&2
+        if [ "$rc" -eq 0 ] || [ "$n" -ge 5 ] || ! grep -qiE 'connection is closed|could not resolve|name or service not known|connection reset|connection refused|timed out|timeout|could not connect|unable to connect|temporary failure|network is unreachable|broken pipe|premature eof|http/2|bad gateway|service unavailable|gateway time-out|tls |ssl ' "$err"; then
+            rm -f "$err"
+            return "$rc"
+        fi
+        rm -f "$err"
+        n=$((n + 1))
+        echo "flatpak (ThothTerm): network error; continuing (run $n of 5)" >&2
+        sleep "${FLATPAK_RETRY_DELAY:-3}"
+    done
+}
+# retry-end
 BWRAP=/usr/libexec/thothdock/bwrap
 if [ -z "${FLATPAK_BWRAP-}" ] && [ -x "$BWRAP" ]; then
     FLATPAK_BWRAP="$BWRAP"
@@ -35,4 +61,14 @@ if [ -n "${flatpak_first_use-}" ]; then
         echo "Flathub added: flatpak install flathub <app>" >&2 ||
         echo "Flathub was not added: flatpak remote-add --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo" >&2
 fi
+# The first word that is not an option is the subcommand.
+for flatpak_word in "$@"; do
+    case $flatpak_word in -*) continue ;; esac
+    break
+done
+case ${flatpak_word-} in
+    install|update)
+        flatpak_retry /usr/bin/flatpak "$@"
+        exit $? ;;
+esac
 exec /usr/bin/flatpak "$@"

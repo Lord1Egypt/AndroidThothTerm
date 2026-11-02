@@ -76,3 +76,11 @@ if [ -z "${THOTHTERM_SNAPS_STARTED-}" ] && [ -x /usr/local/bin/snap ] \
   export THOTHTERM_SNAPS_STARTED=1
   ( /usr/local/bin/snap autostart >/dev/null 2>&1 & )
 fi
+
+# Flatpak lists its exports in XDG_DATA_DIRS (Debian does it from a login
+# shell's profile.d); without them every install prints "directories currently
+# searched are ..." and desktop files of installed apps are not found.
+if [ -d "$HOME/.local/share/flatpak/exports/share" ] || [ -d /var/lib/flatpak/exports/share ]; then
+  XDG_DATA_DIRS="$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+  export XDG_DATA_DIRS
+fi
