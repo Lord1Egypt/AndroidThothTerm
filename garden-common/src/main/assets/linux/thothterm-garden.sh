@@ -65,3 +65,14 @@ if [ -n "${PS1-}" ] && [ -t 1 ] \
   export THOTHTERM_WELCOME_SHOWN=1
   thothfetch
 fi
+
+# Services of installed snaps start with the guest, as under snapd: they end
+# with the app, and the guest has no init system to bring them back. `snap
+# autostart` starts only what is installed, enabled and not running, and does
+# nothing when no snap has a service.
+if [ -z "${THOTHTERM_SNAPS_STARTED-}" ] && [ -x /usr/local/bin/snap ] \
+    && [ -f /var/lib/thothdock-snaps/state.json ] \
+    && grep -q '"daemons": \[$' /var/lib/thothdock-snaps/state.json 2>/dev/null; then
+  export THOTHTERM_SNAPS_STARTED=1
+  ( /usr/local/bin/snap autostart >/dev/null 2>&1 & )
+fi

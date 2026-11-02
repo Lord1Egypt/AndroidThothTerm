@@ -25,6 +25,7 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
+        // 0.5.4: ThothDock engine 0.4.0 (snapctl and snap services, one address per snap, hard-link repair; snap run --shell, snap autostart, refresh).
         // 0.5.3: ThothDock engine 0.3.1 (snap downloads resume, store aliases, squashfs-tools and flatpak set up on first use, snapd guarded); volume keys are no longer Ctrl/Fn by default.
         // 0.5.2: swipes reach full-screen TUIs as mouse wheel events (OpenCode), SGR mouse reports.
         // 0.5.1: /proc/stat and /proc/uptime stand-ins (ps -o lstart, Codex's background server).
@@ -32,8 +33,8 @@ android {
         // 0.4.2: store listing only (ThothDock icon, current screenshots, store text); same code and engine as 0.4.1.
         // 0.4.1: ThothDock engine 0.2.1 (System V IPC, hostname, long Unix sockets; PRoot patches 0010-0018). (0.4.0 was 400.)
         // 0.4.0: ThothTerm (bullet) ThothDock (package com.thothterm.debian), ThothDock engine 0.2.0 (NextGen). (0.3.1 was 301.)
-        versionCode 503
-        versionName '0.5.3'
+        versionCode 504
+        versionName '0.5.4'
 
         // Device tests (the pinch gesture and garden-common's shared tests);
         // run with `am instrument` against the installed app, never
