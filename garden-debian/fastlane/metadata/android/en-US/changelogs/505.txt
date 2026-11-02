@@ -1,0 +1,1 @@
+flatpak: KeePassXC, Firefox and other apps with D-Bus permissions start (xdg-dbus-proxy), GL apps no longer fail on /dev/dri, and an install that loses its connection (LibreOffice, Krita) resumes by itself; Flatpak export paths are set. Tested with 14 apps. Engine 0.4.1.
