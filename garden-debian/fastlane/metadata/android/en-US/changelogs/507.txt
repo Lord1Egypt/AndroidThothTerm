@@ -1,0 +1,1 @@
+snap: services start only when asked (each one costs a process and about 50 MB, which an older phone lacks): snap start <snap>, or snap start --enable <snap> to start with each window. A refresh restarts what ran. Engine 0.4.3.
