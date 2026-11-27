@@ -47,6 +47,11 @@ if [ -r "$root/etc/thothterm/edition" ]; then
 fi
 [ -n "$edition" ] || edition=ThothTerm
 
+# The account this shell runs as and its home: the app's settings, handed down
+# in the environment; a shell started some other way asks the system.
+user=${USER:-$(id -un 2>/dev/null)}
+home=${HOME:-/home/$user}
+
 os=
 if [ -r "$root/etc/os-release" ]; then
   while IFS= read -r line; do
@@ -412,8 +417,8 @@ elif [ "$cols" -lt 44 ]; then
   printf '\n'
   printf '%s\n' "${highlight}${edition}${reset}"
   printf '%s\n' "${foreground}${os}${reset}"
-  printf '%s\n' "${muted}User  ${reset}${foreground}thoth${reset}"
-  printf '%s\n' "${muted}Home  ${reset}${foreground}/home/thoth${reset}"
+  printf '%s\n' "${muted}User  ${reset}${foreground}$(clean "$user" $((cols - 6)))${reset}"
+  printf '%s\n' "${muted}Home  ${reset}${foreground}$(clean "$home" $((cols - 6)))${reset}"
   if [ -n "$dock" ]; then
     printf '%s\n' "${muted}Engine ${reset}${foreground}${engine}${reset}"
   fi
@@ -424,7 +429,7 @@ else
   printf '%s\n' "${primary} __/  \\__${reset}     ${foreground}${os}${reset}"
   printf '%s\n' "${secondary}/  \\  /  \\${reset}    ${muted}Architecture  ${reset}${foreground}$(clean "$arch" 16)${reset}"
   printf '%s\n' "${secondary}\\   \\/   /${reset}    ${muted}Shell         ${reset}${foreground}Bash${reset}"
-  printf '%s\n' "${primary} \\  /\\  /${reset}     ${muted}Home          ${reset}${foreground}/home/thoth${reset}"
-  printf '%s\n' "${primary}    \\/${reset}        ${muted}User          ${reset}${foreground}thoth${reset}"
+  printf '%s\n' "${primary} \\  /\\  /${reset}     ${muted}Home          ${reset}${foreground}$(clean "$home" 30)${reset}"
+  printf '%s\n' "${primary}    \\/${reset}        ${muted}User          ${reset}${foreground}$(clean "$user" 30)${reset}"
   printf '%s\n' "${secondary}    >_${reset}"
 fi

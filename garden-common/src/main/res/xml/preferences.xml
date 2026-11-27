@@ -86,6 +86,20 @@
             android:summary="@string/summary_garden_show_welcome"
             android:title="@string/title_garden_show_welcome"/>
 
+        <EditTextPreference
+            android:defaultValue="@string/pref_guest_username_default"
+            android:dialogMessage="@string/dialog_message_guest_username"
+            android:dialogTitle="@string/title_guest_username"
+            android:key="guest_username"
+            android:title="@string/title_guest_username"/>
+
+        <EditTextPreference
+            android:defaultValue="@string/pref_guest_hostname_default"
+            android:dialogMessage="@string/dialog_message_guest_hostname"
+            android:dialogTitle="@string/title_guest_hostname"
+            android:key="guest_hostname"
+            android:title="@string/title_guest_hostname"/>
+
     </PreferenceCategory>
 
     <PreferenceCategory

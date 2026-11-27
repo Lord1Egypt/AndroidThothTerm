@@ -70,6 +70,14 @@
     <string name="linux_preferences">Linux</string>
     <string name="title_garden_show_welcome">Show welcome banner</string>
     <string name="summary_garden_show_welcome">Show ThothTerm system information in each new window.</string>
+    <string name="title_guest_username">Linux user name</string>
+    <string name="dialog_message_guest_username">The account every window logs into. Lower-case letters, digits, _ and -; starts with a letter or _; at most 32 characters. Your home directory moves with it.</string>
+    <string name="guest_username_invalid">Not a valid user name. Use lower-case letters, digits, _ and -, starting with a letter or _ (at most 32 characters, not root).</string>
+    <string name="guest_username_applies">The new user name applies to the first window opened after every Linux window has been closed. Your home directory moves with it.</string>
+    <string name="title_guest_hostname">Linux host name</string>
+    <string name="dialog_message_guest_hostname">The name the Linux system calls itself (hostname, uname -n, the prompt). Letters, digits and -; at most 63 characters.</string>
+    <string name="guest_hostname_invalid">Not a valid host name. Use letters, digits and - (starting with a letter or digit, at most 63 characters).</string>
+    <string name="guest_hostname_applies">The new host name applies to new windows.</string>
     <string name="preferences">Settings</string>
     <string name="containers">Containers</string>
     <string name="web_panel">Web Panel</string>

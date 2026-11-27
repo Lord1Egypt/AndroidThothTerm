@@ -77,6 +77,25 @@ and an absolute guest link can never send a write to an Android path. Files are
 decoded whole as strict UTF-8 (a file that is not UTF-8 is left exactly as it
 is) and replaced atomically.
 
+## The guest account and host name
+
+Managed configuration, which `prepareSession()` repeats for every new window,
+also reconciles the guest's identity with Settings > Linux (*Linux user name*,
+*Linux host name*; defaults `thoth`, `thothterm`):
+
+- `/etc/hostname` and the `127.0.1.1` line of `/etc/hosts` are rewritten from
+  the host-name setting; PRoot's `--hostname` makes `uname -n` agree.
+- The account the rootfs has is recorded in `/etc/thothterm/account` (absent
+  record: `thoth`). A differing user-name setting renames that account in
+  place, uid/gid 1000 and all: `/home/<old>` -> `/home/<new>` by one
+  `rename(2)`, then gshadow, shadow, group, and passwd last, which is what the
+  record follows; an interruption leaves the old name in force and the next
+  start finishes the rest. The rename is refused while any PRoot of the app is
+  alive, or while the new name is already an account or a home directory;
+  the old name then stays in force. `/home` is never copied and never
+  deleted by this either. The record lives in `/etc`, so a reset that keeps
+  `/home` creates the chosen account afresh in the new system.
+
 ## Setup states, stages and timings
 
 The terminal depends only on the core setup. `SetupState` names where an

@@ -260,6 +260,10 @@ public class SecurityPaletteTest {
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.environment().put("THOTHTERM_GUEST_ROOT", root.getPath());
         pb.environment().put("COLUMNS", "80");
+        // The account and host name a window carries in from the app: the defaults.
+        pb.environment().put("USER", "thoth");
+        pb.environment().put("HOME", "/home/thoth");
+        pb.environment().put("HOSTNAME", "thothterm");
         if (!Arrays.asList(cmd).contains("NO_COLOR=1")) pb.environment().remove("NO_COLOR");
         pb.redirectErrorStream(true);
         Process p = pb.start();

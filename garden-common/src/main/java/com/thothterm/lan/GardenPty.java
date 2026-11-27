@@ -37,7 +37,7 @@ import jackpal.androidterm.SessionHangup;
 
 /**
  * A browser terminal's PTY: the same PRoot command line, environment, rootfs,
- * resolver and thoth account as a phone window, on a pseudo-terminal of its
+ * resolver and guest account as a phone window, on a pseudo-terminal of its
  * own, started through the same libtermexec call.
  */
 final class GardenPty implements Pty {

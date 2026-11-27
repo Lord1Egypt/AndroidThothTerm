@@ -992,7 +992,7 @@ public class Term extends AppCompatActivity
      * activity task goes with it, and we end our own process last so that the
      * service, its notification and its threads go down with us.
      * <p>
-     * Nothing on disk is touched: the rootfs, /home/thoth and the preferences
+     * Nothing on disk is touched: the rootfs, /home and the preferences
      * are all still there for the next launch.
      */
     private void performExit() {

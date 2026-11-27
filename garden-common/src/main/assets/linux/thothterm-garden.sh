@@ -1,10 +1,16 @@
 # Managed by ThothTerm. User shell customizations belong in ~/.bashrc.
-export HOME=/home/thoth
-export USER="${USER:-thoth}"
-export LOGNAME="${LOGNAME:-thoth}"
+# The account and the host name are the app's settings: every window is
+# started as the account (su -m keeps its HOME, USER and LOGNAME) and PRoot
+# gives the guest its host name, so nothing here names either. A shell started
+# some other way asks the system.
+[ -n "${USER-}" ] || USER=$(id -un 2>/dev/null)
+export USER
+export LOGNAME="${LOGNAME:-$USER}"
+[ -n "${HOME-}" ] || HOME="/home/$USER"
+export HOME
 export SHELL=/bin/bash
 export LANG=C.UTF-8
-export HISTFILE=/home/thoth/.bash_history
+export HISTFILE="$HOME/.bash_history"
 # Keep the resolved terminal width visible to thothfetch (bash does not export it).
 export COLUMNS
 # ThothTerm starts bash through "su -m", i.e. a non-login shell, so neither
@@ -41,7 +47,11 @@ export PATH
 
 # The prompt's colours are the edition's, from /etc/thothterm/palette (written
 # by the app, read here as data). Only colour changes between editions; the
-# text is always thoth@thothterm:DIR$ . NO_COLOR, or no palette, gives it plain.
+# text is always USER@HOST:DIR$ with this guest's account and host name (bash
+# took HOSTNAME from the kernel, which PRoot answers for with the app's
+# setting). NO_COLOR, or no palette, gives it plain.
+thothterm_hostname=${HOSTNAME:-$(uname -n 2>/dev/null)}
+thothterm_hostname=${thothterm_hostname%%.*}
 thothterm_user= thothterm_host= thothterm_path=
 if [ -z "${NO_COLOR-}" ] && [ -r "${THOTHTERM_GUEST_ROOT-}/etc/thothterm/palette" ]; then
   while IFS='=' read -r thothterm_role thothterm_sgr; do
@@ -55,9 +65,9 @@ if [ -z "${NO_COLOR-}" ] && [ -r "${THOTHTERM_GUEST_ROOT-}/etc/thothterm/palette
 fi
 thothterm_reset=
 [ -n "$thothterm_user$thothterm_host$thothterm_path" ] && thothterm_reset='\[\e[0m\]'
-PS1="${thothterm_user}thoth${thothterm_reset}@${thothterm_host}thothterm${thothterm_reset}:${thothterm_path}"'\w'"${thothterm_reset}"'\$ '
+PS1="${thothterm_user}${USER}${thothterm_reset}@${thothterm_host}${thothterm_hostname}${thothterm_reset}:${thothterm_path}"'\w'"${thothterm_reset}"'\$ '
 export PS1
-unset thothterm_role thothterm_sgr thothterm_user thothterm_host thothterm_path thothterm_reset
+unset thothterm_role thothterm_sgr thothterm_user thothterm_host thothterm_path thothterm_reset thothterm_hostname
 
 if [ -n "${PS1-}" ] && [ -t 1 ] \
     && [ -f /etc/thothterm/welcome-enabled ] \

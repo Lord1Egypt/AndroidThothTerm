@@ -91,6 +91,9 @@ public class ThothfetchTest {
         ProcessBuilder builder = new ProcessBuilder("bash", script.getAbsolutePath());
         builder.environment().put("COLUMNS", Integer.toString(columns));
         builder.environment().put("THOTHTERM_GUEST_ROOT", root.getAbsolutePath());
+        // The account and home the app starts a window with; the banner prints these, not literals.
+        builder.environment().put("USER", "thoth");
+        builder.environment().put("HOME", "/home/thoth");
         // Exercise the colour path regardless of the developer shell's preference.
         builder.environment().remove("NO_COLOR");
         builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
@@ -256,6 +259,9 @@ public class ThothfetchTest {
         ProcessBuilder builder = new ProcessBuilder("bash", script().getAbsolutePath(), arg);
         builder.environment().put("COLUMNS", Integer.toString(columns));
         builder.environment().put("THOTHTERM_GUEST_ROOT", root.getAbsolutePath());
+        // The account and home the app starts a window with; the banner prints these, not literals.
+        builder.environment().put("USER", "thoth");
+        builder.environment().put("HOME", "/home/thoth");
         builder.environment().remove("NO_COLOR");
         builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
         builder.redirectErrorStream(true);
