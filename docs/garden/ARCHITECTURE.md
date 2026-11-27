@@ -106,7 +106,13 @@ None is a Debian-specific workaround.
 - A window runs `proot --rootfs=<canonical path> --root-id --link2symlink
   --hangup-on-exit --bind=/dev --bind=/proc --bind=/sys
   --bind=<private resolv.conf>:/etc/resolv.conf /usr/bin/su -m -s /bin/bash
-  thoth`. One-shot provisioning uses `--kill-on-exit` instead.
+  thoth`, plus the `/proc` stand-ins and
+  `--bind=<files>/linux/audio:/run/thothterm/audio`, the directory of the
+  audio pipe (below). One-shot provisioning uses `--kill-on-exit` instead.
+- `prepareSession()`, on the UI thread for every new window, refreshes the
+  managed files, the `/proc` stand-ins and the audio pipe
+  (`<files>/linux/audio/pulse.fifo`, `mkfifo` by the app), and runs no guest
+  command.
 - First run extracts into `rootfs.staging` while hashing the archive, checks
   the SHA-256, applies the guest configuration, renames the directory to
   `rootfs`, and only then writes the state file.
@@ -161,6 +167,38 @@ on the device, which checks the real window flag and WindowManager's display
 hold in `dumpsys power`, simulating power with `dumpsys battery`.
 `GardenScreenAwakeTest` fails the build of any edition that brings its own
 implementation, a wake lock or a battery flow, or leaves the device test out.
+
+## Linux audio
+
+The guest cannot reach Android's audio devices. *Linux audio* (menu,
+Settings; off by default) plays what the guest's own PulseAudio writes:
+
+- **Guest side**: the edition ships `garden/audio/thothterm-audio-setup`
+  (optional; garden-common installs it as `/usr/local/bin/thothterm-audio-setup`
+  and knows nothing else about it). Run once as the user, it installs
+  `pulseaudio` with the edition's package manager, writes
+  `~/.config/pulse/{default.pa,client.conf,daemon.conf}` -- a self-contained
+  `default.pa` without udev or card probing, `module-pipe-sink` as the default
+  sink writing s16le/48 kHz/stereo into `/run/thothterm/audio/pulse.fifo`,
+  `module-suspend-on-idle timeout=5`, no shared memory, no idle exit -- and
+  starts or restarts the daemon, stopping by name (`pgrep`/`pkill`) any
+  daemon of the user its socket no longer reaches. Programs just use
+  PulseAudio.
+- **App side**: the pipe is the app's. `RootfsManager` creates
+  `<files>/linux/audio/pulse.fifo` before every session and the mount point
+  `/run/thothterm/audio` in the rootfs; `GardenRuntime` binds the directory.
+  `AudioBridge` (owned by `TermService`, following the `audio_bridge`
+  preference) opens the FIFO read-write -- so a PulseAudio restart never ends
+  the stream -- and polls it with a self-pipe for `stop()`. It opens an
+  `AudioTrack` (`USAGE_MEDIA`) on the first bytes and releases it after 1 s
+  without any; `TermService` is `specialUse|mediaPlayback` so playback goes
+  on in the background. While nothing plays the sink is suspended and the
+  bridge waits in `poll`: zero bytes, zero mixing, no audio hardware powered.
+  The notification shows "Linux audio: playing" or "idle".
+- `/etc/machine-id` is managed: written once, a random systemd-shaped id,
+  when the rootfs has none or an invalid one. PulseAudio names its per-user
+  runtime directory after it and falls back to the host name, which would
+  orphan a running daemon whenever the host name changed.
 
 ## Uploads
 

@@ -56,6 +56,7 @@ import com.thothterm.TermActionBar;
 import com.thothterm.TerminalZoom;
 import com.thothterm.TermPreferencesActivity;
 import com.thothterm.WindowListActivity;
+import com.thothterm.audio.AudioBridge;
 import com.thothterm.compat.SoftInputCompat;
 import com.thothterm.lan.LanController;
 import com.thothterm.lan.LanModeActivity;
@@ -223,6 +224,10 @@ public class Term extends AppCompatActivity
 
         if (ScreenAwake.PREF_WHILE_CHARGING.equals(key) && mScreenAwake != null) {
             mScreenAwake.onPreferencesChanged();
+        }
+        if (AudioBridge.PREF_KEY.equals(key)) {
+            // Changed from Settings: the menu follows.
+            invalidateOptionsMenu();
         }
 
         mSettings.readPrefs(this, sharedPreferences);
@@ -648,6 +653,8 @@ public class Term extends AppCompatActivity
             doToggleKeepScreenOn();
         } else if (id == R.id.menu_toggle_wifilock) {
             doToggleWifiLock();
+        } else if (id == R.id.menu_toggle_audio_bridge) {
+            doToggleAudioBridge();
         } else if (id == R.id.menu_retry_optional_setup) {
             RootfsManager.get().retryOptionalSetup();
             ScreenMessage.show(getApplicationContext(), R.string.optional_setup_retrying);
@@ -863,6 +870,7 @@ public class Term extends AppCompatActivity
         } else {
             wifiLockItem.setTitle(R.string.enable_wifilock);
         }
+        menu.findItem(R.id.menu_toggle_audio_bridge).setChecked(AudioBridge.isWanted(this));
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -1135,6 +1143,19 @@ public class Term extends AppCompatActivity
     private void doToggleWifiLock() {
         WifiLock.toggle(this);
         invalidateOptionsMenu();
+    }
+
+    /**
+     * "Linux audio": flip the preference; the service, which owns the
+     * {@link AudioBridge}, follows it (directly when bound, through its
+     * preference listener otherwise).
+     */
+    private void doToggleAudioBridge() {
+        boolean on = AudioBridge.toggleWanted(this);
+        if (mTermService != null) mTermService.applyAudioBridge();
+        invalidateOptionsMenu();
+        ScreenMessage.show(getApplicationContext(),
+                on ? R.string.audio_bridge_toast_on : R.string.audio_bridge_toast_off);
     }
 
     private void doToggleUI(MotionEvent e, EmulatorView view) {

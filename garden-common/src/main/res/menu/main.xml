@@ -59,6 +59,10 @@
     <item android:id="@+id/menu_toggle_wifilock"
           android:title="@string/enable_wifilock"
           app:showAsAction="never"/>
+    <item android:id="@+id/menu_toggle_audio_bridge"
+          android:checkable="true"
+          android:title="@string/audio_bridge"
+          app:showAsAction="never"/>
     <item android:id="@+id/menu_enable_extra_repo"
           android:title="@string/extra_repo_menu_default"
           android:visible="false"

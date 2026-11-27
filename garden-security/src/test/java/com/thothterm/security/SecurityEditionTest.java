@@ -17,6 +17,7 @@
 
 package com.thothterm.security;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -175,6 +176,11 @@ public class SecurityEditionTest {
         File[] assets = new File(moduleDir(), "src/main/assets/garden").listFiles();
         assertTrue(assets != null);
         for (File a : assets) {
+            if (a.getName().equals("audio")) {
+                // The guest-side "Linux audio" helper: one shell script, nothing else.
+                assertArrayEquals(new String[]{"thothterm-audio-setup"}, a.list());
+                continue;
+            }
             assertTrue(a.getName(), Arrays.asList("distro.properties", "palette.properties").contains(a.getName()));
         }
     }

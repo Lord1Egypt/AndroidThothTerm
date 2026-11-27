@@ -25,6 +25,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ServiceInfo;
 import android.os.Binder;
 import android.os.Build;
@@ -32,10 +33,12 @@ import android.os.IBinder;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
+import androidx.preference.PreferenceManager;
 
 import com.thothterm.Application;
 import com.thothterm.R;
 import com.thothterm.TermActivity;
+import com.thothterm.audio.AudioBridge;
 import com.thothterm.lan.LanController;
 import com.thothterm.dock.ThothDock;
 import com.thothterm.logging.LogCategory;
@@ -54,6 +57,19 @@ public class TermService extends SessionsService {
     private final IBinder mTSBinder = new TSBinder();
     private final LanController.Listener lanListener = this::refreshNotification;
     private final ThothDock.Listener dockListener = status -> refreshNotification();
+    /**
+     * "Linux audio" lives here, in the process that owns the shells: the
+     * bridge to the guest's sound server runs as long as the shells do and
+     * follows the {@link AudioBridge#PREF_KEY} preference wherever it is
+     * changed -- the menu or the Settings switch. It reports on its own
+     * thread whenever sound starts or stops; that refreshes the notification.
+     * A field, because SharedPreferences only holds its listeners weakly.
+     */
+    private AudioBridge audioBridge;
+    private final SharedPreferences.OnSharedPreferenceChangeListener audioBridgeListener =
+            (prefs, key) -> {
+                if (AudioBridge.PREF_KEY.equals(key)) applyAudioBridge();
+            };
 
     private static Notification buildNotification(Context context, NotificationSettings callback) {
         NotificationChannelCompat.create(context);
@@ -93,10 +109,20 @@ public class TermService extends SessionsService {
 
     @Override
     public void onCreate() {
+        // Start before the first notification is built, so it shows the state.
+        audioBridge = new AudioBridge(AudioBridge.hostFifo(this));
+        audioBridge.setListener(this::onAudioActiveChanged);
+        if (AudioBridge.isWanted(this)) {
+            audioBridge.start();
+            ThothLog.i(LogCategory.APP, "Audio bridge started");
+        }
+
         /* Put the service in the foreground. */
         Notification notification = buildNotification();
         if (!StartForeground.start(this, notification)) return;
 
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        prefs.registerOnSharedPreferenceChangeListener(audioBridgeListener);
         LanController.get().addListener(lanListener);
         LanController.get().hostStarted();
         // Optional QA capability: never waited for, never a reason to fail.
@@ -128,9 +154,54 @@ public class TermService extends SessionsService {
 
         clearSessions();
         stopThothDock();
+        stopAudioBridge();
         StopForeground.stop(this);
         super.onTimeout(startId, fgsType);
         stopSelf();
+    }
+
+    /** The bridge started or stopped playing (on its own thread): the notification follows. */
+    private void onAudioActiveChanged(boolean active) {
+        ThothLog.d(LogCategory.APP, active ? "Linux audio: playing" : "Linux audio: idle");
+        refreshNotification();
+    }
+
+    /** Whether the audio bridge is running (wanted and reading), whether or not sound flows. */
+    public boolean isAudioBridgeOn() {
+        return audioBridge != null && audioBridge.isRunning();
+    }
+
+    /** Whether sound from the guest is playing right now. */
+    public boolean isAudioActive() {
+        return audioBridge != null && audioBridge.isActive();
+    }
+
+    /**
+     * Make the audio bridge follow the preference and show the result. Called
+     * by the preference listener and by the terminal activity after it flips
+     * the preference; idempotent, so the order and the number of calls do
+     * not matter.
+     */
+    public void applyAudioBridge() {
+        if (audioBridge == null) return;
+        boolean was = audioBridge.isRunning();
+        boolean wanted = AudioBridge.isWanted(this);
+        if (wanted) {
+            audioBridge.start();
+        } else {
+            audioBridge.stop();
+        }
+        if (wanted != was) {
+            ThothLog.i(LogCategory.APP, wanted ? "Audio bridge started" : "Audio bridge stopped");
+        }
+        refreshNotification();
+    }
+
+    /** The service is going away: the bridge goes with it; the preference stays for the next start. */
+    private void stopAudioBridge() {
+        if (audioBridge == null) return;
+        if (audioBridge.isRunning()) ThothLog.i(LogCategory.APP, "Audio bridge stopped");
+        audioBridge.stop();
     }
 
     /**
@@ -160,6 +231,7 @@ public class TermService extends SessionsService {
         LanController.get().hostStopped();
         clearSessions();
         stopThothDock();
+        stopAudioBridge();
         removeRunningNotification();
     }
 
@@ -198,10 +270,13 @@ public class TermService extends SessionsService {
 
     @Override
     public void onDestroy() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        prefs.unregisterOnSharedPreferenceChangeListener(audioBridgeListener);
         LanController.get().removeListener(lanListener);
         LanController.get().hostStopped();
         clearSessions();
         stopThothDock();
+        stopAudioBridge();
         removeRunningNotification();
         super.onDestroy();
 
@@ -216,9 +291,16 @@ public class TermService extends SessionsService {
 
     private Notification buildNotification() {
         final boolean lanActive = LanController.get().isOn();
+        final boolean audio = isAudioBridgeOn();
+        final boolean audioActive = isAudioActive();
         return buildNotification(this.getApplicationContext(),
                 (context, builder) -> {
                     CharSequence msg = context.getText(R.string.service_notify_text);
+                    // State only, no button: the menu and Settings flip it.
+                    if (audio) {
+                        msg = context.getString(audioActive ? R.string.service_notify_text_audio_playing
+                                : R.string.service_notify_text_audio_idle, msg);
+                    }
                     builder.setContentText(msg).setTicker(msg);
                     ThothDock dock = ThothDock.getIfInitialized();
                     if (dock != null && dock.isBundled()) {
@@ -237,7 +319,7 @@ public class TermService extends SessionsService {
         );
     }
 
-    /** Show or clear the LAN line after LAN Mode changes. */
+    /** Show or clear the LAN line after LAN Mode changes, or the audio state after it changes. */
     private void refreshNotification() {
         NotificationManager manager = getApplicationContext().getSystemService(NotificationManager.class);
         if (manager != null) manager.notify(RUNNING_NOTIFICATION, buildNotification());
@@ -355,8 +437,12 @@ public class TermService extends SessionsService {
                 // NOTE: foregroundServiceType argument should match Android manifest:
                 // - service
                 // - uses-permission
+                // mediaPlayback as well as specialUse: the audio bridge plays the
+                // guest's sound while the app is in the background, and from
+                // Android 14 that needs the type (and its permission) declared.
                 service.startForeground(RUNNING_NOTIFICATION, notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                                | ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
             }
         }
 

@@ -267,4 +267,17 @@ public class GuestConfigTest {
         assertEquals("Defaults:thoth env_keep += \"SYSTEMD_IN_CHROOT\"\n"
                 + "thoth ALL=(ALL:ALL) NOPASSWD: ALL\n", GuestConfig.sudoersEntry());
     }
+
+    /** PulseAudio names its runtime directory after it; a guest without one gets a systemd-shaped id. */
+    @Test
+    public void machineIdsAreSystemdShapedAndFresh() {
+        String one = GuestConfig.newMachineId();
+        assertTrue(one, GuestConfig.isMachineId(one));
+        assertFalse(one.equals(GuestConfig.newMachineId()));
+        assertFalse(GuestConfig.isMachineId(""));
+        assertFalse(GuestConfig.isMachineId(null));
+        assertFalse(GuestConfig.isMachineId("uninitialized"));
+        assertFalse(GuestConfig.isMachineId(one.toUpperCase()));
+        assertFalse(GuestConfig.isMachineId(one + "\n"));
+    }
 }
