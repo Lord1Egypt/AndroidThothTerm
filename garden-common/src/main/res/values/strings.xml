@@ -125,6 +125,19 @@
     </plurals>
     <string name="enable_wifilock">Keep Wi-Fi on</string>
     <string name="disable_wifilock">Allow Wi-Fi to sleep</string>
+    <!-- "Keep CPU awake": the partial wake lock with its modes, not "Keep screen awake" above. -->
+    <string name="keep_cpu_awake">Keep CPU awake</string>
+    <string name="keep_cpu_awake_menu">Keep CPU awake: %1$s</string>
+    <string name="keep_cpu_awake_mode_off">Off</string>
+    <string name="keep_cpu_awake_mode_while_audio">While sound plays</string>
+    <string name="keep_cpu_awake_mode_always">Always</string>
+    <string name="keep_cpu_awake_action_on">Keep awake</string>
+    <string name="keep_cpu_awake_action_off">Let sleep</string>
+    <string name="keep_cpu_awake_toast_on">Keeping the CPU awake while the screen is off. Uses more battery.</string>
+    <string name="keep_cpu_awake_toast_audio">The CPU stays awake while Linux audio plays; otherwise the device may sleep while the screen is off.</string>
+    <string name="keep_cpu_awake_toast_off">The device may sleep while the screen is off.</string>
+    <string name="title_keep_cpu_awake_preference">Keep CPU awake</string>
+    <string name="summary_keep_cpu_awake_preference">Hold a wake lock so Linux processes keep running while the screen is off: never, only while Linux audio plays, or always (uses more battery). The button on the running notification switches between always and while sound plays.</string>
     <!-- "Linux audio": the opt-in bridge that plays the guest's PulseAudio stream. -->
     <string name="audio_bridge">Linux audio</string>
     <string name="audio_bridge_toast_on">Playing sound from Linux (run thothterm-audio-setup once in the guest).</string>
@@ -171,6 +184,8 @@
     </string>
     <string name="notification_channel_sessions_description">Shown while a terminal session is running</string>
     <string name="service_notify_text">ThothTerm Garden is running</string>
+    <string name="service_notify_text_keep_awake">ThothTerm Garden is running, CPU kept awake</string>
+    <string name="service_notify_text_keep_awake_audio">ThothTerm Garden is running, CPU awake for Linux audio</string>
     <string name="service_notify_text_audio_playing">%1$s, Linux audio: playing</string>
     <string name="service_notify_text_audio_idle">%1$s, Linux audio: idle</string>
     <string name="service_timeout_text">System terminates long-running terminal sessions</string>

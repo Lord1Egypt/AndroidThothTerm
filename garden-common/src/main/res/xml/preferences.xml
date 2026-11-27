@@ -92,6 +92,15 @@
             android:summary="@string/summary_audio_bridge_preference"
             android:title="@string/title_audio_bridge_preference"/>
 
+        <ListPreference
+            android:defaultValue="while_audio"
+            android:dialogTitle="@string/keep_cpu_awake"
+            android:entries="@array/entries_keep_cpu_awake_mode_preference"
+            android:entryValues="@array/entryvalues_keep_cpu_awake_mode_preference"
+            android:key="keep_cpu_awake_mode"
+            android:summary="@string/summary_keep_cpu_awake_preference"
+            android:title="@string/title_keep_cpu_awake_preference"/>
+
     </PreferenceCategory>
 
     <PreferenceCategory

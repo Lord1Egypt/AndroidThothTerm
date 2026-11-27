@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
  * reopens a pipe that ended, keeps trying without one, and stops cleanly out
  * of a waiting read -- against a pipe stand-in fed by the test and a counting
  * sink in place of the {@code AudioTrack}; and the service owns the bridge
- * while the terminal only flips the preference. The FIFO's {@code poll}, the track and
+ * the way it owns the CPU wake lock. The FIFO's {@code poll}, the track and
  * the guest's PulseAudio are the device's half ({@code android.system.Os}
  * is not on the JVM); the pipe-sink mechanics were checked on a host with
  * PulseAudio 17 and PRoot.
@@ -485,8 +485,8 @@ public class AudioBridgeTest {
         assertTrue(service.contains("audioBridge = new AudioBridge(AudioBridge.hostFifo(this))"));
         assertTrue(service.contains("public void applyAudioBridge()"));
         assertTrue(service.contains("AudioBridge.PREF_KEY.equals(key)) applyAudioBridge()"));
-        // The bridge's state reaches the notification.
-        assertTrue(service.contains("audioBridge.setListener(this::onAudioActiveChanged)"));
+        // The bridge's state reaches the notification and the lock on the main thread.
+        assertTrue(service.contains("audioBridge.setListener(active -> mainHandler.post("));
         assertTrue(service.contains("R.string.service_notify_text_audio_playing"));
         assertTrue(service.contains("R.string.service_notify_text_audio_idle"));
         // Stopped on every way out: destroy, timeout and Exit.
@@ -501,8 +501,8 @@ public class AudioBridgeTest {
         // The service plays media in the background: both types, matching the manifest.
         assertTrue(service.contains("ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE\n"
                 + "                                | ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK"));
-        // No notification button: the menu and Settings flip it.
-        assertEquals(0, count(service, "builder.addAction("));
+        // No second notification button: the keep-awake one is the only action.
+        assertEquals(1, count(service, "builder.addAction("));
 
         String term = read(new File(MAIN, "java/jackpal/androidterm/Term.java"));
         assertTrue(term.contains("AudioBridge.toggleWanted(this)"));
@@ -515,7 +515,7 @@ public class AudioBridgeTest {
         Matcher m = Pattern.compile("<item android:id=\"@\\+id/menu_toggle_audio_bridge\"\\s+android:checkable=\"true\"")
                 .matcher(menu);
         assertTrue("the menu item is not checkable", m.find());
-        assertTrue("after Keep Wi-Fi on", menu.indexOf("menu_toggle_wifilock") < menu.indexOf("menu_toggle_audio_bridge"));
+        assertTrue("after Keep CPU awake", menu.indexOf("menu_toggle_keep_cpu_awake") < menu.indexOf("menu_toggle_audio_bridge"));
 
         String manifest = read(new File(MAIN, "AndroidManifest.xml"));
         assertTrue(manifest.contains("android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"));

@@ -35,6 +35,13 @@
         <item>AMOLED</item>
     </string-array>
 
+    <!-- "Keep CPU awake": the modes, in CpuWakeLock.MODES order; the menu dialog uses the same list. -->
+    <string-array name="entries_keep_cpu_awake_mode_preference">
+        <item>@string/keep_cpu_awake_mode_off</item>
+        <item>@string/keep_cpu_awake_mode_while_audio</item>
+        <item>@string/keep_cpu_awake_mode_always</item>
+    </string-array>
+
     <string-array name="entries_log_level_preference">
         <item>Error</item>
         <item>Warning</item>

@@ -47,11 +47,13 @@ The runtime is PRoot patch
   at `/run/thothterm/audio`, where the guest's PulseAudio writes its default
   sink. The pipe is the app's and survives every guest session and every
   PulseAudio restart.
-- **While the service runs** it owns the audio bridge, reading that pipe
-  when *Linux audio* is on. It follows its preference, is stopped on
-  `onDestroy`, `onTimeout` and Exit, and the preference stays for the next
-  start. It does not keep a PRoot alive: with the screen off, guest processes
-  are simply suspended with the device and resume with it.
+- **While the service runs** it owns the audio bridge (reading that pipe
+  when *Linux audio* is on) and the CPU wake lock (*Keep CPU awake*: off,
+  while sound plays with a 10 s grace, or always). Both follow their
+  preferences; both are stopped and released on `onDestroy`, `onTimeout` and
+  Exit, and the preferences stay for the next start. Neither keeps a PRoot
+  alive: with the screen off and the lock not held, guest processes are
+  simply suspended with the device and resume with it.
 
 ## History
 

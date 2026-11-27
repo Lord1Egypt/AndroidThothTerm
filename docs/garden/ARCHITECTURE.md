@@ -200,6 +200,29 @@ Settings; off by default) plays what the guest's own PulseAudio writes:
   runtime directory after it and falls back to the host name, which would
   orphan a running daemon whenever the host name changed.
 
+## Keep CPU awake
+
+**Keep CPU awake is not Keep screen awake.** It is a `PARTIAL_WAKE_LOCK`
+(`com.thothterm.utils.CpuWakeLock`, tag `ThothTerm:KeepAwake`) owned by
+`TermService`, so guest processes keep running while the display sleeps:
+without it the device suspends soon after the screen turns off and PRoot's
+tracees only run for a moment every 30-60 s, which ends Linux audio and stalls
+long jobs. The mode `keep_cpu_awake_mode` (menu dialog, Settings list,
+notification button) is the record:
+
+- **off** -- never held.
+- **while sound plays** (default) -- held while the audio bridge is active
+  and for 10 s after it turns idle; nothing held otherwise.
+- **always** -- held as long as the service runs, for long jobs.
+
+The service re-evaluates the lock when the mode changes, whenever the bridge
+starts or stops playing and once more when the grace runs out; it releases
+it on destroy, timeout and Exit and never leaves it behind. The notification
+button goes between *always* and the default and the notification says why
+the CPU is awake. No battery-optimization exemption is asked for, and nothing
+here touches the display: `ScreenAwakeTest` allows the wake-lock tokens in
+`CpuWakeLock.java` alone and checks the two features share no code.
+
 ## Uploads
 
 *Upload files* and *Upload folder* — on the phone through the Storage Access

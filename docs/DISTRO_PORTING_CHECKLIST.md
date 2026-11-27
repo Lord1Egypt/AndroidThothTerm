@@ -31,7 +31,7 @@ engine fork.
 | Default user name, UID/GID, home path | **Distro** | Ubuntu uses `thoth`, `/home/thoth`. |
 | Shell startup file layout | **Distro** | `.bashrc` vs `.zshrc` vs `.profile`. |
 | Welcome banner content | **Distro** | The adaptive mechanism is engine; the text is not. |
-| Audio pipe, bind, `AudioBridge` | **Engine** | The FIFO at `/run/thothterm/audio/pulse.fifo`, the format (s16le, 48 kHz, stereo), the service. |
+| Audio pipe, bind, `AudioBridge`, CPU wake lock | **Engine** | The FIFO at `/run/thothterm/audio/pulse.fifo`, the format (s16le, 48 kHz, stereo), the service. |
 | Guest sound server setup (`thothterm-audio-setup`) | **Distro** | Optional asset `garden/audio/thothterm-audio-setup`: installs `pulseaudio` with the distro's package manager, writes the pipe-sink configuration, starts the daemon. |
 
 **Rule:** if a fix would have to be repeated in every distro, it belongs in the

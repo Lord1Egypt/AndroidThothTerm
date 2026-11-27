@@ -59,7 +59,8 @@ import java.io.InterruptedIOException;
  * the audio hardware powered -- exists only while sound flows: it is opened
  * on the first bytes and paused and released after {@link #IDLE_TIMEOUT_MS}
  * without any. {@link #isActive()} says whether a track is open right now,
- * and a {@link Listener} hears every change, so the service can show it.
+ * and a {@link Listener} hears every change, so the service can show it and
+ * hold the CPU awake only while it matters.
  * <ul>
  * <li>The <b>FIFO</b> is the app's: {@link #ensureFifo} creates it (and its
  * directory) before the guest starts and whenever the bridge opens it, so the
