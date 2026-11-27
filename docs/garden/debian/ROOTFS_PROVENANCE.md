@@ -99,15 +99,18 @@ archive was built from.
 
 ## Changes from a plain debootstrap
 
-- `/etc/hostname` is `thothterm` (debuerreotype names the host after itself).
+- `/etc/hostname` is `thothterm` (debuerreotype names the host after itself;
+  the app rewrites it from the *Linux host name* setting at every session
+  start).
 - `/etc/resolv.conf` is a one-line comment; the app bind-mounts the resolver
   Android is using over it at runtime (debuerreotype points it at a public DNS
   service).
 - `/var/log` holds no files (they recorded the build); `/var/lib/apt/lists`
   and the apt caches are empty.
 
-The app adds the rest at first run, idempotently: the `thoth` account
-(1000:1000, `/home/thoth`, bash) in the `sudo` group, a `NOPASSWD` sudoers
+The app adds the rest at first run, idempotently: the guest account (`thoth`
+unless renamed in Settings; 1000:1000, `/home/<name>`, bash) in the `sudo`
+group, a `NOPASSWD` sudoers
 entry, the Android supplementary groups, `/etc/hosts` entries, the debconf
 frontend, the welcome banner and the edition file it reads.
 

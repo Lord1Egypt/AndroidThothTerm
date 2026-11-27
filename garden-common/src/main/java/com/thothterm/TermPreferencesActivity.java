@@ -22,6 +22,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
@@ -42,8 +43,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.thothterm.logging.LogCategory;
 import com.thothterm.logging.LogExporter;
+import com.thothterm.linux.GuestSettings;
 import com.thothterm.logging.ThothLog;
 import com.thothterm.utils.ThemeManager;
+
+import java.util.function.Predicate;
 
 import jackpal.androidterm.util.TermSettings;
 
@@ -161,6 +165,17 @@ public class TermPreferencesActivity extends AppCompatActivity
             }
 
             {
+                EditTextPreference user = findPreference(GuestSettings.KEY_USER_NAME);
+                if (user != null)
+                    guestNamePreference(user, GuestSettings::isValidUserName,
+                            R.string.guest_username_invalid, R.string.guest_username_applies);
+                EditTextPreference host = findPreference(GuestSettings.KEY_HOST_NAME);
+                if (host != null)
+                    guestNamePreference(host, GuestSettings::isValidHostName,
+                            R.string.guest_hostname_invalid, R.string.guest_hostname_applies);
+            }
+
+            {
                 Preference pref = findPreference("diagnostics_view_logs");
                 if (pref != null)
                     pref.setOnPreferenceClickListener(p -> {
@@ -198,6 +213,41 @@ public class TermPreferencesActivity extends AppCompatActivity
                         return true;
                     });
             }
+        }
+
+        /**
+         * A guest name the user types (the Linux account or host name): the
+         * current value is the summary, a name that is not valid is refused
+         * with a toast and the old one kept, and a new name is answered with
+         * when it takes effect. Surrounding whitespace is dropped.
+         */
+        private void guestNamePreference(EditTextPreference pref, Predicate<String> valid,
+                                         int invalidMessage, int appliesMessage) {
+            pref.setSummaryProvider(EditTextPreference.SimpleSummaryProvider.getInstance());
+            pref.setOnBindEditTextListener(editText -> {
+                editText.setInputType(InputType.TYPE_CLASS_TEXT
+                        | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+                editText.setSingleLine(true);
+                editText.setSelection(editText.getText().length());
+            });
+            pref.setOnPreferenceChangeListener((p, newValue) -> {
+                Context context = getContext();
+                String typed = newValue == null ? "" : newValue.toString();
+                String name = typed.trim();
+                if (!valid.test(name)) {
+                    if (context != null)
+                        Toast.makeText(context, invalidMessage, Toast.LENGTH_LONG).show();
+                    return false;
+                }
+                if (name.equals(pref.getText())) return false;
+                if (context != null)
+                    Toast.makeText(context, appliesMessage, Toast.LENGTH_LONG).show();
+                if (!name.equals(typed)) {
+                    pref.setText(name);
+                    return false;
+                }
+                return true;
+            });
         }
 
         private void confirmClearLogs(Context context) {

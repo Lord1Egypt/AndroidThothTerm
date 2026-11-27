@@ -73,6 +73,11 @@ public class GardenBrandingScriptsTest {
         ProcessBuilder pb = new ProcessBuilder("bash", "-c", script);
         pb.environment().remove("NO_COLOR");
         pb.environment().put("COLUMNS", "80");
+        // What a window carries in from the app (su -m keeps USER and HOME; bash
+        // takes HOSTNAME from the kernel, which PRoot answers for): the default names.
+        pb.environment().put("USER", "thoth");
+        pb.environment().put("HOME", "/home/thoth");
+        pb.environment().put("HOSTNAME", "thothterm");
         if (root != null) pb.environment().put("THOTHTERM_GUEST_ROOT", root.getAbsolutePath());
         if (extraEnv != null) pb.environment().putAll(extraEnv);
         pb.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));

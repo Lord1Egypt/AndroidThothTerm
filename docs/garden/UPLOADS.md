@@ -60,11 +60,11 @@ Files are written by the app as its own uid. This PRoot build has no
 `USERLAND` ownership emulation: every file of the rootfs is owned by the app
 uid on the host and shown as the current guest user, and the only permission
 check is the kernel's, for that uid. The app's writes therefore get exactly
-the checks `thoth` gets — a directory `thoth` cannot write to (`chmod 555`)
-fails with "Cannot upload to this folder." — and the results look exactly
-like `thoth`'s own files (`stat` shows `thoth`). Modes follow the session's
-umask (`/proc/<pid>/status`), as a `cp` in that shell would. Nothing is ever
-executed, sourced, made executable or extracted.
+the checks the guest account gets — a directory it cannot write to
+(`chmod 555`) fails with "Cannot upload to this folder." — and the results
+look exactly like its own files (`stat` shows the guest's user name). Modes
+follow the session's umask (`/proc/<pid>/status`), as a `cp` in that shell
+would. Nothing is ever executed, sourced, made executable or extracted.
 
 ## Names
 

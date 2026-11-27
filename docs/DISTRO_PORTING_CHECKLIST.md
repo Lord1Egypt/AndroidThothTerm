@@ -28,7 +28,7 @@ engine fork.
 | Image source, version, checksum | **Distro** | |
 | Package manager and its acceptance commands | **Distro** | `apt`/`dpkg`, `pacman`, `dnf`, … |
 | Privilege escalation tool and its configuration | **Distro** | `sudo`, `doas`, … |
-| Default user name, UID/GID, home path | **Distro** | Ubuntu uses `thoth`, `/home/thoth`. |
+| Guest user name, host name, UID/GID, home path | **Engine** | Settings > Linux (defaults `thoth`, `thothterm`); the account is renamed in place, uid/gid 1000 and `/home/<name>` follow. Only ThothTerm Ubuntu (`term-ubuntu`) still fixes `thoth`, `/home/thoth`. |
 | Shell startup file layout | **Distro** | `.bashrc` vs `.zshrc` vs `.profile`. |
 | Welcome banner content | **Distro** | The adaptive mechanism is engine; the text is not. |
 
@@ -60,6 +60,11 @@ engine. If it would be wrong in another distro, it belongs in distro policy.
 ### 2.3 Guest identity
 
 - [ ] Unprivileged user exists with a stable UID/GID and a real home.
+- [ ] The account follows the *Linux user name* setting: recorded in
+      `/etc/thothterm/account`, renamed in place keeping uid/gid 1000, never
+      while a PRoot of the app runs.
+- [ ] `/etc/hostname`, the `127.0.1.1` line of `/etc/hosts` and PRoot's
+      `--hostname` follow the *Linux host name* setting.
 - [ ] Android supplementary GIDs are named in the guest group database.
 - [ ] `/etc/hosts` managed.
 - [ ] `/etc/resolv.conf` bind-mounted from the Android side.
@@ -129,7 +134,7 @@ in one column per distro; "n/a" needs a written reason.
 | 4 | Primary shell | `bash -c 'echo ok'` | PASS | | | |
 | 5 | POSIX shell | `sh -c 'echo ok'` | PASS | | | |
 | 6 | Secondary shell | `dash`/`ash` equivalent | PASS | | | |
-| 7 | Identity | `whoami` = unprivileged user | PASS (`thoth`) | | | |
+| 7 | Identity | `whoami` = the configured user name (default `thoth`) | PASS (`thoth`) | | | |
 | 8 | HOME correct | `$HOME` matches the account | PASS | | | |
 | 9 | Non-login PATH sane | `echo $PATH` has system dirs | PASS | | | |
 | 10 | User-local PATH | CLI in `~/.local/bin` resolves | PASS | | | |

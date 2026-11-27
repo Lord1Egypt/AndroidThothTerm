@@ -73,29 +73,26 @@ public class UserPathIntegrationTest {
     }
 
     /**
-     * The asset pins {@code HOME=/home/thoth} for the guest. To exercise the
-     * block against a throwaway home, re-point exactly that line at {@code home}.
+     * The asset keeps the {@code HOME} the app started the window with (the
+     * account's, whatever its name) and never pins one, so a throwaway home
+     * is simply handed in through the environment.
      */
-    private File scriptWithHome(File home) throws Exception {
+    private static void withHome(ProcessBuilder builder, File home) throws Exception {
         String raw = source();
-        assertTrue("asset must pin the guest HOME",
-                raw.contains("export HOME=/home/thoth"));
-        String patched = raw.replace("export HOME=/home/thoth",
-                "export HOME=" + home.getAbsolutePath());
-        File copy = new File(temp.newFolder(), "thothterm-garden.sh");
-        Files.write(copy.toPath(), patched.getBytes(StandardCharsets.UTF_8));
-        return copy;
+        assertFalse("asset must not pin a home directory", raw.contains("HOME=/home/"));
+        builder.environment().put("HOME", home.getAbsolutePath());
+        builder.environment().put("USER", "thoth");
     }
 
     /** Sources the managed block and reports the resulting PATH. */
     private String pathAfterSourcing(File home, String incomingPath) throws Exception {
         assumeTrue("bash is required to exercise the managed block",
                 new File("/bin/bash").canExecute());
-        File copy = scriptWithHome(home);
 
         ProcessBuilder builder = new ProcessBuilder(
                 "bash", "-c", ". \"$1\" >/dev/null 2>&1; printf '%s' \"$PATH\"",
-                "bash", copy.getAbsolutePath());
+                "bash", script().getAbsolutePath());
+        withHome(builder, home);
         builder.environment().put("PATH", incomingPath);
         builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
         Process process = builder.start();
@@ -164,11 +161,11 @@ public class UserPathIntegrationTest {
         assertTrue(cast.createNewFile() && cast.setExecutable(true));
         assertTrue(dummy.createNewFile() && dummy.setExecutable(true));
 
-        File copy = scriptWithHome(home);
         ProcessBuilder builder = new ProcessBuilder(
                 "bash", "-c",
                 ". \"$1\" >/dev/null 2>&1; command -v cast; command -v thoth-dummy-cli",
-                "bash", copy.getAbsolutePath());
+                "bash", script().getAbsolutePath());
+        withHome(builder, home);
         builder.environment().put("PATH", BASE_PATH);
         builder.redirectErrorStream(true);
         Process process = builder.start();
@@ -225,14 +222,15 @@ public class UserPathIntegrationTest {
     @Test
     public void leavesNoHelperSymbolsBehind() throws Exception {
         File home = home(".local/bin");
-        File copy = scriptWithHome(home);
 
         ProcessBuilder builder = new ProcessBuilder(
                 "bash", "-c",
                 ". \"$1\" >/dev/null 2>&1; "
                         + "echo \"fn=$(type -t thothterm_prepend_path)\"; "
-                        + "echo \"var=${thothterm_dir-unset}\"",
-                "bash", copy.getAbsolutePath());
+                        + "echo \"var=${thothterm_dir-unset}\"; "
+                        + "echo \"host=${thothterm_hostname-unset}\"",
+                "bash", script().getAbsolutePath());
+        withHome(builder, home);
         builder.environment().put("PATH", BASE_PATH);
         builder.redirectErrorStream(true);
         Process process = builder.start();
@@ -250,5 +248,7 @@ public class UserPathIntegrationTest {
                 out.toString().contains("fn=function"));
         assertTrue("loop variable must be unset: " + out,
                 out.toString().contains("var=unset"));
+        assertTrue("prompt helper variable must be unset: " + out,
+                out.toString().contains("host=unset"));
     }
 }

@@ -29,4 +29,6 @@
     <string name="pref_log_level_default" translatable="false">INFO</string>
     <bool name="pref_developer_logging_default">false</bool>
     <bool name="pref_garden_welcome_default">true</bool>
+    <string name="pref_guest_username_default" translatable="false">thoth</string>
+    <string name="pref_guest_hostname_default" translatable="false">thothterm</string>
 </resources>

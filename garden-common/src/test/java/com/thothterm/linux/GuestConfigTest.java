@@ -38,22 +38,22 @@ public class GuestConfigTest {
 
     @Test
     public void passwdAddsThothOnceAndPreservesOtherEntries() {
-        String once = GuestConfig.ensurePasswd(BASE_PASSWD);
+        String once = GuestConfig.ensurePasswd(BASE_PASSWD, "thoth");
         assertTrue(once.contains("daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\n"));
         assertTrue(once.contains("thoth:x:1000:1000:Thoth User:/home/thoth:/bin/bash\n"));
 
-        String twice = GuestConfig.ensurePasswd(once);
+        String twice = GuestConfig.ensurePasswd(once, "thoth");
         assertEquals(once, twice);
         assertEquals(1, occurrences(twice, "thoth:x:1000:1000:"));
     }
 
     @Test
     public void groupAddsThothAndMembershipIdempotently() {
-        String once = GuestConfig.ensureGroup(BASE_GROUP, "sudo");
+        String once = GuestConfig.ensureGroup(BASE_GROUP, "sudo", "thoth");
         assertTrue(once.contains("thoth:x:1000:\n"));
         assertTrue(once.contains("sudo:x:27:thoth\n"));
 
-        String twice = GuestConfig.ensureGroup(once, "sudo");
+        String twice = GuestConfig.ensureGroup(once, "sudo", "thoth");
         assertEquals(once, twice);
         assertEquals(1, occurrences(twice, "thoth:x:1000:"));
     }
@@ -61,7 +61,7 @@ public class GuestConfigTest {
     @Test
     public void groupPreservesExistingSudoMembers() {
         String text = "sudo:x:27:alice\n";
-        String updated = GuestConfig.ensureGroup(text, "sudo");
+        String updated = GuestConfig.ensureGroup(text, "sudo", "thoth");
         assertTrue(updated.contains("sudo:x:27:alice,thoth\n"));
         assertFalse(updated.contains("alice\n,thoth"));
     }
@@ -70,12 +70,12 @@ public class GuestConfigTest {
     @Test
     public void groupUsesTheEditionsAdminGroup() {
         String arch = "root:x:0:root\nwheel:x:998:\nusers:x:984:\n";
-        String once = GuestConfig.ensureGroup(arch, "wheel");
+        String once = GuestConfig.ensureGroup(arch, "wheel", "thoth");
         assertTrue(once.contains("wheel:x:998:thoth\n"));
         assertFalse(once.contains("sudo:"));
-        assertEquals(once, GuestConfig.ensureGroup(once, "wheel"));
+        assertEquals(once, GuestConfig.ensureGroup(once, "wheel", "thoth"));
         // A missing admin group other than Debian's sudo is never invented.
-        String noWheel = GuestConfig.ensureGroup("root:x:0:\n", "wheel");
+        String noWheel = GuestConfig.ensureGroup("root:x:0:\n", "wheel", "thoth");
         assertFalse(noWheel.contains("wheel"));
         assertTrue(noWheel.contains("thoth:x:1000:\n"));
     }
@@ -83,14 +83,14 @@ public class GuestConfigTest {
     @Test
     public void groupRecognisesExistingMembership() {
         String text = "thoth:x:1000:\nsudo:x:27:bob,thoth\n";
-        assertEquals(text, GuestConfig.ensureGroup(text, "sudo"));
+        assertEquals(text, GuestConfig.ensureGroup(text, "sudo", "thoth"));
     }
 
     @Test
     public void shadowAddsLockedThothEntryOnce() {
-        String once = GuestConfig.ensureShadow(BASE_SHADOW);
+        String once = GuestConfig.ensureShadow(BASE_SHADOW, "thoth");
         assertTrue(once.contains("thoth:!:19000:0:99999:7:::\n"));
-        assertEquals(once, GuestConfig.ensureShadow(once));
+        assertEquals(once, GuestConfig.ensureShadow(once, "thoth"));
     }
 
     @Test
@@ -156,16 +156,16 @@ public class GuestConfigTest {
 
     @Test
     public void hostsAddsLoopbackEntriesAndIsIdempotent() {
-        String once = GuestConfig.ensureHosts("");
+        String once = GuestConfig.ensureHosts("", "thothterm");
         assertTrue(once.contains("127.0.0.1 localhost\n"));
         assertTrue(once.contains("::1 localhost ip6-localhost ip6-loopback\n"));
-        assertEquals(once, GuestConfig.ensureHosts(once));
+        assertEquals(once, GuestConfig.ensureHosts(once, "thothterm"));
     }
 
     @Test
     public void hostsPreservesUserEntriesAndRecognisesExistingLoopback() {
         String base = "10.0.0.5 myhost\n127.0.0.1 localhost myhost\n";
-        String result = GuestConfig.ensureHosts(base);
+        String result = GuestConfig.ensureHosts(base, "thothterm");
         assertTrue(result.startsWith("10.0.0.5 myhost\n"));
         assertTrue(result.contains("127.0.0.1 localhost myhost\n"));
         assertEquals(1, occurrences(result, "127.0.0.1 "));
@@ -265,6 +265,118 @@ public class GuestConfigTest {
     @Test
     public void sudoersKeepsOnlyTheChrootHintAndGrantsThoth() {
         assertEquals("Defaults:thoth env_keep += \"SYSTEMD_IN_CHROOT\"\n"
-                + "thoth ALL=(ALL:ALL) NOPASSWD: ALL\n", GuestConfig.sudoersEntry());
+                + "thoth ALL=(ALL:ALL) NOPASSWD: ALL\n", GuestConfig.sudoersEntry("thoth"));
+    }
+
+    /** A fresh rootfs gets the account the user chose, under that name from the start. */
+    @Test
+    public void accountIsCreatedUnderTheChosenName() {
+        String passwd = GuestConfig.ensurePasswd(BASE_PASSWD, "alice");
+        assertTrue(passwd.contains("alice:x:1000:1000:Thoth User:/home/alice:/bin/bash\n"));
+        assertFalse(passwd.contains("thoth"));
+        String group = GuestConfig.ensureGroup(BASE_GROUP, "sudo", "alice");
+        assertTrue(group.contains("alice:x:1000:\n"));
+        assertTrue(group.contains("sudo:x:27:alice\n"));
+        assertTrue(GuestConfig.ensureShadow(BASE_SHADOW, "alice").contains("alice:!:19000:0:99999:7:::\n"));
+        assertEquals("Defaults:alice env_keep += \"SYSTEMD_IN_CHROOT\"\n"
+                + "alice ALL=(ALL:ALL) NOPASSWD: ALL\n", GuestConfig.sudoersEntry("alice"));
+        assertEquals("/home/alice", GuestConfig.homeOf("alice"));
+        assertTrue(GuestConfig.hasAccount(passwd, "alice"));
+        assertFalse(GuestConfig.hasAccount(passwd, "thoth"));
+    }
+
+    @Test
+    public void renamePasswdChangesTheNameAndItsHomeOnly() {
+        String passwd = GuestConfig.ensurePasswd(BASE_PASSWD, "thoth");
+        String renamed = GuestConfig.renamePasswd(passwd, "thoth", "alice");
+        assertTrue(renamed.startsWith(BASE_PASSWD));
+        assertTrue(renamed.contains("alice:x:1000:1000:Thoth User:/home/alice:/bin/bash\n"));
+        assertFalse(renamed.contains("thoth"));
+        // Idempotent, so an interrupted rename can be run again.
+        assertEquals(renamed, GuestConfig.renamePasswd(renamed, "thoth", "alice"));
+        assertEquals(renamed, GuestConfig.ensurePasswd(renamed, "alice"));
+        // A home the user moved elsewhere, and another shell, stay as they are.
+        assertEquals("alice:x:1000:1000::/data/thoth:/bin/zsh\n",
+                GuestConfig.renamePasswd("thoth:x:1000:1000::/data/thoth:/bin/zsh\n", "thoth", "alice"));
+        // An account whose name merely starts the same is another account.
+        String other = "thothy:x:1001:1001::/home/thothy:/bin/sh\n";
+        assertEquals(other, GuestConfig.renamePasswd(other, "thoth", "alice"));
+    }
+
+    @Test
+    public void renameGroupChangesTheOwnGroupAndEveryMembership() {
+        String group = "root:x:0:\nsudo:x:27:bob,thoth\nthoth:x:1000:\nwheel:x:998:thoth\n"
+                + "users:x:100:alice\nthothy:x:1001:thothy\n";
+        String renamed = GuestConfig.renameGroup(group, "thoth", "alice");
+        assertEquals("root:x:0:\nsudo:x:27:bob,alice\nalice:x:1000:\nwheel:x:998:alice\n"
+                + "users:x:100:alice\nthothy:x:1001:thothy\n", renamed);
+        assertEquals(renamed, GuestConfig.renameGroup(renamed, "thoth", "alice"));
+        assertEquals(renamed, GuestConfig.ensureGroup(renamed, "sudo", "alice"));
+    }
+
+    @Test
+    public void renameShadowAndGshadowEntries() {
+        String shadow = GuestConfig.ensureShadow(BASE_SHADOW, "thoth");
+        String renamed = GuestConfig.renameShadow(shadow, "thoth", "alice");
+        assertTrue(renamed.startsWith(BASE_SHADOW));
+        assertTrue(renamed.contains("alice:!:19000:0:99999:7:::\n"));
+        assertFalse(renamed.contains("thoth"));
+        assertEquals(renamed, GuestConfig.renameShadow(renamed, "thoth", "alice"));
+        // gshadow: name, administrators and members.
+        String gshadow = "root:*::\nsudo:*:thoth:bob,thoth\nthoth:!::\n";
+        assertEquals("root:*::\nsudo:*:alice:bob,alice\nalice:!::\n",
+                GuestConfig.renameGshadow(gshadow, "thoth", "alice"));
+    }
+
+    @Test
+    public void hostsKeepsTheGuestsOwnNameOnItsOwnLine() {
+        String once = GuestConfig.ensureHosts("", "thothterm");
+        assertTrue(once.contains("127.0.0.1 localhost\n"));
+        assertTrue(once.contains("127.0.1.1 thothterm\n"));
+        assertEquals(once, GuestConfig.ensureHosts(once, "thothterm"));
+        // A new host name replaces the managed line and nothing else.
+        String renamed = GuestConfig.ensureHosts(once, "pocket");
+        assertTrue(renamed.contains("127.0.1.1 pocket\n"));
+        assertFalse(renamed.contains("thothterm"));
+        assertEquals(1, occurrences(renamed, "127.0.1.1 "));
+        assertTrue(renamed.contains("127.0.0.1 localhost\n"));
+        assertTrue(renamed.contains("::1 localhost ip6-localhost ip6-loopback\n"));
+        // User lines on other addresses stay; the image's own 127.0.1.1 line is taken over.
+        String base = "10.0.0.5 nas\n127.0.1.1\told-name alias\n";
+        String result = GuestConfig.ensureHosts(base, "pocket");
+        assertTrue(result.startsWith("10.0.0.5 nas\n127.0.1.1 pocket\n"));
+        assertFalse(result.contains("old-name"));
+    }
+
+    @Test
+    public void validatesTheNamesTheUserMayChoose() {
+        assertTrue(GuestConfig.isValidUserName("thoth"));
+        assertTrue(GuestConfig.isValidUserName("_svc-1"));
+        assertTrue(GuestConfig.isValidUserName(repeat('a', 32)));
+        assertFalse(GuestConfig.isValidUserName(repeat('a', 33)));
+        assertFalse(GuestConfig.isValidUserName("root"));
+        assertFalse(GuestConfig.isValidUserName("Alice"));
+        assertFalse(GuestConfig.isValidUserName("1abc"));
+        assertFalse(GuestConfig.isValidUserName("a b"));
+        assertFalse(GuestConfig.isValidUserName("a:b"));
+        assertFalse(GuestConfig.isValidUserName(""));
+        assertFalse(GuestConfig.isValidUserName(null));
+
+        assertTrue(GuestConfig.isValidHostName("thothterm"));
+        assertTrue(GuestConfig.isValidHostName("My-Phone2"));
+        assertTrue(GuestConfig.isValidHostName(repeat('h', 63)));
+        assertFalse(GuestConfig.isValidHostName(repeat('h', 64)));
+        assertFalse(GuestConfig.isValidHostName("-x"));
+        assertFalse(GuestConfig.isValidHostName("a.b"));
+        assertFalse(GuestConfig.isValidHostName("a b"));
+        assertFalse(GuestConfig.isValidHostName("a/b"));
+        assertFalse(GuestConfig.isValidHostName(""));
+        assertFalse(GuestConfig.isValidHostName(null));
+    }
+
+    private static String repeat(char c, int count) {
+        StringBuilder builder = new StringBuilder(count);
+        for (int i = 0; i < count; i++) builder.append(c);
+        return builder.toString();
     }
 }

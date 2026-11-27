@@ -26,14 +26,23 @@ package com.thothterm.linux;
  * upgraded in place. Running the transforms twice produces the same text.</p>
  */
 final class GuestConfig {
-    static final String USER = "thoth";
+    /** The guest account's name unless the user chose another in Settings. */
+    static final String DEFAULT_USER = "thoth";
+    /** The guest's host name unless the user chose another in Settings. */
+    static final String DEFAULT_HOSTNAME = "thothterm";
     static final int UID = 1000;
     static final int GID = 1000;
-    static final String USER_HOME = "/home/thoth";
     static final String USER_SHELL = "/bin/bash";
 
     /** Bumped when managed guest configuration changes so it can be re-applied. */
-    static final int RUNTIME_CONFIG_VERSION = 3;
+    static final int RUNTIME_CONFIG_VERSION = 4;
+
+    /** A portable login name: lower case, a letter or underscore first, 32 characters at most. */
+    private static final java.util.regex.Pattern USER_NAME =
+            java.util.regex.Pattern.compile("[a-z_][a-z0-9_-]{0,31}");
+    /** One RFC 1123 label of at most 63 characters, which PRoot's --hostname accepts too. */
+    private static final java.util.regex.Pattern HOST_NAME =
+            java.util.regex.Pattern.compile("[A-Za-z0-9][A-Za-z0-9-]{0,62}");
 
     /** Exact text of the {@code auth sufficient pam_permit.so} line ThothTerm
      *  added to {@code /etc/pam.d/su} in runtime config v2. */
@@ -45,32 +54,118 @@ final class GuestConfig {
     private GuestConfig() {
     }
 
-    static String ensurePasswd(String text) {
-        if (hasNamedLine(text, USER)) return text;
-        return appendStanza(text, USER + ":x:" + UID + ":" + GID + ":Thoth User:"
-                + USER_HOME + ":" + USER_SHELL);
+    /** True for a name the guest account may have; "root" is never one. */
+    static boolean isValidUserName(String name) {
+        return name != null && USER_NAME.matcher(name).matches() && !name.equals("root");
+    }
+
+    /** True for a name the guest may carry as its host name. */
+    static boolean isValidHostName(String name) {
+        return name != null && HOST_NAME.matcher(name).matches();
+    }
+
+    /** The home directory of the guest account {@code user}. */
+    static String homeOf(String user) {
+        return "/home/" + user;
+    }
+
+    /** True when the passwd, group or shadow text has an entry of that name. */
+    static boolean hasAccount(String text, String name) {
+        return hasNamedLine(text, name);
+    }
+
+    static String ensurePasswd(String text, String user) {
+        if (hasNamedLine(text, user)) return text;
+        return appendStanza(text, user + ":x:" + UID + ":" + GID + ":Thoth User:"
+                + homeOf(user) + ":" + USER_SHELL);
     }
 
     /**
-     * Adds the {@code thoth} group and makes {@code thoth} a member of
+     * Adds the account's own group and makes the account a member of
      * {@code adminGroup} ("sudo" on Debian, "wheel" on Arch). Elevation itself
      * comes from the sudoers entry; the membership only matches what the
      * distribution's own tools expect of an administrator. Only a missing
      * "sudo" group is created (as Debian's gid 27); another missing group is
      * left alone rather than guessing a gid the distribution may use.
      */
-    static String ensureGroup(String text, String adminGroup) {
+    static String ensureGroup(String text, String adminGroup, String user) {
         String result = text;
-        if (!hasNamedLine(result, USER)) {
-            result = appendStanza(result, USER + ":x:" + GID + ":");
+        if (!hasNamedLine(result, user)) {
+            result = appendStanza(result, user + ":x:" + GID + ":");
         }
         if (!hasNamedLine(result, adminGroup) && !adminGroup.equals("sudo")) return result;
-        return ensureMember(result, adminGroup, USER);
+        return ensureMember(result, adminGroup, user);
     }
 
-    static String ensureShadow(String text) {
-        if (hasNamedLine(text, USER)) return text;
-        return appendStanza(text, USER + ":!:19000:0:99999:7:::");
+    static String ensureShadow(String text, String user) {
+        if (hasNamedLine(text, user)) return text;
+        return appendStanza(text, user + ":!:19000:0:99999:7:::");
+    }
+
+    /**
+     * Renames the account in {@code /etc/passwd}: the name field of its entry,
+     * and a home directory that followed the old name. The uid, gid, shell and
+     * every other entry stay as they are. Without an entry of the old name the
+     * text is returned unchanged, so a rename interrupted half-way can simply
+     * be run again.
+     */
+    static String renamePasswd(String text, String oldName, String newName) {
+        return renameEntries(text, oldName, newName, 5);
+    }
+
+    /**
+     * Renames the account in {@code /etc/group}: its own group's name field and
+     * its membership of every other group (sudo, wheel, ...).
+     */
+    static String renameGroup(String text, String oldName, String newName) {
+        return renameEntries(text, oldName, newName, -1, 3);
+    }
+
+    /** Renames the account's {@code /etc/shadow} entry. */
+    static String renameShadow(String text, String oldName, String newName) {
+        return renameEntries(text, oldName, newName, -1);
+    }
+
+    /**
+     * Renames the account's group in {@code /etc/gshadow}, and the account in
+     * every group's administrator and member lists.
+     */
+    static String renameGshadow(String text, String oldName, String newName) {
+        return renameEntries(text, oldName, newName, -1, 2, 3);
+    }
+
+    private static String renameEntries(String text, String oldName, String newName,
+                                        int homeField, int... memberFields) {
+        if (text == null || oldName.equals(newName)) return text;
+        String[] lines = text.split("\n", -1);
+        for (int i = 0; i < lines.length; i++) {
+            String[] fields = lines[i].split(":", -1);
+            if (fields.length < 2) continue;
+            if (fields[0].equals(oldName)) {
+                fields[0] = newName;
+                if (homeField >= 0 && fields.length > homeField
+                        && fields[homeField].equals(homeOf(oldName))) {
+                    fields[homeField] = homeOf(newName);
+                }
+            }
+            for (int field : memberFields) {
+                if (fields.length > field) {
+                    fields[field] = renameMember(fields[field], oldName, newName);
+                }
+            }
+            lines[i] = String.join(":", fields);
+        }
+        return String.join("\n", lines);
+    }
+
+    private static String renameMember(String members, String oldName, String newName) {
+        if (members.isEmpty()) return members;
+        java.util.List<String> result = new java.util.ArrayList<>();
+        for (String member : members.split(",", -1)) {
+            String renamed = member.equals(oldName) ? newName : member;
+            if (!result.contains(renamed)) result.add(renamed);
+        }
+        return String.join(",", result);
     }
 
     private static final int AID_USER_OFFSET = 100000;
@@ -145,9 +240,9 @@ final class GuestConfig {
      * variable package hooks need to see the truth about the environment
      * ({@code SYSTEMD_IN_CHROOT}, see the runtime) is kept explicitly.
      */
-    static String sudoersEntry() {
-        return "Defaults:" + USER + " env_keep += \"SYSTEMD_IN_CHROOT\"\n"
-                + USER + " ALL=(ALL:ALL) NOPASSWD: ALL\n";
+    static String sudoersEntry(String user) {
+        return "Defaults:" + user + " env_keep += \"SYSTEMD_IN_CHROOT\"\n"
+                + user + " ALL=(ALL:ALL) NOPASSWD: ALL\n";
     }
 
     /**
@@ -156,15 +251,32 @@ final class GuestConfig {
      * "unable to resolve host" when its own host name is missing. Only missing
      * managed lines are appended; user entries are preserved and rerunning the
      * transform returns the same text.
+     *
+     * <p>The guest's own name is the {@code 127.0.1.1} line, where Debian's
+     * installer keeps it. That one line is the app's: it follows the host name
+     * the user chose, and no other line is touched.</p>
      */
-    static String ensureHosts(String text) {
+    static String ensureHosts(String text, String hostName) {
         StringBuilder result = new StringBuilder(text == null ? "" : text);
         if (result.length() > 0 && result.charAt(result.length() - 1) != '\n') {
             result.append('\n');
         }
         ensureHostEntry(result, "127.0.0.1", "localhost");
         ensureHostEntry(result, "::1", "localhost ip6-localhost ip6-loopback");
-        return result.toString();
+        return setOwnHostEntry(result.toString(), hostName);
+    }
+
+    private static String setOwnHostEntry(String text, String hostName) {
+        String own = "127.0.1.1 " + hostName;
+        String[] lines = text.split("\n", -1);
+        for (int i = 0; i < lines.length; i++) {
+            String[] fields = lines[i].trim().split("\\s+");
+            if (!fields[0].equals("127.0.1.1")) continue;
+            if (fields.length == 2 && fields[1].equals(hostName)) return text;
+            lines[i] = own;
+            return String.join("\n", lines);
+        }
+        return text + own + "\n";
     }
 
     /**

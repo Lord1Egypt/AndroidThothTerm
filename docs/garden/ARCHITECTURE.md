@@ -33,7 +33,7 @@ release carries is therefore inherited, not re-implemented:
 | Windows hang up like a terminal; `nohup` survives; nothing outlives PRoot | `GardenRuntime` argv, `ShellTermSession` (exit on EOF), `SessionHangup`, `libtermexec` SIGHUP reset |
 | Busy-window close, Exit cleanup, notification lifecycle | `Term`, `TermService`, `SessionProcesses` |
 | Safe extraction: traversal, symlink and hard-link checks, crash-safe staging, hard-link copy fallback | `TarballExtractor`, `SafeFileTree`, `RootfsManager` |
-| Private resolver, Android supplementary groups, `thoth` account | `AndroidNetworkResolver`, `GuestConfig` |
+| Private resolver, Android supplementary groups, the guest account (`thoth` by default; see "Guest identity") | `AndroidNetworkResolver`, `GuestConfig`, `RootfsManager.reconcileAccount` |
 | Interrupted dpkg is finished in place, never downgraded | `RootfsManager.ensureRealSudo`, `GuestConfig.packageState` |
 | PTY/JNI, resize, Arabic/BiDi phone rendering | `emulatorview`, `libtermexec` (unchanged) |
 | LAN Mode: PIN pairing, 256-bit token, rate limit and lockout, Host/Origin checks, dedicated PTYs, 30 s grace, xterm.js 6.0.0 + fit 0.11.0 + bidi-js 1.0.3 + Cascadia Mono, no CDN | `com.thothterm.lan`, `assets/lan`, `lan-web/` |
@@ -71,7 +71,9 @@ None is a Debian-specific workaround.
 - **The host-shell settings are gone**: home path, shell, initial command,
   `shrc` and "source system shrc". A Garden window always runs the guest's
   bash through PRoot, and `ShellTermSession` no longer falls back to Android's
-  `/system/bin/sh` when PRoot is missing — it fails instead.
+  `/system/bin/sh` when PRoot is missing — it fails instead. Settings > Linux
+  carries two guest settings instead, *Linux user name* and *Linux host name*
+  (see "Guest identity").
 - **Neutral defaults, edition overrides.** Every string that names a product
   or distribution is a neutral default in `garden-common` and is overridden by
   the edition (`DebianEditionTest` lists them). The translations inherited from
@@ -104,14 +106,45 @@ None is a Debian-specific workaround.
   output goes to the edition's `build/garden/` and is checked for 16 KB LOAD
   alignment.
 - A window runs `proot --rootfs=<canonical path> --root-id --link2symlink
-  --hangup-on-exit --bind=/dev --bind=/proc --bind=/sys
+  --cwd=/home/<user> --hangup-on-exit --hostname=<host name>
+  --kernel-release=6.1.0-thothterm --bind=/dev --bind=/proc --bind=/sys
   --bind=<private resolv.conf>:/etc/resolv.conf /usr/bin/su -m -s /bin/bash
-  thoth`. One-shot provisioning uses `--kill-on-exit` instead.
+  <user>`. One-shot provisioning uses `--kill-on-exit` instead.
 - First run extracts into `rootfs.staging` while hashing the archive, checks
   the SHA-256, applies the guest configuration, renames the directory to
   `rootfs`, and only then writes the state file.
 - Root inside the guest is PRoot's user-space emulation. It grants no Android
   privilege and there is no isolation beyond the app sandbox.
+
+## Guest identity
+
+The account a window logs into and the name the guest calls itself are
+settings (Settings > Linux, *Linux user name* and *Linux host name*; defaults
+`thoth` and `thothterm`), validated on entry. Neither is baked into the
+managed profile or `thothfetch`: the scripts take the user, home and host
+name from the running session.
+
+- **Host name.** Every session start writes the setting to `/etc/hostname`
+  and to the `127.0.1.1` line of `/etc/hosts`, and `GardenRuntime` passes it
+  as PRoot's `--hostname` (patch 0013) ahead of `--kernel-release`: PRoot runs
+  its extensions newest first and `--kernel-release` rewrites the whole
+  utsname, so `--hostname` must come first to have the last word. `hostname`,
+  `uname -n` and bash's `\h` then agree. Applies to new windows.
+- **User name.** The account the rootfs actually has is recorded in
+  `/etc/thothterm/account` (an installation from before the record is
+  `thoth`). When the setting differs, `RootfsManager.reconcileAccount`
+  renames the account in place, uid and gid 1000 unchanged: `/home/<old>`
+  is moved first (`rename(2)`), then the gshadow, shadow and group entries
+  (own group and memberships), passwd last, and `sudoers.d/<old>` gives way
+  to `sudoers.d/<new>`. Passwd decides the recorded name, so an interruption
+  anywhere leaves the old name in force and the next start repeats the
+  remaining steps, each idempotent. The rename is refused — the old name
+  stays in force and the reason is logged — while any PRoot of the app runs
+  (a shell would lose its home beneath it), or while the new name is already
+  an account or a home directory in the guest; nothing is clobbered. A new
+  rootfs has no account, so the chosen name is created outright.
+- `GardenRuntime` runs `su`, `--cwd` and `HOME`/`USER`/`LOGNAME` for the
+  account that exists, never for the setting alone.
 
 ## Two tracks
 

@@ -32,7 +32,6 @@ import java.util.Map;
  * inside a rootless Android application and grants no host privileges.</p>
  */
 public final class GardenRuntime {
-    public static final String LINUX_HOME = "/home/thoth";
     /** The guest's login shell, as every window runs it. */
     public static final String GUEST_SHELL = "/bin/bash";
     /** The guest's su, which drops a window from fake root to the user. */
@@ -52,6 +51,10 @@ public final class GardenRuntime {
     private final String prootTmpDir;
     private final String resolverFile;
     private final String terminalType;
+    /** The guest account every window logs into; its home is {@code /home/<name>}. */
+    private final String userName;
+    /** The guest's host name, as uname and the prompt report it. */
+    private final String hostName;
     /** Extra {@code --bind} arguments: the /proc stand-ins and ThothDock's files. */
     private final List<String> extraBinds;
     /** Extra guest environment (DOCKER_HOST); empty in every other build. */
@@ -61,12 +64,24 @@ public final class GardenRuntime {
                          String runtimeLibDir, String prootTmpDir, String resolverFile,
                          String terminalType) {
         this(prootPath, loaderPath, rootfsDir, runtimeLibDir, prootTmpDir, resolverFile,
-                terminalType, Collections.<String>emptyList(), Collections.<String, String>emptyMap());
+                terminalType, GuestConfig.DEFAULT_USER, GuestConfig.DEFAULT_HOSTNAME,
+                Collections.<String>emptyList(), Collections.<String, String>emptyMap());
     }
 
     public GardenRuntime(String prootPath, String loaderPath, String rootfsDir,
                          String runtimeLibDir, String prootTmpDir, String resolverFile,
-                         String terminalType, List<String> extraBinds, Map<String, String> extraEnv) {
+                         String terminalType, String userName, String hostName) {
+        this(prootPath, loaderPath, rootfsDir, runtimeLibDir, prootTmpDir, resolverFile,
+                terminalType, userName, hostName,
+                Collections.<String>emptyList(), Collections.<String, String>emptyMap());
+    }
+
+    public GardenRuntime(String prootPath, String loaderPath, String rootfsDir,
+                         String runtimeLibDir, String prootTmpDir, String resolverFile,
+                         String terminalType, String userName, String hostName,
+                         List<String> extraBinds, Map<String, String> extraEnv) {
+        this.userName = userName;
+        this.hostName = hostName;
         this.extraBinds = extraBinds;
         this.extraEnv = extraEnv;
         this.prootPath = prootPath;
@@ -91,7 +106,12 @@ public final class GardenRuntime {
                 manager.runtimeLibDir().getAbsolutePath(),
                 manager.prootTmpDir().getAbsolutePath(),
                 AndroidNetworkResolver.get().resolverFile().getAbsolutePath(),
-                terminalType, binds, env);
+                terminalType, manager.guestUserName(), manager.guestHostName(), binds, env);
+    }
+
+    /** The guest account's home, where every window starts. */
+    public String home() {
+        return GuestConfig.homeOf(userName);
     }
 
     public List<String> buildArgv() {
@@ -99,8 +119,8 @@ public final class GardenRuntime {
         // rest of its session gets SIGHUP, a nohup'd job keeps running, and
         // PRoot stays only as long as such a job needs it. --kill-on-exit
         // would kill nohup'd jobs too.
-        List<String> argv = baseArgv(LINUX_HOME, true, "--hangup-on-exit");
-        // Drop from PRoot fake-root to the guest "thoth" account through the
+        List<String> argv = baseArgv(home(), true, "--hangup-on-exit");
+        // Drop from PRoot fake-root to the guest account through the
         // guest's own util-linux su. Options must precede the user name;
         // "-i" is not a su option and previously made su exit immediately
         // ("invalid option -- 'i'"), which closed the session window.
@@ -110,7 +130,7 @@ public final class GardenRuntime {
         argv.add("-m");
         argv.add("-s");
         argv.add(GUEST_SHELL);
-        argv.add("thoth");
+        argv.add(userName);
         return argv;
     }
 
@@ -138,6 +158,10 @@ public final class GardenRuntime {
         argv.add("--link2symlink");
         argv.add("--cwd=" + cwd);
         argv.add(exitPolicy);
+        // The guest's own host name (uname -n, hostname, bash's \h). PRoot runs
+        // its extensions newest first and --kernel-release rewrites the whole
+        // utsname, so --hostname must come before it to have the last word.
+        argv.add("--hostname=" + hostName);
         argv.add("--kernel-release=6.1.0-thothterm");
         argv.add("--bind=/dev");
         argv.add("--bind=/proc");
@@ -155,9 +179,9 @@ public final class GardenRuntime {
 
     public Map<String, String> buildEnvironment() {
         Map<String, String> env = new LinkedHashMap<>();
-        env.put("HOME", LINUX_HOME);
-        env.put("USER", "thoth");
-        env.put("LOGNAME", "thoth");
+        env.put("HOME", home());
+        env.put("USER", userName);
+        env.put("LOGNAME", userName);
         env.put("SHELL", GUEST_SHELL);
         env.put("TERM", terminalType == null ? "xterm-256color" : terminalType);
         env.put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");

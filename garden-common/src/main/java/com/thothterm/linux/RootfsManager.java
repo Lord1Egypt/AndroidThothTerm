@@ -135,6 +135,8 @@ public final class RootfsManager {
     private volatile Throwable lastError;
     /** The user confirmed a reset in this process (the marker file persists it). */
     private volatile boolean resetConfirmed;
+    /** The account the installed rootfs has, from the last {@link #setupRootfs} of it. */
+    private volatile String activeUserName;
 
     /** Network or slow guest work that must never block a terminal. */
     private final ExecutorService background = Executors.newSingleThreadExecutor(r -> {
@@ -239,6 +241,26 @@ public final class RootfsManager {
 
     public String loaderPath() {
         return new File(nativeLibDir, "libproot_loader.so").getAbsolutePath();
+    }
+
+    /**
+     * The guest account every new window logs into: the one the rootfs has.
+     * A name chosen in Settings takes over once the account could be renamed
+     * ({@link #reconcileAccount}, on a session start with no window open);
+     * before the first setup it is the chosen name itself.
+     */
+    public String guestUserName() {
+        String active = activeUserName;
+        return active != null ? active : GuestSettings.userName(prefs());
+    }
+
+    /** The guest's host name, as chosen in Settings; every new window gets it. */
+    public String guestHostName() {
+        return GuestSettings.hostName(prefs());
+    }
+
+    private android.content.SharedPreferences prefs() {
+        return PreferenceManager.getDefaultSharedPreferences(appContext);
     }
 
     public GardenPalette palette() {
@@ -982,7 +1004,9 @@ public final class RootfsManager {
     // ---- managed guest configuration ---------------------------------------
 
     private void setupRootfs(File root, boolean installSkeleton) throws IOException {
-        File home = guestDir(root, "/home/thoth");
+        String user = reconcileAccount(root);
+        if (root.equals(rootfsDir)) activeUserName = user;
+        File home = guestDir(root, GuestConfig.homeOf(user));
 
         File skel = new File(root, "etc/skel");
         if (installSkeleton && fileOps.isDirectory(skel)) {
@@ -995,9 +1019,9 @@ public final class RootfsManager {
                     ShellIntegration.updateBashrc(ManagedFiles.read(fileOps, root, bashrc)));
         });
 
-        setupUserAccount(root);
+        setupUserAccount(root, user);
         removeManagedSudoHelper(root);
-        setupSudo(root);
+        setupSudo(root, user);
         setupEngineGuard(root);
 
         File profileDir = guestDir(root, "/etc/profile.d");
@@ -1040,16 +1064,15 @@ public final class RootfsManager {
             fileOps.unlink(welcomeEnabled);
         }
 
-        managed("hostname", () -> {
-            File hostname = new File(root, "etc/hostname");
-            String current = ManagedFiles.read(fileOps, root, hostname);
-            if (current.isEmpty() || "android".equals(current.trim())) {
-                writeGuest(root, hostname, "thothterm\n");
-            }
-        });
+        // The host name is the user's setting: /etc/hostname for the guest's
+        // tools, the 127.0.1.1 line for sudo's lookup of its own name, and
+        // PRoot's --hostname (GardenRuntime) for uname.
+        String hostName = guestHostName();
+        managed("hostname", () -> writeGuest(root, new File(root, "etc/hostname"), hostName + "\n"));
         managed("hosts", () -> {
             File hosts = new File(root, "etc/hosts");
-            writeGuest(root, hosts, GuestConfig.ensureHosts(ManagedFiles.read(fileOps, root, hosts)));
+            writeGuest(root, hosts, GuestConfig.ensureHosts(
+                    ManagedFiles.read(fileOps, root, hosts), hostName));
         });
         managed("Android groups", () -> {
             File group = new File(root, "etc/group");
@@ -1067,31 +1090,141 @@ public final class RootfsManager {
         fileOps.setMode(tmp, 01777);
     }
 
-    private void setupUserAccount(File root) throws IOException {
+    /** The account name recorded as the managed one; written next to the other managed files. */
+    private static final String ACCOUNT_RECORD = "account";
+
+    /**
+     * The guest account the user chose in Settings, reconciled with the one
+     * the rootfs has. Returns the name the rest of the setup, and every new
+     * window, is to use.
+     *
+     * <p>The managed account's name is recorded in {@code /etc/thothterm/account};
+     * an installation from before the record has the default name. A new
+     * rootfs has neither record nor account, so the chosen name is created
+     * outright. When the chosen name differs from the recorded one, the
+     * account is renamed in place ({@link #renameAccount}), uid 1000 and all;
+     * until that is possible the recorded name stays in effect.</p>
+     */
+    private String reconcileAccount(File root) throws IOException {
+        String wanted = GuestSettings.userName(prefs());
+        File record = new File(guestDir(root, "/etc/thothterm"), ACCOUNT_RECORD);
+        String recorded;
+        try {
+            recorded = ManagedFiles.read(fileOps, root, record).trim();
+        } catch (ManagedFiles.UnmanageableException e) {
+            recorded = "";
+        }
+        File passwd = new File(root, "etc/passwd");
+        String passwdText = "";
+        try {
+            if (guestIsFile(root, passwd)) passwdText = ManagedFiles.read(fileOps, root, passwd);
+        } catch (ManagedFiles.UnmanageableException e) {
+            // setupUserAccount logs it; there is no account to reconcile in a file we cannot read.
+        }
+        String current = null;
+        if (!recorded.isEmpty() && GuestConfig.hasAccount(passwdText, recorded)) {
+            current = recorded;
+        } else if (GuestConfig.hasAccount(passwdText, GuestConfig.DEFAULT_USER)) {
+            current = GuestConfig.DEFAULT_USER;
+        }
+        String effective = wanted;
+        if (current != null && !current.equals(wanted) && !renameAccount(root, current, wanted)) {
+            effective = current;
+        }
+        String name = effective;
+        managed("account record", () -> writeGuest(root, record, name + "\n"));
+        return effective;
+    }
+
+    /**
+     * Renames the guest account: its home directory, then its entries in
+     * gshadow, shadow, group and (last) passwd; the old sudoers file goes and
+     * {@link #setupSudo} writes the new one. Only the names change: uid, gid
+     * and everything the user owns stay. The home moves first because it is
+     * the one step with a precondition; passwd goes last because it decides
+     * the recorded name, so an interruption anywhere leaves the old name in
+     * force and the next start repeats the rest, every step being idempotent.
+     *
+     * @return false, with the reason logged, when the rename cannot happen
+     *         now: a PRoot of this app is running (a shell would lose its home
+     *         beneath it), or the new name is taken by another account or an
+     *         existing home directory. Nothing is clobbered in either case.
+     */
+    private boolean renameAccount(File root, String oldName, String newName) throws IOException {
+        File passwd = new File(root, "etc/passwd");
+        File group = new File(root, "etc/group");
+        for (File file : new File[]{passwd, group}) {
+            if (guestIsFile(root, file)
+                    && GuestConfig.hasAccount(ManagedFiles.read(fileOps, root, file), newName)) {
+                ThothLog.w(LogCategory.ROOTFS, "Guest account not renamed: " + newName
+                        + " is already a name in /etc/" + file.getName());
+                return false;
+            }
+        }
+        int running = GuestProcesses.countProot(new File("/proc"), prootPath(),
+                android.os.Process.myPid());
+        if (running != 0) {
+            ThothLog.i(LogCategory.ROOTFS, "Guest account rename " + oldName + " -> " + newName
+                    + " waits until every Linux window is closed (" + running
+                    + " PRoot process(es) running)");
+            return false;
+        }
+        File oldHome = GuestPaths.resolve(fileOps, root, GuestConfig.homeOf(oldName), false);
+        File newHome = GuestPaths.resolve(fileOps, root, GuestConfig.homeOf(newName), false);
+        if (oldHome == null || newHome == null) throw new IOException("Symlink loop under /home");
+        boolean oldExists = fileOps.type(oldHome) != FileOps.Type.NONE;
+        if (oldExists && fileOps.type(newHome) != FileOps.Type.NONE) {
+            ThothLog.w(LogCategory.ROOTFS, "Guest account not renamed: "
+                    + GuestConfig.homeOf(newName) + " exists already");
+            return false;
+        }
+        ThothLog.i(LogCategory.ROOTFS, "Renaming the guest account " + oldName + " -> " + newName);
+        if (oldExists) {
+            ManagedFiles.ensureDirectories(fileOps, root, newHome.getParentFile());
+            fileOps.rename(oldHome, newHome);
+        }
+        File oldSudoers = new File(guestDir(root, "/etc/sudoers.d"), oldName);
+        if (fileOps.type(oldSudoers) == FileOps.Type.REGULAR) fileOps.unlink(oldSudoers);
+        renameIn(root, "etc/gshadow", text -> GuestConfig.renameGshadow(text, oldName, newName));
+        renameIn(root, "etc/shadow", text -> GuestConfig.renameShadow(text, oldName, newName));
+        renameIn(root, "etc/group", text -> GuestConfig.renameGroup(text, oldName, newName));
+        renameIn(root, "etc/passwd", text -> GuestConfig.renamePasswd(text, oldName, newName));
+        return true;
+    }
+
+    private void renameIn(File root, String path,
+                          java.util.function.UnaryOperator<String> transform) throws IOException {
+        File file = new File(root, path);
+        if (!guestIsFile(root, file)) return;
+        managed("/" + path, () -> writeGuest(root, file,
+                transform.apply(ManagedFiles.read(fileOps, root, file))));
+    }
+
+    private void setupUserAccount(File root, String user) throws IOException {
         File passwd = new File(root, "etc/passwd");
         if (guestIsFile(root, passwd)) {
             managed("/etc/passwd", () -> writeGuest(root, passwd,
-                    GuestConfig.ensurePasswd(ManagedFiles.read(fileOps, root, passwd))));
+                    GuestConfig.ensurePasswd(ManagedFiles.read(fileOps, root, passwd), user)));
         }
 
         File group = new File(root, "etc/group");
         if (guestIsFile(root, group)) {
             managed("/etc/group", () -> writeGuest(root, group, GuestConfig.ensureGroup(
-                    ManagedFiles.read(fileOps, root, group), image.adminGroup())));
+                    ManagedFiles.read(fileOps, root, group), image.adminGroup(), user)));
         }
 
         File shadow = new File(root, "etc/shadow");
         if (guestIsFile(root, shadow)) {
             managed("/etc/shadow", () -> writeGuest(root, shadow,
-                    GuestConfig.ensureShadow(ManagedFiles.read(fileOps, root, shadow))));
+                    GuestConfig.ensureShadow(ManagedFiles.read(fileOps, root, shadow), user)));
         }
     }
 
-    private void setupSudo(File root) throws IOException {
+    private void setupSudo(File root, String user) throws IOException {
         File sudoersDir = guestDir(root, "/etc/sudoers.d");
-        File thothSudoers = new File(sudoersDir, "thoth");
-        managed("sudoers entry", () -> writeGuest(root, thothSudoers,
-                GuestConfig.sudoersEntry(), 0440));
+        File userSudoers = new File(sudoersDir, user);
+        managed("sudoers entry", () -> writeGuest(root, userSudoers,
+                GuestConfig.sudoersEntry(user), 0440));
 
         sudoersReadmeMode(root);
 

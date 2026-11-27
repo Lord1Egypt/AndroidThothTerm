@@ -57,7 +57,7 @@ public class GardenRuntimeTest {
         // A window hangs up like a terminal; --kill-on-exit would kill nohup'd jobs.
         assertTrue(argv.contains("--hangup-on-exit"));
         assertFalse(argv.contains("--kill-on-exit"));
-        assertTrue(argv.contains("--cwd=" + GardenRuntime.LINUX_HOME));
+        assertTrue(argv.contains("--cwd=" + "/home/thoth"));
         assertTrue(argv.contains("--bind=/dev"));
         assertTrue(argv.contains("--bind=/proc"));
         assertTrue(argv.contains("--bind=/sys"));
@@ -104,5 +104,57 @@ public class GardenRuntimeTest {
             if (entry.equals("HOME=/home/thoth")) found = true;
         }
         assertTrue(found);
+    }
+
+    private static GardenRuntime runtime(String userName, String hostName) {
+        return new GardenRuntime(
+                "/data/app/com.thothterm.ubuntu/lib/arm64/libproot.so",
+                "/data/app/com.thothterm.ubuntu/lib/arm64/libproot_loader.so",
+                "/data/user/0/com.thothterm.ubuntu/files/linux/ubuntu-26.04/rootfs",
+                "/data/user/0/com.thothterm.ubuntu/files/linux/runtime/lib",
+                "/data/user/0/com.thothterm.ubuntu/files/linux/runtime/tmp",
+                "/data/user/0/com.thothterm.ubuntu/files/linux/runtime/resolv.conf",
+                "xterm-256color", userName, hostName);
+    }
+
+    /**
+     * PRoot runs its extensions newest first and --kernel-release rewrites the
+     * whole utsname, so --hostname must come first on the command line to win.
+     */
+    @Test
+    public void hostnamePrecedesKernelReleaseInEveryCommandLine() {
+        List<String> argv = runtime().buildArgv();
+        int hostname = argv.indexOf("--hostname=thothterm");
+        int release = argv.indexOf("--kernel-release=6.1.0-thothterm");
+        assertTrue(hostname >= 0 && release >= 0);
+        assertTrue("--hostname must precede --kernel-release", hostname < release);
+
+        List<String> provisioning = runtime().buildProvisioningArgv(java.util.Arrays.asList("true"));
+        assertTrue(provisioning.indexOf("--hostname=thothterm")
+                < provisioning.indexOf("--kernel-release=6.1.0-thothterm"));
+
+        List<String> chosen = runtime("thoth", "pocket").buildArgv();
+        assertTrue(chosen.contains("--hostname=pocket"));
+        assertFalse(chosen.contains("--hostname=thothterm"));
+        assertTrue(chosen.indexOf("--hostname=pocket") < chosen.indexOf("--kernel-release=6.1.0-thothterm"));
+    }
+
+    @Test
+    public void chosenAccountDrivesHomeSuAndEnvironment() {
+        GardenRuntime custom = runtime("alice", "pocket");
+        List<String> argv = custom.buildArgv();
+        assertEquals("alice", argv.get(argv.size() - 1));
+        assertTrue(argv.contains("--cwd=/home/alice"));
+        assertFalse(argv.contains("thoth"));
+        assertEquals("/home/alice", custom.home());
+
+        Map<String, String> env = custom.buildEnvironment();
+        assertEquals("/home/alice", env.get("HOME"));
+        assertEquals("alice", env.get("USER"));
+        assertEquals("alice", env.get("LOGNAME"));
+        // Provisioning still runs as fake root.
+        Map<String, String> provisioning = custom.buildProvisioningEnvironment();
+        assertEquals("/root", provisioning.get("HOME"));
+        assertEquals("root", provisioning.get("USER"));
     }
 }
