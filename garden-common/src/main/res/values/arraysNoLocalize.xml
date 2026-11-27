@@ -37,6 +37,13 @@
         <item>amoled</item>
     </string-array>
 
+    <!-- CpuWakeLock.MODES, in that order. -->
+    <string-array name="entryvalues_keep_cpu_awake_mode_preference">
+        <item>off</item>
+        <item>while_audio</item>
+        <item>always</item>
+    </string-array>
+
     <string-array name="entryvalues_orientation_preference">
         <item>0</item>
         <item>1</item>

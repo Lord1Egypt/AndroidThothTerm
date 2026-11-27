@@ -31,6 +31,8 @@ engine fork.
 | Default user name, UID/GID, home path | **Distro** | Ubuntu uses `thoth`, `/home/thoth`. |
 | Shell startup file layout | **Distro** | `.bashrc` vs `.zshrc` vs `.profile`. |
 | Welcome banner content | **Distro** | The adaptive mechanism is engine; the text is not. |
+| Audio pipe, bind, `AudioBridge`, CPU wake lock | **Engine** | The FIFO at `/run/thothterm/audio/pulse.fifo`, the format (s16le, 48 kHz, stereo), the service. |
+| Guest sound server setup (`thothterm-audio-setup`) | **Distro** | Optional asset `garden/audio/thothterm-audio-setup`: installs `pulseaudio` with the distro's package manager, writes the pipe-sink configuration, starts the daemon. |
 
 **Rule:** if a fix would have to be repeated in every distro, it belongs in the
 engine. If it would be wrong in another distro, it belongs in distro policy.
@@ -113,6 +115,23 @@ These are engine behaviours; a port only has to confirm nothing regressed.
       page). The edition's PRoot is built from `garden-common/patches`, so it
       carries patch 0005; confirm on the device that `/proc/<bash>/cwd` follows
       `cd` in a window and in a browser terminal (see `docs/garden/UPLOADS.md`).
+
+### 2.7 Linux audio (optional)
+
+- [ ] The edition ships `src/main/assets/garden/audio/thothterm-audio-setup`
+      (garden-common installs it as `/usr/local/bin/thothterm-audio-setup`; an
+      edition without one simply has no guest-side setup). Start from
+      garden-arch's or garden-debian's copy: only the package-manager step and
+      the install hints differ. It installs `pulseaudio` as root or with
+      `sudo -n`, writes `~/.config/pulse/{default.pa,client.conf,daemon.conf}`
+      with `module-pipe-sink file=/run/thothterm/audio/pulse.fifo
+      format=s16le rate=48000 channels=2 use_system_clock_for_timing=yes`,
+      `module-suspend-on-idle timeout=5` and no shared memory, never creates
+      the pipe itself, and restarts a running daemon (by name too).
+- [ ] A test like `ArchAudioSetupTest` runs the script against stand-ins for
+      `pulseaudio`, `pgrep`/`pkill`, `sudo` and the package manager.
+- [ ] garden-common stays distro-neutral: the engine only copies the asset
+      (`DistroNeutralityTest`, `AudioBridgeTest`).
 
 ---
 

@@ -77,6 +77,21 @@ and an absolute guest link can never send a write to an Android path. Files are
 decoded whole as strict UTF-8 (a file that is not UTF-8 is left exactly as it
 is) and replaced atomically.
 
+## Managed configuration
+
+Applied at install and refreshed by `prepareSession()` before every window,
+idempotently and only when the text differs: the `thoth` account and its
+groups, `sudoers.d`, the locale fix, `/etc/hostname` and `/etc/hosts`,
+`/etc/machine-id` (a random systemd-shaped id written once when missing or
+invalid; PulseAudio names its runtime directory after it), the Android
+supplementary groups, `/etc/thothterm/*` (edition, palette, welcome flag,
+runtime config version), the shell integration and the helpers under
+`/usr/local/bin` (`thothfetch`, `fastfetch-fit`, `flatpak` where ThothDock
+runs sandboxes, and the edition's optional `thothterm-audio-setup`, installed
+when the edition ships `garden/audio/thothterm-audio-setup` and never
+otherwise). The mount point `/run/thothterm/audio` is created for the audio
+pipe's bind. Nothing under `/home` is managed.
+
 ## Setup states, stages and timings
 
 The terminal depends only on the core setup. `SetupState` names where an

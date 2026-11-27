@@ -56,6 +56,7 @@ import com.thothterm.TermActionBar;
 import com.thothterm.TerminalZoom;
 import com.thothterm.TermPreferencesActivity;
 import com.thothterm.WindowListActivity;
+import com.thothterm.audio.AudioBridge;
 import com.thothterm.compat.SoftInputCompat;
 import com.thothterm.lan.LanController;
 import com.thothterm.lan.LanModeActivity;
@@ -67,6 +68,7 @@ import com.thothterm.services.ServiceManager;
 import com.thothterm.upload.LocalUpload;
 import com.thothterm.upload.SessionDirectory;
 import com.thothterm.upload.UploadUi;
+import com.thothterm.utils.CpuWakeLock;
 import com.thothterm.utils.ScreenAwake;
 import com.thothterm.utils.SimpleClipboardManager;
 import com.thothterm.utils.WifiLock;
@@ -223,6 +225,10 @@ public class Term extends AppCompatActivity
 
         if (ScreenAwake.PREF_WHILE_CHARGING.equals(key) && mScreenAwake != null) {
             mScreenAwake.onPreferencesChanged();
+        }
+        if (CpuWakeLock.PREF_KEY.equals(key) || AudioBridge.PREF_KEY.equals(key)) {
+            // Changed from the notification or from Settings: the menu follows.
+            invalidateOptionsMenu();
         }
 
         mSettings.readPrefs(this, sharedPreferences);
@@ -648,6 +654,10 @@ public class Term extends AppCompatActivity
             doToggleKeepScreenOn();
         } else if (id == R.id.menu_toggle_wifilock) {
             doToggleWifiLock();
+        } else if (id == R.id.menu_toggle_keep_cpu_awake) {
+            doChooseKeepCpuAwake();
+        } else if (id == R.id.menu_toggle_audio_bridge) {
+            doToggleAudioBridge();
         } else if (id == R.id.menu_retry_optional_setup) {
             RootfsManager.get().retryOptionalSetup();
             ScreenMessage.show(getApplicationContext(), R.string.optional_setup_retrying);
@@ -863,6 +873,10 @@ public class Term extends AppCompatActivity
         } else {
             wifiLockItem.setTitle(R.string.enable_wifilock);
         }
+        // The mode is the record; the service's lock follows it within the same call.
+        menu.findItem(R.id.menu_toggle_keep_cpu_awake).setTitle(getString(R.string.keep_cpu_awake_menu,
+                getString(CpuWakeLock.modeLabel(CpuWakeLock.mode(this)))));
+        menu.findItem(R.id.menu_toggle_audio_bridge).setChecked(AudioBridge.isWanted(this));
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -1135,6 +1149,43 @@ public class Term extends AppCompatActivity
     private void doToggleWifiLock() {
         WifiLock.toggle(this);
         invalidateOptionsMenu();
+    }
+
+    /**
+     * "Keep CPU awake": choose the mode -- off, while sound plays, always --
+     * in a single-choice dialog with the current one checked; the service,
+     * which owns the {@link CpuWakeLock}, follows it (directly when bound,
+     * through its preference listener otherwise). Separate from "Keep screen
+     * awake", which is {@link ScreenAwake} and never a wake lock.
+     */
+    private void doChooseKeepCpuAwake() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.keep_cpu_awake)
+                .setSingleChoiceItems(R.array.entries_keep_cpu_awake_mode_preference,
+                        CpuWakeLock.modeIndex(CpuWakeLock.mode(this)), (dialog, which) -> {
+                            dialog.dismiss();
+                            if (which < 0 || which >= CpuWakeLock.MODES.length) return;
+                            String mode = CpuWakeLock.MODES[which];
+                            CpuWakeLock.setMode(this, mode);
+                            if (mTermService != null) mTermService.applyKeepAwake();
+                            invalidateOptionsMenu();
+                            ScreenMessage.show(getApplicationContext(), CpuWakeLock.modeToast(mode));
+                        })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * "Linux audio": flip the preference; the service, which owns the
+     * {@link AudioBridge}, follows it (directly when bound, through its
+     * preference listener otherwise).
+     */
+    private void doToggleAudioBridge() {
+        boolean on = AudioBridge.toggleWanted(this);
+        if (mTermService != null) mTermService.applyAudioBridge();
+        invalidateOptionsMenu();
+        ScreenMessage.show(getApplicationContext(),
+                on ? R.string.audio_bridge_toast_on : R.string.audio_bridge_toast_off);
     }
 
     private void doToggleUI(MotionEvent e, EmulatorView view) {

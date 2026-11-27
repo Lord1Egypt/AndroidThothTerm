@@ -1,0 +1,147 @@
+#!/bin/bash
+# thothterm-audio-setup -- route this guest's sound to the ThothTerm app.
+#
+# Managed by ThothTerm Trixie; the app reinstalls it as /usr/local/bin/
+# thothterm-audio-setup whenever a terminal opens, so edit the files it writes
+# under ~/.config/pulse instead of this script.
+#
+# How it works: the guest runs its own ordinary PulseAudio. Its default sink
+# is module-pipe-sink, which writes raw PCM (s16le, 48 kHz, stereo) into the
+# named pipe /run/thothterm/audio/pulse.fifo. That directory is the app's own,
+# bound into the guest, and the app's "Linux audio" switch plays what arrives
+# in the pipe. Programs (mpv, cmus, mpd, paplay ...) just use PulseAudio and
+# need no setting.
+#
+# Nothing runs while nothing plays: module-suspend-on-idle suspends the sink
+# 5 s after the last stream ends, and a suspended pipe sink writes nothing.
+# The sink keeps the system clock (use_system_clock_for_timing), so when the
+# app is not reading -- "Linux audio" off -- sound is dropped in real time
+# like a null sink and players never stall on a full pipe.
+#
+# The pipe is the app's: it creates it before a terminal starts, and
+# module-pipe-sink uses a pipe that already exists as it is (and then never
+# removes it), so a PulseAudio restart does not change the pipe the app reads.
+#
+# Run it once as the ordinary user; it is safe to run again.
+
+set -u
+
+fifo=/run/thothterm/audio/pulse.fifo
+sink=thothterm
+pulse_dir="${XDG_CONFIG_HOME:-$HOME/.config}/pulse"
+
+say() { printf '%s\n' "$*"; }
+fail() { say "thothterm-audio-setup: $*" >&2; exit 1; }
+# An executable on PATH; bash's command -v also reports files that are not.
+installed() {
+  local found
+  found=$(command -v "$1" 2>/dev/null) && [ -n "$found" ] && [ -x "$found" ]
+}
+
+# ---- 1. pulseaudio ----------------------------------------------------------
+if ! installed pulseaudio; then
+  say "Installing pulseaudio ..."
+  # From the package lists the guest already has; if they are stale or missing,
+  # the hint below says what to run instead.
+  if [ "$(id -u)" = 0 ]; then
+    apt-get install -y pulseaudio \
+      || fail "apt-get failed; try: apt-get update && apt-get install pulseaudio"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo -n apt-get install -y pulseaudio \
+      || fail "sudo apt-get failed; try: sudo apt-get update && sudo apt-get install pulseaudio"
+  else
+    fail "pulseaudio is not installed and there is no sudo; install it as root: apt-get install pulseaudio"
+  fi
+fi
+
+# ---- 2. the pipe ------------------------------------------------------------
+# The app creates it and binds its directory here. Without it PulseAudio would
+# make a pipe of its own inside the guest, which nothing reads.
+if [ ! -p "$fifo" ]; then
+  say "warning: $fifo is not a named pipe; the app creates it when a terminal"
+  say "         window opens. Sound will not reach the app until it exists."
+fi
+
+# ---- 3. configuration -------------------------------------------------------
+mkdir -p "$pulse_dir" || fail "cannot create $pulse_dir"
+
+# Self-contained on purpose. /etc/pulse/default.pa starts with .fail and then
+# probes udev and sound cards (module-udev-detect, module-detect), which has
+# nothing to find under PRoot on Android and can stop the daemon from starting.
+cat > "$pulse_dir/default.pa" <<EOF
+# Written by thothterm-audio-setup. The guest's sound goes to the ThothTerm app.
+.fail
+load-module module-device-restore
+load-module module-stream-restore
+load-module module-card-restore
+load-module module-augment-properties
+load-module module-native-protocol-unix
+load-module module-pipe-sink file=$fifo sink_name=$sink format=s16le rate=48000 channels=2 use_system_clock_for_timing=yes sink_properties=device.description=ThothTerm
+set-default-sink $sink
+.nofail
+load-module module-default-device-restore
+load-module module-suspend-on-idle timeout=5
+load-module module-position-event-sounds
+EOF
+
+# Clients start the daemon when it is not running, with this binary.
+cat > "$pulse_dir/client.conf" <<EOF
+# Written by thothterm-audio-setup.
+autospawn = yes
+daemon-binary = /usr/bin/pulseaudio
+enable-shm = no
+EOF
+
+# A daemon a client spawned must not exit when idle: an idle daemon costs
+# nothing (its sink is suspended) and every restart is a pause. No shared
+# memory: there is no /dev/shm under PRoot.
+cat > "$pulse_dir/daemon.conf" <<EOF
+# Written by thothterm-audio-setup.
+exit-idle-time = -1
+enable-shm = no
+flat-volumes = no
+EOF
+
+# ---- 4. start ---------------------------------------------------------------
+# A daemon from before this configuration keeps its old modules until it is
+# restarted; --start would only report that one is running. --check and --kill
+# reach only the daemon behind this user's current runtime directory, which
+# PulseAudio names after the machine id or, without one, the host name: a
+# daemon started under another host name (the guest got its own name in an
+# update, or the setting changed) is invisible to them, so any other daemon
+# of this user is found by process name. Two daemons would share the pipe.
+uid=$(id -u)
+others_running() { installed pgrep && pgrep -x -u "$uid" pulseaudio >/dev/null 2>&1; }
+if pulseaudio --check 2>/dev/null || others_running; then
+  say "Restarting pulseaudio ..."
+  pulseaudio --kill >/dev/null 2>&1
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if ! pulseaudio --check 2>/dev/null && ! others_running; then break; fi
+    installed pkill && pkill -x -u "$uid" pulseaudio >/dev/null 2>&1
+    sleep 0.5
+  done
+  if others_running; then
+    installed pkill && pkill -KILL -x -u "$uid" pulseaudio >/dev/null 2>&1
+    sleep 0.5
+  fi
+else
+  say "Starting pulseaudio ..."
+fi
+pulseaudio --start --exit-idle-time=-1 --disable-shm=true \
+  || fail "pulseaudio did not start; run 'pulseaudio -vvv' to see why"
+
+# ---- 5. how to test ---------------------------------------------------------
+say ""
+say "PulseAudio writes the '$sink' sink to $fifo for the app."
+say "In the app: menu > 'Linux audio' (or Settings > Linux audio), then try:"
+sample=""
+for f in /usr/share/sounds/alsa/Front_Center.wav /usr/share/sounds/freedesktop/stereo/bell.oga; do
+  if [ -f "$f" ]; then sample=$f; break; fi
+done
+if [ -n "$sample" ]; then
+  say "  paplay $sample"
+else
+  say "  pactl info          # 'Default Sink: $sink' means programs will use it"
+fi
+say "  sudo apt-get install mpv  # then: mpv --no-video <file or URL>"
+say "  pactl list sinks short   # SUSPENDED a few seconds after the last sound"

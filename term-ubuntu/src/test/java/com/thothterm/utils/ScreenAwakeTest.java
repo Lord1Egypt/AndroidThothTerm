@@ -42,9 +42,18 @@ import java.util.regex.Pattern;
  * half pins what must never come back: up to terminal-v1.3.0 the menu item
  * took a partial wake lock, which keeps the CPU awake and lets the display
  * sleep, and then sent the user to battery settings.
+ * <p>
+ * "Keep CPU awake" ({@code CpuWakeLock}) is a different feature with a
+ * different name: an explicit PARTIAL_WAKE_LOCK so Linux audio and background
+ * jobs survive the screen turning off, held by mode and released when idle,
+ * never a way to keep the screen on. The forbidden-token scan below allows
+ * exactly that one class and keeps screen awake, and everything else, free of
+ * wake locks and battery flows.
  */
 public class ScreenAwakeTest {
     private static final File MAIN = new File("src/main");
+    /** The one source that may hold a CPU wake lock. */
+    static final String CPU_WAKE_LOCK = "CpuWakeLock.java";
 
     static final String[] FORBIDDEN = {
             "PARTIAL_WAKE_LOCK",
@@ -130,17 +139,56 @@ public class ScreenAwakeTest {
                 string(strings, "title_keep_screen_on_while_charging_preference"));
     }
 
+    /**
+     * Only {@code CpuWakeLock.java} may hold a CPU wake lock; nothing asks for
+     * a battery exemption. Screen awake, the terminal, the menu, the manifest
+     * and every other file stay as they were: no wake lock, no battery flow,
+     * no screen timeout.
+     */
     @Test
-    public void nothingKeepsTheCpuAwakeOrAsksForABatteryExemption() throws IOException {
+    public void nothingButTheCpuWakeLockKeepsTheCpuAwakeAndNothingAsksForABatteryExemption()
+            throws IOException {
         List<File> files = new ArrayList<>();
         collect(MAIN, files);
         assertTrue("no sources found under " + MAIN.getAbsolutePath(), files.size() > 10);
         for (File file : files) {
+            if (file.getName().equals(CPU_WAKE_LOCK)) continue;
             String code = withoutComments(read(file));
             for (String token : FORBIDDEN) {
                 assertFalse(file + " uses " + token, code.contains(token));
             }
         }
+    }
+
+    /** The two features share nothing: one is the display, the other the CPU. */
+    @Test
+    public void screenAwakeAndTheCpuWakeLockStayApart() throws IOException {
+        String awake = withoutComments(read(new File(MAIN, "java/com/thothterm/utils/ScreenAwake.java")));
+        assertFalse(awake.contains("CpuWakeLock"));
+        assertFalse(awake.contains("PowerManager"));
+        File cpu = new File(MAIN, "java/com/thothterm/utils/" + CPU_WAKE_LOCK);
+        if (!cpu.exists()) return; // term-ubuntu has no CPU wake lock at all.
+        String code = withoutComments(read(cpu));
+        assertFalse(code.contains("FLAG_KEEP_SCREEN_ON"));
+        assertFalse(code.contains("ScreenAwake"));
+        assertTrue(code.contains("PARTIAL_WAKE_LOCK"));
+        // The lock never brings the battery detour back.
+        assertFalse(code.contains("BatteryOptimization"));
+        assertFalse(code.contains("ignore_battery"));
+        // Held by the user's choice alone: by default only while Linux audio plays,
+        // never because of the screen; in the code and in the Settings list.
+        assertTrue(code.contains("PREF_DEFAULT = MODE_WHILE_AUDIO"));
+        String prefs = read(new File(MAIN, "res/xml/preferences.xml"));
+        Matcher m = Pattern.compile("<ListPreference\\s+android:defaultValue=\"(\\w+)\"[^>]*android:key=\""
+                + "keep_cpu_awake_mode\"").matcher(prefs);
+        assertTrue("no list for keep_cpu_awake_mode", m.find());
+        assertEquals("while_audio", m.group(1));
+        // The screen-awake menu action never reaches the CPU lock.
+        String term = read(new File(MAIN, "java/jackpal/androidterm/Term.java"));
+        int start = term.indexOf("private void doToggleKeepScreenOn()");
+        assertTrue(start >= 0);
+        int end = term.indexOf("\n    }\n", start);
+        assertFalse(term.substring(start, end).contains("CpuWakeLock"));
     }
 
     @Test

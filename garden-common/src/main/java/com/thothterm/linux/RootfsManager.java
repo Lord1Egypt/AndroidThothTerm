@@ -854,6 +854,34 @@ public final class RootfsManager {
         }
         if (needsAdminTools()) scheduleAdminTools("session start", null);
         refreshProcOverrides();
+        ensureAudioFifo();
+    }
+
+    /**
+     * The named pipe "Linux audio" reads lives in this app's storage and its
+     * directory is bound into the guest (see {@link #audioBinds()}); it is
+     * the app's to create, before the guest can find it. A failure only
+     * leaves the guest without sound.
+     */
+    private void ensureAudioFifo() {
+        try {
+            com.thothterm.audio.AudioBridge.ensureFifo(com.thothterm.audio.AudioBridge.hostFifo(appContext));
+        } catch (IOException e) {
+            ThothLog.w(LogCategory.PROOT, "Cannot create the audio pipe: " + e.getMessage());
+        }
+    }
+
+    /**
+     * The PRoot bind of the audio pipe's directory at
+     * {@link com.thothterm.audio.AudioBridge#GUEST_DIR}, when the directory
+     * exists (PRoot drops a binding whose source is missing).
+     */
+    List<String> audioBinds() {
+        File dir = com.thothterm.audio.AudioBridge.hostDir(appContext);
+        if (!dir.isDirectory()) return new ArrayList<>();
+        List<String> binds = new ArrayList<>();
+        binds.add("--bind=" + dir.getAbsolutePath() + ":" + com.thothterm.audio.AudioBridge.GUEST_DIR);
+        return binds;
     }
 
     /**
@@ -1020,6 +1048,14 @@ public final class RootfsManager {
         if (dock != null && dock.bundlesBwrap()) {
             copyManagedAsset(root, "linux/flatpak", new File(binDir, "flatpak"), 0755);
         }
+        // The guest-side setup for "Linux audio" is the edition's: it knows its
+        // package manager and its sound server. garden-common installs whatever
+        // the edition ships under that asset name, and nothing without it.
+        copyEditionAsset(root, com.thothterm.audio.AudioBridge.GUEST_SETUP_ASSET,
+                new File(binDir, com.thothterm.audio.AudioBridge.GUEST_SETUP_NAME), 0755);
+        // The mount point for the audio pipe's directory, so PRoot binds onto
+        // a directory that is there rather than making one up.
+        guestDir(root, com.thothterm.audio.AudioBridge.GUEST_DIR);
 
         // Read by thothfetch; the edition name is validated metadata, one line.
         managed("edition", () -> writeGuest(root, new File(managedDir, "edition"),
@@ -1050,6 +1086,18 @@ public final class RootfsManager {
         managed("hosts", () -> {
             File hosts = new File(root, "etc/hosts");
             writeGuest(root, hosts, GuestConfig.ensureHosts(ManagedFiles.read(fileOps, root, hosts)));
+        });
+        // A machine id of its own, written once: PulseAudio names its per-user
+        // runtime directory after it and falls back to the host name without
+        // one, so its clients would lose a running daemon whenever the host
+        // name changed (D-Bus wants an id too). A distribution's own is kept.
+        managed("machine-id", () -> {
+            File machineId = new File(root, "etc/machine-id");
+            String current = guestIsFile(root, machineId)
+                    ? ManagedFiles.read(fileOps, root, machineId).trim() : "";
+            if (!GuestConfig.isMachineId(current)) {
+                writeGuest(root, machineId, GuestConfig.newMachineId() + "\n");
+            }
         });
         managed("Android groups", () -> {
             File group = new File(root, "etc/group");
@@ -1677,9 +1725,25 @@ public final class RootfsManager {
         return dir;
     }
 
+    /** An asset an edition may or may not ship: without it nothing is written or removed. */
+    private void copyEditionAsset(File root, String assetName, File destination, int mode)
+            throws IOException {
+        InputStream input;
+        try {
+            input = appContext.getAssets().open(assetName);
+        } catch (java.io.FileNotFoundException e) {
+            return;
+        }
+        copyManagedAsset(root, assetName, input, destination, mode);
+    }
+
     private void copyManagedAsset(File root, String assetName, File destination, int mode)
             throws IOException {
-        InputStream input = appContext.getAssets().open(assetName);
+        copyManagedAsset(root, assetName, appContext.getAssets().open(assetName), destination, mode);
+    }
+
+    private void copyManagedAsset(File root, String assetName, InputStream input, File destination,
+                                  int mode) throws IOException {
         String text;
         try {
             byte[] bytes = readAll(input);

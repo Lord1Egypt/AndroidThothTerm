@@ -52,7 +52,7 @@ public final class GardenRuntime {
     private final String prootTmpDir;
     private final String resolverFile;
     private final String terminalType;
-    /** Extra {@code --bind} arguments: the /proc stand-ins and ThothDock's files. */
+    /** Extra {@code --bind} arguments: the /proc stand-ins, the audio pipe's directory and ThothDock's files. */
     private final List<String> extraBinds;
     /** Extra guest environment (DOCKER_HOST); empty in every other build. */
     private final Map<String, String> extraEnv;
@@ -81,6 +81,7 @@ public final class GardenRuntime {
     public static GardenRuntime from(RootfsManager manager, String terminalType) {
         com.thothterm.dock.ThothDock dock = com.thothterm.dock.ThothDock.getIfInitialized();
         List<String> binds = new ArrayList<>(manager.procBinds());
+        binds.addAll(manager.audioBinds());
         if (dock != null) binds.addAll(dock.guestBinds());
         Map<String, String> env = dock == null
                 ? Collections.<String, String>emptyMap() : dock.guestEnvironment();

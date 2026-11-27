@@ -39,6 +39,22 @@ The runtime is PRoot patch
 - **Exit** hangs up every session, then SIGKILLs every PRoot. `EXITKILL`
   takes nohup'd jobs down with it. Exit means everything stops.
 
+## What a session start prepares, and what the service holds
+
+- **Before every window** `prepareSession()` refreshes the managed files,
+  the `/proc` stand-ins and the audio pipe: `<files>/linux/audio/pulse.fifo`
+  is created by the app (`mkfifo`) and its directory is bound into the guest
+  at `/run/thothterm/audio`, where the guest's PulseAudio writes its default
+  sink. The pipe is the app's and survives every guest session and every
+  PulseAudio restart.
+- **While the service runs** it owns the audio bridge (reading that pipe
+  when *Linux audio* is on) and the CPU wake lock (*Keep CPU awake*: off,
+  while sound plays with a 10 s grace, or always). Both follow their
+  preferences; both are stopped and released on `onDestroy`, `onTimeout` and
+  Exit, and the preferences stay for the next start. Neither keeps a PRoot
+  alive: with the screen off and the lock not held, guest processes are
+  simply suspended with the device and resume with it.
+
 ## History
 
 - Up to ubuntu-v0.1.7, app processes ignored SIGHUP, so closing a window

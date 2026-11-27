@@ -45,6 +45,20 @@ final class GuestConfig {
     private GuestConfig() {
     }
 
+    /** True for a machine id as systemd defines it: 32 lower-case hexadecimal digits. */
+    static boolean isMachineId(String text) {
+        return text != null && text.matches("[0-9a-f]{32}");
+    }
+
+    /** A fresh random machine id, for a guest that has none. */
+    static String newMachineId() {
+        byte[] bytes = new byte[16];
+        new java.security.SecureRandom().nextBytes(bytes);
+        StringBuilder hex = new StringBuilder(32);
+        for (byte b : bytes) hex.append(String.format("%02x", b));
+        return hex.toString();
+    }
+
     static String ensurePasswd(String text) {
         if (hasNamedLine(text, USER)) return text;
         return appendStanza(text, USER + ":x:" + UID + ":" + GID + ":Thoth User:"
